@@ -1,0 +1,12 @@
+build/
+vcpkg_installed/
+
+# Personal CMake presets (e.g. a local VCPKG_ROOT)
+CMakeUserPresets.json
+
+# VS Code: track the shared build/debug/IntelliSense config, ignore everything else
+# (personal settings, extension recommendations, etc.)
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/c_cpp_properties.json

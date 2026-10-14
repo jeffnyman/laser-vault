@@ -1,0 +1,15 @@
+* text=auto eol=lf
+
+*.c      diff=cpp
+*.cc     diff=cpp
+*.cpp    diff=cpp
+*.cxx    diff=cpp
+*.h      diff=cpp
+*.hh     diff=cpp
+*.hpp    diff=cpp
+
+.editorconfig  export-ignore
+.gitattributes export-ignore
+.gitignore     export-ignore
+.github/*      export-ignore
+.vscode/*      export-ignore

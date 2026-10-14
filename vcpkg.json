@@ -1,0 +1,12 @@
+{
+  "name": "laser-vault",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "sdl3",
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": ["avcodec", "avformat"]
+    }
+  ]
+}
