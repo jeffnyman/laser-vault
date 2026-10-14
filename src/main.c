@@ -5,7 +5,9 @@
 //
 // With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
 // the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
-// the control panel. --fast-boot skips the wait while the game spins up
+// the control panel. --attract-sound plays sound in every attract cycle (by
+// default, as on the real machine, it only does every few cycles).
+// --fast-boot skips the wait while the game spins up
 // the disc, starting straight in the attract mode.
 //
 //   Arrow keys          joystick
@@ -27,6 +29,7 @@
 //   0-9, Enter          type a frame number and search to it
 //   Escape              cancel typing, or quit
 
+#include "audio/disc_audio.h"
 #include "games/dlair/dlair.h"
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
@@ -47,6 +50,7 @@
 typedef struct {
     Framefile framefile;
     DiscVideo *video;
+    DiscAudio *audio;  // NULL if there's no sound device
     Ldp ldp;
 
     // Game mode: the board and its LD-V1000, which drive ldp.
@@ -67,7 +71,7 @@ typedef struct {
 static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
-                    "                   [--fast-boot] [--frame N] [--disc-fps F]\n");
+                    "                   [--fast-boot] [--attract-sound] [--frame N] [--disc-fps F]\n");
 }
 
 static void update_title(App *app)
@@ -269,6 +273,7 @@ int main(int argc, char **argv)
     const char *video_dir = NULL;
     const char *roms = NULL;
     bool want_fast_boot = false;
+    bool attract_sound = false;
     int start_frame = -1;
     double disc_fps = DEFAULT_DISC_FPS;
 
@@ -277,6 +282,8 @@ int main(int argc, char **argv)
             video_dir = argv[++i];
         } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
             roms = argv[++i];
+        } else if (strcmp(argv[i], "--attract-sound") == 0) {
+            attract_sound = true;
         } else if (strcmp(argv[i], "--fast-boot") == 0) {
             want_fast_boot = true;
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
@@ -334,12 +341,17 @@ int main(int argc, char **argv)
     bool vsync = SDL_SetRenderVSync(app.renderer, 1);
 
     app.video = disc_video_open(&app.framefile, disc_fps);
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO))
+        app.audio = disc_audio_open(&app.framefile, disc_fps);
+    else
+        fprintf(stderr, "No sound: %s\n", SDL_GetError());
     ldp_init(&app.ldp, disc_fps,
              start_frame >= 0 ? start_frame : app.framefile.clips[0].start_frame);
     if (app.game) {
         // The LD-V1000 takes over the player model; the board talks to it.
         ldv1000_init(&app.player, &app.ldp, DLAIR_CPU_HZ);
         dlair_reset(app.board, dlair_ldv1000_link(&app.player));
+        if (attract_sound) app.board->dsw2 &= ~DLAIR_DSW2_QUIET_ATTRACT;
         if (want_fast_boot) {
             fast_boot(&app);
         } else {
@@ -380,10 +392,20 @@ int main(int argc, char **argv)
             ldp_update(&app.ldp, elapsed);
         }
         draw(&app);
+
+        // Sound plays only while the disc plays at normal speed. In game
+        // mode the game can switch the disc's two audio channels on and off.
+        if (app.audio) {
+            bool channel1 = app.game ? app.player.audio[0] : true;
+            bool channel2 = app.game ? app.player.audio[1] : true;
+            disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING, app.ldp.frame,
+                              channel1, channel2);
+        }
         update_title(&app);
         if (!vsync) SDL_Delay(5);
     }
 
+    disc_audio_close(app.audio);
     disc_video_close(app.video);
     SDL_DestroyTexture(app.texture);
     SDL_DestroyRenderer(app.renderer);

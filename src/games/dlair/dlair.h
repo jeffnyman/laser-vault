@@ -28,6 +28,11 @@
 
 #define DLAIR_CPU_HZ 4000000
 
+// DIP switch B:1, "Sound Every 8 Attracts". On (the default) keeps the
+// attract mode quiet: the game switches the disc's sound off and only lets
+// it through every few attract cycles. Off: the attract mode always has sound.
+#define DLAIR_DSW2_QUIET_ATTRACT 0x01
+
 // How the board talks to the laserdisc player. The player drives two
 // strobe lines that tell the game when to read status and when to send
 // the next command byte. Every call passes the current time ("now", in CPU

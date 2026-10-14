@@ -5,7 +5,8 @@ with SDL3 and FFmpeg. First target: *Dragon's Lair*.
 
 **Stage 4 (current):** Dragon's Lair runs. The original game code runs on an
 emulated Z80 and drives an emulated Pioneer LD-V1000 laserdisc player: the
-attract mode plays, and you can insert coins and start a game. No sound yet.
+attract mode plays, and you can insert coins and start a game, with the
+laserdisc's soundtrack. (The board's own sound chip, for beeps, comes next.)
 
 Earlier stages: showing any frame by number (1), a laserdisc player you drive
 from the keyboard (2), and the Z80 running the ROM (3).
@@ -178,6 +179,12 @@ settings take two coins per credit, so press 5 twice, then 1.
 The window title shows the 16-digit score display and what the laserdisc
 player is doing.
 
+The soundtrack comes from the `.ogg` file next to each video clip, played in
+step with the picture. With the factory settings the attract mode is mostly
+silent: a DIP switch ("Sound Every 8 Attracts") has the game turn the disc's
+sound off and only let it through every few attract cycles, about every five
+minutes. Add `--attract-sound` to flip that switch and hear every cycle.
+
 ### Driving the laserdisc player yourself
 
 Leave out `--roms` and you take the game's place: the keyboard controls the
@@ -231,6 +238,7 @@ dlair-trace path/to/lair.zip --seconds 60 --press coin1@40 --press coin1@41 --pr
 After about 35 seconds of game time you'll see it search to frame 323, where
 the attract mode's video starts. With the presses above, a game starts at
 frame 1424. Buttons: `up down left right sword start1 start2 coin1 coin2`.
+`--dsw1 HEX` and `--dsw2 HEX` set the DIP switches (defaults `20` and `79`).
 
 ## Testing the Z80
 
@@ -259,6 +267,7 @@ and takes a minute or two.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
+- `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/dlair_trace.c`: the `dlair-trace` tool.

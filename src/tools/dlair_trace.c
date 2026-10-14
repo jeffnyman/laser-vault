@@ -73,12 +73,17 @@ int main(int argc, char **argv)
 {
     const char *roms = NULL;
     double seconds = 60;
+    int dsw1 = -1, dsw2 = -1;  // DIP switch overrides, -1 = default
     Press presses[MAX_PRESSES];
     int press_count = 0;
     bool bad_args = false;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
             seconds = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--dsw1") == 0 && i + 1 < argc) {
+            dsw1 = (int)strtol(argv[++i], NULL, 16);
+        } else if (strcmp(argv[i], "--dsw2") == 0 && i + 1 < argc) {
+            dsw2 = (int)strtol(argv[++i], NULL, 16);
         } else if (strcmp(argv[i], "--press") == 0 && i + 1 < argc && press_count < MAX_PRESSES) {
             char name[32];
             double at, length = PRESS_SECONDS;
@@ -105,6 +110,8 @@ int main(int argc, char **argv)
     DlairLaserdisc link = dlair_ldv1000_link(&player);
     link.send_command = send_command;
     dlair_reset(&board, link);
+    if (dsw1 >= 0) board.dsw1 = (uint8_t)dsw1;
+    if (dsw2 >= 0) board.dsw2 = (uint8_t)dsw2;
 
     // Run in slices of 1 ms, reporting changes between them.
     uint8_t shown[16];

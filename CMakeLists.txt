@@ -43,6 +43,7 @@ endif()
 # The emulator.
 add_executable(laser-vault
     src/main.c
+    src/audio/disc_audio.c
 )
 target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_dlair SDL3::SDL3)
 
