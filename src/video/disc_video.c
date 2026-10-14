@@ -57,8 +57,13 @@ static bool open_clip(DiscVideo *dv, const FramefileClip *clip)
     dv->stream_index = av_find_best_stream(dv->format, AVMEDIA_TYPE_VIDEO, -1, -1, &codec, 0);
     if (dv->stream_index < 0) goto fail;
 
+    // The frame rate comes from the MPEG sequence header. (Don't use
+    // avg_frame_rate: for a raw .m2v file FFmpeg can't measure it and
+    // reports a placeholder of 25.) In Dragon's Lair the film clips are
+    // 29.97 fps but the text slates clip is 23.976, one picture per disc frame.
     AVStream *stream = dv->format->streams[dv->stream_index];
-    AVRational rate = stream->avg_frame_rate.num ? stream->avg_frame_rate : stream->r_frame_rate;
+    AVRational rate = stream->codecpar->framerate;
+    if (!rate.num) rate = stream->r_frame_rate;
     dv->mpeg_fps = rate.num ? av_q2d(rate) : dv->disc_fps;
 
     dv->decoder = avcodec_alloc_context3(codec);
