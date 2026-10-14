@@ -58,6 +58,7 @@ void ldv1000_init(Ldv1000 *ld, Ldp *ldp, double clock_hz)
         .audio = {true, true},
     };
     ldp->frame = 0;
+    ldp->blank_during_search = true;  // the LD-V1000 outputs no picture mid-search
     ldp_stop(ldp);  // parked: disc not spinning
     ld->previous_state = ldp->state;
 }

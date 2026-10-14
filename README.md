@@ -184,6 +184,10 @@ they're on LED displays in the bezel around it. Add `--scores` (or press S)
 to show them in a panel beside the picture. The window title also shows the
 raw display digits and what the laserdisc player is doing.
 
+Between scenes the screen goes black for a moment while the laserdisc player
+searches, as on the real machine; longer jumps take a little longer (from
+about 0.1 s up to 0.3 s).
+
 The soundtrack comes from the `.ogg` file next to each video clip, played in
 step with the picture. With the factory settings the attract mode is mostly
 silent: a DIP switch ("Sound Every 8 Attracts") has the game turn the disc's

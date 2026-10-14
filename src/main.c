@@ -154,7 +154,8 @@ static void draw(App *app)
     const Ldp *ldp = &app->ldp;
 
     // Decode only when the player has moved to a new frame. While searching,
-    // ldp->frame stays on the old frame, so the last picture is held.
+    // ldp->frame stays on the old frame, so the last picture is held (unless
+    // the player blanks the screen while searching, as the LD-V1000 does).
     if (ldp_has_picture(ldp) && ldp->frame != app->texture_frame) {
         const AVFrame *pic = disc_video_get_frame(app->video, ldp->frame);
         if (pic) upload_picture(app, pic);
@@ -229,7 +230,7 @@ static void fast_boot(App *app)
     const uint64_t limit = 120ull * DLAIR_CPU_HZ;
     bool searched = false;
     while (app->board->cycles < limit) {
-        dlair_run(app->board, DLAIR_CPU_HZ / 100);  // 10 ms; a search takes 100 ms
+        dlair_run(app->board, DLAIR_CPU_HZ / 100);  // 10 ms; searches take longer
         ldv1000_update(&app->player, app->board->cycles);
         if (app->ldp.state == LDP_SEARCHING) searched = true;
         else if (searched && app->ldp.state == LDP_PLAYING) break;

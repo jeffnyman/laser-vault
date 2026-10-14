@@ -32,7 +32,7 @@ typedef struct {
     LdpState state;
     int frame;              // current frame number
     double fps;             // frames per second while playing
-    double search_seconds;  // how long a search takes
+    bool blank_during_search;  // show black while searching (as the LD-V1000 does)
 
     double frame_clock;     // time since the frame last advanced
     double search_clock;    // time left until the search finishes
@@ -52,9 +52,12 @@ void ldp_step(Ldp *ldp, int delta);  // pause, then move delta frames
 // Advance time by the given number of seconds.
 void ldp_update(Ldp *ldp, double seconds);
 
-// Is there a picture to show? Only a stopped disc has none. Mid-search we
-// keep showing the last frame (some real players blanked the screen instead).
+// Is there a picture to show? Not while stopped, nor while searching if
+// blank_during_search is set; otherwise a search keeps showing the last frame.
 bool ldp_has_picture(const Ldp *ldp);
+
+// How long a search from one frame to another takes, in seconds.
+double ldp_search_time(int from, int to);
 
 const char *ldp_state_name(LdpState state);
 

@@ -1,10 +1,28 @@
 #include "ldp/ldp.h"
 
-// Real players took anywhere from a fraction of a second to a couple of
-// seconds to search, depending on how far the laser had to travel. A short
-// fixed delay is enough for now; it gives the video decoder time to catch
-// up, and the game's CPU will be able to see the "searching" state.
-#define DEFAULT_SEARCH_SECONDS 0.1
+// How a search moves the laser (following MAME's LD-V1000 model): once per
+// video field (1/59.94 s) the player reads where it is and jumps half the
+// remaining distance; when within two frames, it lets the disc play up to
+// the target, one frame per two fields. So the time grows with the logarithm
+// of the distance: about 0.2 s for 1,000 frames, 0.3 s across the whole disc.
+#define FIELD_SECONDS (1001.0 / 60000)
+
+double ldp_search_time(int from, int to)
+{
+    int fields = 0, pos = from;
+    while (pos != to) {
+        int remaining = to - pos;
+        if (remaining > 0 && remaining <= 2) {
+            pos += 1;  // creep up on it
+            fields += 2;
+            continue;
+        }
+        if (remaining > 0) pos += remaining / 2 > 1 ? remaining / 2 : 1;
+        else pos += remaining / 2 < -2 ? remaining / 2 : -2;
+        fields++;
+    }
+    return fields * FIELD_SECONDS;
+}
 
 void ldp_init(Ldp *ldp, double fps, int first_frame)
 {
@@ -12,7 +30,6 @@ void ldp_init(Ldp *ldp, double fps, int first_frame)
         .state = LDP_PAUSED,
         .frame = first_frame,
         .fps = fps,
-        .search_seconds = DEFAULT_SEARCH_SECONDS,
     };
 }
 
@@ -36,9 +53,12 @@ void ldp_stop(Ldp *ldp)
 void ldp_search(Ldp *ldp, int frame)
 {
     if (frame < 0) frame = 0;
+    // A search that starts mid-search carries on from where the laser is
+    // heading; near enough, from its target.
+    int from = ldp->state == LDP_SEARCHING ? ldp->search_target : ldp->frame;
     ldp->state = LDP_SEARCHING;
     ldp->search_target = frame;
-    ldp->search_clock = ldp->search_seconds;
+    ldp->search_clock = ldp_search_time(from, frame);
 }
 
 void ldp_step(Ldp *ldp, int delta)
@@ -79,6 +99,7 @@ void ldp_update(Ldp *ldp, double seconds)
 
 bool ldp_has_picture(const Ldp *ldp)
 {
+    if (ldp->state == LDP_SEARCHING) return !ldp->blank_during_search;
     return ldp->state != LDP_STOPPED;
 }
 
