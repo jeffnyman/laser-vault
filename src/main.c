@@ -23,6 +23,7 @@
 //   5 / 6               insert a coin (slot 1 / 2)
 //   1 / 2               start (1 / 2 players)
 //   S                   show / hide the score displays
+//   P / Pause           pause / resume the game
 //   D                   turn combing repair off / on (see video/decomb.h)
 //   Escape              quit
 //
@@ -72,6 +73,7 @@ typedef struct {
     // Game mode: the board and its LD-V1000, which drive ldp.
     bool game;
     bool show_scores;  // the score display panel beside the picture
+    bool paused;       // game mode: everything frozen
     Dlair *board;
     Ldv1000 player;
 
@@ -103,8 +105,9 @@ static void update_title(App *app)
         char digits[17];
         for (int i = 0; i < 16; i++) digits[i] = glyphs[app->board->digits[i]];
         digits[16] = '\0';
-        snprintf(title, sizeof title, "Dragon's Lair - [%.8s] [%.8s] - %s, frame %d%s",
+        snprintf(title, sizeof title, "Dragon's Lair - [%.8s] [%.8s] - %s, frame %d%s%s",
                  digits, digits + 8, ldp_state_name(ldp->state), ldp->frame,
+                 app->paused ? "  [paused]" : "",
                  disc_video_decomb(app->video) ? "" : "  [combing repair off]");
     } else if (app->typed[0]) {
         snprintf(title, sizeof title, "laser-vault - search to frame: %s_", app->typed);
@@ -152,6 +155,22 @@ static void upload_picture(App *app, const AVFrame *pic)
                          pic->data[2], pic->linesize[2]);
 }
 
+// "PAUSED" across the middle of the picture, on a translucent band.
+static void draw_paused_banner(SDL_Renderer *r)
+{
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 160);
+    SDL_RenderFillRect(r, &(SDL_FRect){0, VIDEO_H / 2 - 30, VIDEO_W, 60});
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+
+    // SDL's built-in font is 8x8 pixels; draw it three times as big.
+    const float scale = 3, text_w = 6 * 8 * scale, text_h = 8 * scale;
+    SDL_SetRenderScale(r, scale, scale);
+    SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
+    SDL_RenderDebugText(r, (VIDEO_W - text_w) / 2 / scale, (VIDEO_H - text_h) / 2 / scale, "PAUSED");
+    SDL_SetRenderScale(r, 1, 1);
+}
+
 static void draw(App *app)
 {
     const Ldp *ldp = &app->ldp;
@@ -170,6 +189,7 @@ static void draw(App *app)
     if (ldp_has_picture(ldp) && app->texture_frame >= 0)
         SDL_RenderTexture(app->renderer, app->texture, NULL, &(SDL_FRect){0, 0, VIDEO_W, VIDEO_H});
     if (app->game && app->show_scores) bezel_draw(app->renderer, VIDEO_W, 0, app->board->digits);
+    if (app->paused) draw_paused_banner(app->renderer);
     SDL_RenderPresent(app->renderer);
 }
 
@@ -270,6 +290,13 @@ static bool handle_key(App *app, SDL_Keycode key)
         if (key == SDLK_S) {
             app->show_scores = !app->show_scores;
             set_layout(app);
+        }
+        if (key == SDLK_P || key == SDLK_PAUSE) {
+            app->paused = !app->paused;
+            // Cut the sound at once, including what's already queued. (The
+            // soundtrack is silenced by the main loop and picks up from the
+            // right place on resume.)
+            if (app->paused && app->chip_sound) SDL_ClearAudioStream(app->chip_sound);
         }
         return true;
     }
@@ -468,11 +495,14 @@ int main(int argc, char **argv)
 
         if (app.game) {
             // Run the game's CPU for the same stretch of time. The player
-            // keeps itself in step with the board's clock.
-            read_game_inputs(&app);
-            dlair_run(app.board, (uint64_t)(elapsed * DLAIR_CPU_HZ));
-            ldv1000_update(&app.player, app.board->cycles);
-            if (app.chip_sound) play_chip_sound(&app);
+            // keeps itself in step with the board's clock, so while paused,
+            // when the board doesn't run, the disc stands still too.
+            if (!app.paused) {
+                read_game_inputs(&app);
+                dlair_run(app.board, (uint64_t)(elapsed * DLAIR_CPU_HZ));
+                ldv1000_update(&app.player, app.board->cycles);
+                if (app.chip_sound) play_chip_sound(&app);
+            }
         } else {
             ldp_update(&app.ldp, elapsed);
         }
@@ -483,8 +513,8 @@ int main(int argc, char **argv)
         if (app.audio) {
             bool channel1 = app.game ? app.player.audio[0] : true;
             bool channel2 = app.game ? app.player.audio[1] : true;
-            disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING, app.ldp.frame,
-                              channel1, channel2);
+            disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING && !app.paused,
+                              app.ldp.frame, channel1, channel2);
         }
         update_title(&app);
         if (!vsync) SDL_Delay(5);

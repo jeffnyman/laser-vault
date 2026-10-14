@@ -176,6 +176,7 @@ settings take two coins per credit, so press 5 twice, then 1.
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | S                     | show / hide the score displays            |
+| P / Pause             | pause / resume the game                   |
 | D                     | turn combing repair off / on              |
 | Escape                | quit                                      |
 
