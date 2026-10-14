@@ -51,6 +51,7 @@ typedef struct {
     Framefile framefile;
     DiscVideo *video;
     DiscAudio *audio;  // NULL if there's no sound device
+    SDL_AudioStream *chip_sound;  // the game board's sound chip, or NULL
     Ldp ldp;
 
     // Game mode: the board and its LD-V1000, which drive ldp.
@@ -204,6 +205,20 @@ static void fast_boot(App *app)
         else if (searched && app->ldp.state == LDP_PLAYING) break;
     }
     printf("Fast boot: skipped %.1f s of start-up.\n", (double)app->board->cycles / DLAIR_CPU_HZ);
+}
+
+// Pass the sound chip's newly generated samples to the speakers. The chip
+// makes sound at the pace of the emulated board, the speakers take it at the
+// pace of the real clock; if they drift apart and too much piles up, drop it
+// rather than let the beeps lag further and further behind.
+static void play_chip_sound(App *app)
+{
+    const float *samples;
+    ay8910_run(&app->board->ay, app->board->cycles);
+    int n = ay8910_take_samples(&app->board->ay, &samples);
+    int max_bytes = DLAIR_SAMPLE_RATE / 4 * (int)sizeof(float);  // 0.25 s
+    if (SDL_GetAudioStreamQueued(app->chip_sound) > max_bytes) SDL_ClearAudioStream(app->chip_sound);
+    if (n > 0) SDL_PutAudioStreamData(app->chip_sound, samples, n * (int)sizeof(float));
 }
 
 static void toggle_decomb(App *app)
@@ -362,6 +377,18 @@ int main(int argc, char **argv)
         printf("With the game window active, press 5 twice (two coins make one credit),\n"
                "then 1 to start.\n");
         fflush(stdout);
+
+        // The board's sound chip gets its own audio stream; SDL mixes it with
+        // the laserdisc's. Start it now, after any fast boot, so the beeps
+        // from the skipped start-up don't all play at once.
+        if (app.audio) {
+            SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, DLAIR_SAMPLE_RATE};
+            app.chip_sound = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+            if (app.chip_sound) {
+                SDL_ResumeAudioStreamDevice(app.chip_sound);
+                ay8910_set_rendering(&app.board->ay, true, app.board->cycles);
+            }
+        }
     }
 
     // The main loop: handle input, advance by however much time has passed,
@@ -388,6 +415,7 @@ int main(int argc, char **argv)
             read_game_inputs(&app);
             dlair_run(app.board, (uint64_t)(elapsed * DLAIR_CPU_HZ));
             ldv1000_update(&app.player, app.board->cycles);
+            if (app.chip_sound) play_chip_sound(&app);
         } else {
             ldp_update(&app.ldp, elapsed);
         }
@@ -405,6 +433,7 @@ int main(int argc, char **argv)
         if (!vsync) SDL_Delay(5);
     }
 
+    SDL_DestroyAudioStream(app.chip_sound);
     disc_audio_close(app.audio);
     disc_video_close(app.video);
     SDL_DestroyTexture(app.texture);

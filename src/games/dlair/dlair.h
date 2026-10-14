@@ -20,6 +20,7 @@
 #ifndef LV_DLAIR_H
 #define LV_DLAIR_H
 
+#include "audio/ay8910.h"
 #include "cpu/z80.h"
 #include "ldp/ldv1000.h"
 
@@ -27,6 +28,8 @@
 #include <stdint.h>
 
 #define DLAIR_CPU_HZ 4000000
+#define DLAIR_SOUND_CHIP_HZ 2000000  // the AY-3-8910 runs at 16 MHz / 8
+#define DLAIR_SAMPLE_RATE 44100      // rate of the sound chip's output samples
 
 // DIP switch B:1, "Sound Every 8 Attracts". On (the default) keeps the
 // attract mode quiet: the game switches the disc's sound off and only lets
@@ -60,8 +63,8 @@ typedef struct {
     DlairInputs inputs;
     DlairLaserdisc laserdisc;
 
+    Ay8910 ay;               // the sound chip
     uint8_t ay_select;       // sound chip register selected by the CPU
-    uint8_t ay_regs[16];
     uint8_t ld_latch;        // byte waiting to be sent to the player
     uint8_t misc;            // last value written to the misc latch
     uint8_t digits[16];      // score display: 0-9, 10-14 = A b C d E, 15 = blank

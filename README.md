@@ -6,7 +6,7 @@ with SDL3 and FFmpeg. First target: *Dragon's Lair*.
 **Stage 4 (current):** Dragon's Lair runs. The original game code runs on an
 emulated Z80 and drives an emulated Pioneer LD-V1000 laserdisc player: the
 attract mode plays, and you can insert coins and start a game, with the
-laserdisc's soundtrack. (The board's own sound chip, for beeps, comes next.)
+laserdisc's soundtrack and the game board's own beeps.
 
 Earlier stages: showing any frame by number (1), a laserdisc player you drive
 from the keyboard (2), and the Z80 running the ROM (3).
@@ -185,6 +185,10 @@ silent: a DIP switch ("Sound Every 8 Attracts") has the game turn the disc's
 sound off and only let it through every few attract cycles, about every five
 minutes. Add `--attract-sound` to flip that switch and hear every cycle.
 
+The beeps (for coins, and short "feedback" tones when you move the joystick
+or press the sword button) come from the board's AY-3-8910 sound chip, which
+is emulated too and mixed in with the soundtrack.
+
 ### Driving the laserdisc player yourself
 
 Leave out `--roms` and you take the game's place: the keyboard controls the
@@ -268,6 +272,7 @@ and takes a minute or two.
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
+- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the game board.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/dlair_trace.c`: the `dlair-trace` tool.

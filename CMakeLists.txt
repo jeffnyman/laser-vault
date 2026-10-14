@@ -69,6 +69,7 @@ target_link_libraries(z80-zex PRIVATE lv_cpu)
 # The Dragon's Lair board (CPU, memory map, I/O), plus loading ROMs from zips.
 add_library(lv_dlair STATIC
     src/games/dlair/dlair.c
+    src/audio/ay8910.c
     src/util/zip.c
 )
 target_link_libraries(lv_dlair PUBLIC lv_cpu lv_ldp ZLIB::ZLIB)

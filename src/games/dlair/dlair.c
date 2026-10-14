@@ -130,7 +130,7 @@ static uint8_t mem_read(void *ctx, uint16_t addr)
     case 0x00:  // sound chip data; its I/O ports A and B are the DIP switches
         if (b->ay_select == 14) return b->dsw1;
         if (b->ay_select == 15) return b->dsw2;
-        return b->ay_regs[b->ay_select & 15];
+        return ay8910_read(&b->ay, b->ay_select);
     case 0x08: return read_joystick_port(b);
     case 0x10: return read_system_port(b);
     case 0x20: return b->laserdisc.read_status(b->laserdisc.ctx, b->cycles);
@@ -160,7 +160,7 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
     if (addr < 0xE000) return;  // input-only area
 
     switch (addr & 0x38) {
-    case 0x00: b->ay_regs[b->ay_select & 15] = v; break;  // sound chip data
+    case 0x00: ay8910_write(&b->ay, b->cycles, b->ay_select, v); break;  // sound chip data
     case 0x08: misc_write(b, v); break;
     case 0x10: b->ay_select = v; break;                   // sound chip register select
     case 0x20: b->ld_latch = v; break;
@@ -205,7 +205,8 @@ void dlair_reset(Dlair *b, DlairLaserdisc laserdisc)
     b->dsw2 = DEFAULT_DSW2;
     memset(&b->inputs, 0, sizeof b->inputs);
     memset(b->ram, 0, sizeof b->ram);
-    memset(b->ay_regs, 0, sizeof b->ay_regs);
+    ay8910_free(&b->ay);
+    ay8910_init(&b->ay, DLAIR_CPU_HZ, DLAIR_SOUND_CHIP_HZ, DLAIR_SAMPLE_RATE);
     memset(b->digits, 15, sizeof b->digits);  // blank
     b->ay_select = 0;
     b->ld_latch = 0;
