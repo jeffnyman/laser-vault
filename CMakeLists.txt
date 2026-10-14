@@ -43,7 +43,19 @@ add_executable(disc-gif
 )
 target_link_libraries(disc-gif PRIVATE lv_video)
 
-foreach(target lv_video laser-vault disc-gif)
+# The Z80 CPU.
+add_library(lv_cpu STATIC
+    src/cpu/z80.c
+)
+target_include_directories(lv_cpu PUBLIC src)
+
+# Test: run the ZEXDOC/ZEXALL instruction exercisers on the Z80.
+add_executable(z80-zex
+    tests/z80_zex.c
+)
+target_link_libraries(z80-zex PRIVATE lv_cpu)
+
+foreach(target lv_video lv_cpu laser-vault disc-gif z80-zex)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

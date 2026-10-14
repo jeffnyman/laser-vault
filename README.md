@@ -189,15 +189,33 @@ disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530
 The GIF encoder (`src/tools/gif.c`) is written from scratch and commented,
 if you're curious how GIF palettes and LZW compression work.
 
+## Testing the Z80
+
+The Z80 CPU emulator (`src/cpu/z80.c`) is checked with Frank D. Cringle's
+ZEXDOC and ZEXALL instruction exercisers. They run every Z80 instruction over
+a huge range of inputs and compare the results against a real Z80; ZEXALL
+also checks the undocumented flag bits. They're GPL-licensed CP/M programs,
+so they aren't included here. Get `zexdoc.com` and `zexall.com` from
+[agn453/ZEXALL](https://github.com/agn453/ZEXALL), then run:
+
+```
+z80-zex path/to/zexall.com
+```
+
+All 67 tests should print `OK`. A full run is about 47 billion clock cycles
+and takes a minute or two.
+
 ## Source map
 
 - `src/main.c`: window, keyboard, main loop, drawing.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
+- `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
+- `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
 
 ## License
 
