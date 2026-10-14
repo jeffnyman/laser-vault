@@ -21,6 +21,7 @@
 #define LV_DLAIR_H
 
 #include "cpu/z80.h"
+#include "ldp/ldv1000.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -29,12 +30,13 @@
 
 // How the board talks to the laserdisc player. The player drives two
 // strobe lines that tell the game when to read status and when to send
-// the next command byte; times are in CPU clock cycles since power-on.
+// the next command byte. Every call passes the current time ("now", in CPU
+// clock cycles since power-on) so the player can bring itself up to date.
 typedef struct {
     void *ctx;
-    uint8_t (*read_status)(void *ctx);              // byte at C020
-    void (*send_command)(void *ctx, uint8_t byte);  // a byte latched to the player
-    bool (*status_strobe)(void *ctx, uint64_t now); // true while the strobe is active
+    uint8_t (*read_status)(void *ctx, uint64_t now);              // byte at C020
+    void (*send_command)(void *ctx, uint64_t now, uint8_t byte);  // byte latched to the player
+    bool (*status_strobe)(void *ctx, uint64_t now);  // true while the strobe is active
     bool (*command_strobe)(void *ctx, uint64_t now);
 } DlairLaserdisc;
 
@@ -66,6 +68,9 @@ typedef struct {
 // Load the rev F2 ROMs from a zip file or a folder of .bin files.
 // Returns false (after printing why) if a ROM is missing.
 bool dlair_load_roms(Dlair *board, const char *path);
+
+// A laserdisc link to an LD-V1000 model, the player this board was built for.
+DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player);
 
 // Power on: reset the CPU and set the DIP switches to their defaults.
 void dlair_reset(Dlair *board, DlairLaserdisc laserdisc);

@@ -1,8 +1,21 @@
-// laser-vault, stage 2: a laserdisc player you drive from the keyboard.
+// laser-vault: a laserdisc arcade game emulator.
 //
-// Usage: laser-vault FRAMEFILE [--video-dir DIR] [--frame N] [--disc-fps F]
+// Usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]
+//                    [--frame N] [--disc-fps F]
 //
-// Keys:
+// With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
+// the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
+// the control panel.
+//
+//   Arrow keys          joystick
+//   Space / Ctrl        sword button
+//   5 / 6               insert a coin (slot 1 / 2)
+//   1 / 2               start (1 / 2 players)
+//   D                   turn combing repair off / on (see video/decomb.h)
+//   Escape              quit
+//
+// Without --roms, you're the game: drive the laserdisc player yourself.
+//
 //   Space               play / pause
 //   S                   stop
 //   Left / Right        step one frame back / forward (pauses)
@@ -13,7 +26,9 @@
 //   0-9, Enter          type a frame number and search to it
 //   Escape              cancel typing, or quit
 
+#include "games/dlair/dlair.h"
 #include "ldp/ldp.h"
+#include "ldp/ldv1000.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
 
@@ -33,6 +48,11 @@ typedef struct {
     DiscVideo *video;
     Ldp ldp;
 
+    // Game mode: the board and its LD-V1000, which drive ldp.
+    bool game;
+    Dlair *board;
+    Ldv1000 player;
+
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *texture;  // created to match the video's size
@@ -45,7 +65,8 @@ typedef struct {
 
 static void usage(void)
 {
-    fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--frame N] [--disc-fps F]\n");
+    fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
+                    "                   [--frame N] [--disc-fps F]\n");
 }
 
 static void update_title(App *app)
@@ -53,7 +74,16 @@ static void update_title(App *app)
     const Ldp *ldp = &app->ldp;
     char title[sizeof app->title];
 
-    if (app->typed[0]) {
+    if (app->game) {
+        // The score display, then what the player is doing.
+        static const char glyphs[] = "0123456789AbCdE ";
+        char digits[17];
+        for (int i = 0; i < 16; i++) digits[i] = glyphs[app->board->digits[i]];
+        digits[16] = '\0';
+        snprintf(title, sizeof title, "Dragon's Lair - [%.8s] [%.8s] - %s, frame %d%s",
+                 digits, digits + 8, ldp_state_name(ldp->state), ldp->frame,
+                 disc_video_decomb(app->video) ? "" : "  [combing repair off]");
+    } else if (app->typed[0]) {
         snprintf(title, sizeof title, "laser-vault - search to frame: %s_", app->typed);
     } else if (ldp->state == LDP_SEARCHING) {
         snprintf(title, sizeof title, "laser-vault - searching to frame %d", ldp->search_target);
@@ -127,9 +157,48 @@ static void search_by(App *app, int delta)
     ldp_search(&app->ldp, from + delta);
 }
 
+// The control panel, read from the keyboard every pass of the main loop.
+static void read_game_inputs(App *app)
+{
+    // Number keys work on the top row or the numeric keypad.
+    const bool *key = SDL_GetKeyboardState(NULL);
+    DlairInputs *in = &app->board->inputs;
+    DlairInputs before = *in;
+    in->up = key[SDL_SCANCODE_UP];
+    in->down = key[SDL_SCANCODE_DOWN];
+    in->left = key[SDL_SCANCODE_LEFT];
+    in->right = key[SDL_SCANCODE_RIGHT];
+    in->sword = key[SDL_SCANCODE_SPACE] || key[SDL_SCANCODE_LCTRL] || key[SDL_SCANCODE_RCTRL];
+    in->coin1 = key[SDL_SCANCODE_5] || key[SDL_SCANCODE_KP_5];
+    in->coin2 = key[SDL_SCANCODE_6] || key[SDL_SCANCODE_KP_6];
+    in->start1 = key[SDL_SCANCODE_1] || key[SDL_SCANCODE_KP_1];
+    in->start2 = key[SDL_SCANCODE_2] || key[SDL_SCANCODE_KP_2];
+
+    // Say so on the console when a coin or start button goes down, so it's
+    // easy to tell whether the keyboard is reaching the game.
+    double t = (double)app->board->cycles / DLAIR_CPU_HZ;
+    if (in->coin1 && !before.coin1) printf("%6.1f s  coin inserted (slot 1)\n", t);
+    if (in->coin2 && !before.coin2) printf("%6.1f s  coin inserted (slot 2)\n", t);
+    if (in->start1 && !before.start1) printf("%6.1f s  start (1 player)\n", t);
+    if (in->start2 && !before.start2) printf("%6.1f s  start (2 players)\n", t);
+    fflush(stdout);
+}
+
+static void toggle_decomb(App *app)
+{
+    disc_video_set_decomb(app->video, !disc_video_decomb(app->video));
+    app->texture_frame = -1;  // fetch the picture again
+}
+
 // Returns false when the app should quit.
 static bool handle_key(App *app, SDL_Keycode key)
 {
+    if (app->game) {  // the rest of the keyboard is the control panel
+        if (key == SDLK_ESCAPE) return false;
+        if (key == SDLK_D) toggle_decomb(app);
+        return true;
+    }
+
     size_t typed_len = strlen(app->typed);
     const Framefile *ff = &app->framefile;
     Ldp *ldp = &app->ldp;
@@ -162,10 +231,7 @@ static bool handle_key(App *app, SDL_Keycode key)
         else ldp_play(ldp);
         break;
     case SDLK_S:        ldp_stop(ldp); break;
-    case SDLK_D:
-        disc_video_set_decomb(app->video, !disc_video_decomb(app->video));
-        app->texture_frame = -1;  // fetch the picture again
-        break;
+    case SDLK_D:        toggle_decomb(app); break;
     case SDLK_RIGHT:    ldp_step(ldp, +1); break;
     case SDLK_LEFT:     ldp_step(ldp, -1); break;
     case SDLK_UP:       search_by(app, app->fps); break;
@@ -183,12 +249,15 @@ int main(int argc, char **argv)
 {
     const char *framefile_path = NULL;
     const char *video_dir = NULL;
+    const char *roms = NULL;
     int start_frame = -1;
     double disc_fps = DEFAULT_DISC_FPS;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--video-dir") == 0 && i + 1 < argc) {
             video_dir = argv[++i];
+        } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
+            roms = argv[++i];
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
             start_frame = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--disc-fps") == 0 && i + 1 < argc) {
@@ -200,7 +269,13 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    if (!framefile_path || disc_fps <= 0) {
+    if (!framefile_path) {
+        fprintf(stderr, "laser-vault needs a framefile: the list that maps disc frame numbers\n"
+                        "to video clips (for Dragon's Lair, dragonslair.txt).\n\n");
+        usage();
+        return 1;
+    }
+    if (disc_fps <= 0) {
         usage();
         return 1;
     }
@@ -208,6 +283,11 @@ int main(int argc, char **argv)
     App app = {0};
     app.fps = (int)(disc_fps + 0.5);
     app.texture_frame = -1;
+    if (roms) {
+        app.game = true;
+        app.board = calloc(1, sizeof *app.board);
+        if (!dlair_load_roms(app.board, roms)) return 1;
+    }
     if (!framefile_load(&app.framefile, framefile_path, video_dir)) return 1;
     printf("Loaded %d clips, frames %d to %d+\n", app.framefile.clip_count,
            app.framefile.clips[0].start_frame,
@@ -235,9 +315,18 @@ int main(int argc, char **argv)
     app.video = disc_video_open(&app.framefile, disc_fps);
     ldp_init(&app.ldp, disc_fps,
              start_frame >= 0 ? start_frame : app.framefile.clips[0].start_frame);
+    if (app.game) {
+        // The LD-V1000 takes over the player model; the board talks to it.
+        ldv1000_init(&app.player, &app.ldp, DLAIR_CPU_HZ);
+        dlair_reset(app.board, dlair_ldv1000_link(&app.player));
+        printf("Dragon's Lair is starting. Like the real machine, it waits about 20 s for the\n"
+               "disc to spin up; the attract mode starts after about 35 s. With the game\n"
+               "window active, press 5 twice (two coins make one credit), then 1 to start.\n");
+        fflush(stdout);
+    }
 
-    // The main loop: handle input, advance the player by however much time
-    // has passed, and draw whatever frame it's on.
+    // The main loop: handle input, advance by however much time has passed,
+    // and draw whatever frame the player is on.
     bool running = true;
     Uint64 last_ns = SDL_GetTicksNS();
     while (running) {
@@ -254,7 +343,15 @@ int main(int argc, char **argv)
         // fast-forward to catch up; just carry on from here.
         if (elapsed > 0.25) elapsed = 0.25;
 
-        ldp_update(&app.ldp, elapsed);
+        if (app.game) {
+            // Run the game's CPU for the same stretch of time. The player
+            // keeps itself in step with the board's clock.
+            read_game_inputs(&app);
+            dlair_run(app.board, (uint64_t)(elapsed * DLAIR_CPU_HZ));
+            ldv1000_update(&app.player, app.board->cycles);
+        } else {
+            ldp_update(&app.ldp, elapsed);
+        }
         draw(&app);
         update_title(&app);
         if (!vsync) SDL_Delay(5);
@@ -266,5 +363,6 @@ int main(int argc, char **argv)
     SDL_DestroyWindow(app.window);
     SDL_Quit();
     framefile_free(&app.framefile);
+    free(app.board);
     return 0;
 }

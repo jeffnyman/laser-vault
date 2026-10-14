@@ -30,12 +30,21 @@ else()
     target_link_libraries(lv_video PUBLIC PkgConfig::LIBAV)
 endif()
 
+# The laserdisc player: the basic model plus the LD-V1000 protocol.
+add_library(lv_ldp STATIC
+    src/ldp/ldp.c
+    src/ldp/ldv1000.c
+)
+target_include_directories(lv_ldp PUBLIC src)
+if(NOT WIN32)
+    target_link_libraries(lv_ldp PUBLIC m)  # fmod
+endif()
+
 # The emulator.
 add_executable(laser-vault
     src/main.c
-    src/ldp/ldp.c
 )
-target_link_libraries(laser-vault PRIVATE lv_video SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_dlair SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -61,7 +70,7 @@ add_library(lv_dlair STATIC
     src/games/dlair/dlair.c
     src/util/zip.c
 )
-target_link_libraries(lv_dlair PUBLIC lv_cpu ZLIB::ZLIB)
+target_link_libraries(lv_dlair PUBLIC lv_cpu lv_ldp ZLIB::ZLIB)
 
 # Tool: run the Dragon's Lair ROM headless and print what it does.
 add_executable(dlair-trace
@@ -69,7 +78,7 @@ add_executable(dlair-trace
 )
 target_link_libraries(dlair-trace PRIVATE lv_dlair)
 
-foreach(target lv_video lv_cpu lv_dlair laser-vault disc-gif z80-zex dlair-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_dlair laser-vault disc-gif z80-zex dlair-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

@@ -133,7 +133,7 @@ static uint8_t mem_read(void *ctx, uint16_t addr)
         return b->ay_regs[b->ay_select & 15];
     case 0x08: return read_joystick_port(b);
     case 0x10: return read_system_port(b);
-    case 0x20: return b->laserdisc.read_status(b->laserdisc.ctx);
+    case 0x20: return b->laserdisc.read_status(b->laserdisc.ctx, b->cycles);
     default: return 0xFF;  // nothing connected
     }
 }
@@ -146,7 +146,7 @@ static void misc_write(Dlair *b, uint8_t v)
     bool was_high = b->misc & 0x20;
     b->misc = v;
     if (was_high && !(v & 0x20))
-        b->laserdisc.send_command(b->laserdisc.ctx, b->ld_latch);
+        b->laserdisc.send_command(b->laserdisc.ctx, b->cycles, b->ld_latch);
 }
 
 static void mem_write(void *ctx, uint16_t addr, uint8_t v)
@@ -173,6 +173,26 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
 // The US board doesn't use the Z80's separate I/O ports.
 static uint8_t io_in(void *ctx, uint16_t port) { (void)ctx; (void)port; return 0xFF; }
 static void io_out(void *ctx, uint16_t port, uint8_t v) { (void)ctx; (void)port; (void)v; }
+
+// ---------------------------------------------------------------------------
+// Connecting an LD-V1000
+// ---------------------------------------------------------------------------
+
+static uint8_t ldv_read_status(void *ctx, uint64_t now) { return ldv1000_read_status(ctx, now); }
+static void ldv_send_command(void *ctx, uint64_t now, uint8_t b) { ldv1000_write(ctx, now, b); }
+static bool ldv_status_strobe(void *ctx, uint64_t now) { return ldv1000_status_strobe(ctx, now); }
+static bool ldv_command_strobe(void *ctx, uint64_t now) { return ldv1000_command_strobe(ctx, now); }
+
+DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player)
+{
+    return (DlairLaserdisc){
+        .ctx = player,
+        .read_status = ldv_read_status,
+        .send_command = ldv_send_command,
+        .status_strobe = ldv_status_strobe,
+        .command_strobe = ldv_command_strobe,
+    };
+}
 
 // ---------------------------------------------------------------------------
 // Running
