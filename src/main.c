@@ -2,7 +2,10 @@
 //
 // Usage: laser-vault FRAMEFILE [--video-dir DIR]
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]]
-//                    [--frame N] [--disc-fps F]
+//                    [--frame N] [--disc-fps F] [--icon FILE.ico]
+//
+// Each game's window icon is built in (icons/); --icon uses a
+// Windows .ico file instead.
 //
 // With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
 // the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
@@ -37,6 +40,7 @@
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
 #include "ui/bezel.h"
+#include "ui/icon.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
 
@@ -82,7 +86,7 @@ static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores]\n"
-                    "                   [--frame N] [--disc-fps F]\n");
+                    "                   [--frame N] [--disc-fps F] [--icon FILE.ico]\n");
 }
 
 static void update_title(App *app)
@@ -320,6 +324,7 @@ int main(int argc, char **argv)
     bool want_fast_boot = false;
     bool attract_sound = false;
     bool show_scores = false;
+    const char *icon_path = NULL;
     int start_frame = -1;
     double disc_fps = DEFAULT_DISC_FPS;
 
@@ -328,6 +333,8 @@ int main(int argc, char **argv)
             video_dir = argv[++i];
         } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
             roms = argv[++i];
+        } else if (strcmp(argv[i], "--icon") == 0 && i + 1 < argc) {
+            icon_path = argv[++i];
         } else if (strcmp(argv[i], "--scores") == 0) {
             show_scores = true;
         } else if (strcmp(argv[i], "--attract-sound") == 0) {
@@ -380,6 +387,16 @@ int main(int argc, char **argv)
     }
     app.show_scores = show_scores;
     set_layout(&app);
+
+    // The window icon: the game's own (built into the program), unless
+    // --icon names another.
+    SDL_Surface *icon = NULL;
+    if (icon_path) icon = icon_load(icon_path);
+    else if (app.game) icon = icon_load_memory(icon_dlair, icon_dlair_size);
+    if (icon) {
+        SDL_SetWindowIcon(app.window, icon);
+        SDL_DestroySurface(icon);
+    }
 
     // With vsync, presenting a frame waits for the monitor's next refresh,
     // which paces the loop below. Without it, sleep a little each pass so

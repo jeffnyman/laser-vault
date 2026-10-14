@@ -41,10 +41,28 @@ if(NOT WIN32)
 endif()
 
 # The emulator.
+# Each game's window icon is built into the program (as a C array generated
+# from the .ico file), so it never has to find the file at run time.
+set(EMBEDDED_ICONS dlair)
+set(EMBEDDED_ICON_SOURCES "")
+foreach(icon ${EMBEDDED_ICONS})
+    set(input ${CMAKE_SOURCE_DIR}/icons/${icon}.ico)
+    set(output ${CMAKE_BINARY_DIR}/generated/icon_${icon}.c)
+    add_custom_command(
+        OUTPUT ${output}
+        COMMAND ${CMAKE_COMMAND} -DINPUT=${input} -DOUTPUT=${output} -DNAME=icon_${icon}
+                -P ${CMAKE_SOURCE_DIR}/cmake/embed_file.cmake
+        DEPENDS ${input} ${CMAKE_SOURCE_DIR}/cmake/embed_file.cmake
+        COMMENT "Embedding ${icon}.ico")
+    list(APPEND EMBEDDED_ICON_SOURCES ${output})
+endforeach()
+
 add_executable(laser-vault
     src/main.c
     src/audio/disc_audio.c
     src/ui/bezel.c
+    src/ui/icon.c
+    ${EMBEDDED_ICON_SOURCES}
 )
 target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_dlair SDL3::SDL3)
 

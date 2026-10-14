@@ -159,7 +159,9 @@ laser-vault path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --roms 
 
 If `--video-dir` is omitted, clips are looked up next to the framefile.
 `--disc-fps` sets the rate the disc frame numbers count at (default 23.976,
-right for Dragon's Lair; see `src/video/disc_video.h`).
+right for Dragon's Lair; see `src/video/disc_video.h`). Each game shows its
+own window icon, built into the program from `icons/`; `--icon
+FILE.ico` uses a different one.
 
 Like the real machine, the game waits about 20 seconds for the laserdisc to
 spin up, and the attract mode starts after about 35 seconds. Add
@@ -277,10 +279,14 @@ and takes a minute or two.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the game board.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
+- `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/dlair_trace.c`: the `dlair-trace` tool.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
+- `icons/`: each game's window icon. CMake builds them into the program
+  (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
+  `name.ico` there and add `name` to `EMBEDDED_ICONS` in `CMakeLists.txt`.
 
 ## License
 
