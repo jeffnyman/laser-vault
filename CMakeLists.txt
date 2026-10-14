@@ -9,6 +9,7 @@ find_package(SDL3 REQUIRED CONFIG)
 
 add_executable(laser-vault
     src/main.c
+    src/ldp/ldp.c
     src/video/framefile.c
     src/video/disc_video.c
 )

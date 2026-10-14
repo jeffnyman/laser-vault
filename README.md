@@ -3,7 +3,9 @@
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg. First target: *Dragon's Lair*.
 
-**Stage 1 (current):** show any laserdisc frame by its frame number.
+**Stage 2 (current):** a laserdisc player you drive from the keyboard: play,
+pause, step and search, with the video playing in real time. (Stage 1 showed
+any frame by its number.)
 
 <p align="center">
   <a href="assets/laser-vault-dl-title.png"><img src="assets/laser-vault-dl-title.png" width="32%" alt="Dragon's Lair title screen, frame 414"></a>
@@ -148,18 +150,25 @@ If `--video-dir` is omitted, clips are looked up next to the framefile.
 `--disc-fps` sets the rate the disc frame numbers count at (default 23.976,
 right for Dragon's Lair; see `src/video/disc_video.h`).
 
-| Key                   | Action                               |
-|-----------------------|--------------------------------------|
-| Left / Right          | step one frame                       |
-| Down / Up             | step one second                      |
-| Page Down / Page Up   | step ten seconds                     |
-| Home / End            | first / last clip                    |
-| digits, then Enter    | jump to that frame number            |
-| Escape                | cancel typing, or quit               |
+| Key                   | Action                                    |
+|-----------------------|-------------------------------------------|
+| Space                 | play / pause                              |
+| S                     | stop                                      |
+| Left / Right          | step one frame back / forward (pauses)    |
+| Down / Up             | search one second back / forward          |
+| Page Down / Page Up   | search ten seconds back / forward         |
+| Home / End            | search to the first / last clip           |
+| digits, then Enter    | search to that frame number               |
+| Escape                | cancel typing, or quit                    |
+
+The player starts paused on the first frame (or `--frame`). Like the
+Pioneer LD-V1000 in the Dragon's Lair cabinet, a search ends paused on the
+target frame; press Space to play from there.
 
 ## Source map
 
-- `src/main.c`: window, keyboard, drawing.
+- `src/main.c`: window, keyboard, main loop, drawing.
+- `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 
