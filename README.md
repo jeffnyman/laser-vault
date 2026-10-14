@@ -1,15 +1,13 @@
 # LaserVault
 
 A small, readable laserdisc arcade game emulator, written from scratch in C11
-with SDL3 and FFmpeg. First target: *Dragon's Lair*.
+with SDL3 and FFmpeg. It plays *Dragon's Lair*.
 
-**Stage 4 (current):** Dragon's Lair runs. The original game code runs on an
-emulated Z80 and drives an emulated Pioneer LD-V1000 laserdisc player: the
-attract mode plays, and you can insert coins and start a game, with the
-laserdisc's soundtrack and the game board's own beeps.
-
-Earlier stages: showing any frame by number (1), a laserdisc player you drive
-from the keyboard (2), and the Z80 running the ROM (3).
+The original game code runs on an emulated Z80 CPU and drives an emulated
+Pioneer LD-V1000 laserdisc player, just as on the arcade board: the attract
+mode plays, coins and start work, and you can play the game, with the
+laserdisc's soundtrack and the board's own sound chip. The code is meant to
+be read: each part explains how the real hardware works.
 
 <p align="center">
   <a href="assets/laser-vault-dl-title.png"><img src="assets/laser-vault-dl-title.png" width="32%" alt="Dragon's Lair title screen, frame 414"></a>
@@ -144,30 +142,25 @@ The program ends up at `build/macos/laser-vault`.
 
 ## Running
 
-You need your own copy of the game's video: Daphne-style `.m2v` clips plus a
-framefile that maps disc frame numbers to clips. If the video came as an
-archive, extract it with [7-Zip](https://www.7-zip.org/) or `unrar`. For
-split archives, point the tool at the first part. There's no need to run a
-self-extracting `.exe`.
+You need your own copy of the game:
 
-To play Dragon's Lair you also need the rev F2 ROMs: `lair.zip`, or a folder
-holding `dl_f2_u1.bin` to `dl_f2_u4.bin`.
+- **The video:** Daphne-style `.m2v` clips with their `.ogg` soundtracks,
+  plus a framefile (for Dragon's Lair, `dragonslair.txt`) that maps disc
+  frame numbers to clips. If the video came as an archive, extract it with
+  [7-Zip](https://www.7-zip.org/) or `unrar`; for split archives, point the
+  tool at the first part. There's no need to run a self-extracting `.exe`.
+- **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
+  `dl_f2_u1.bin` to `dl_f2_u4.bin`.
+
+Then:
 
 ```
-laser-vault path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --roms path/to/lair.zip
+laser-vault path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --roms path/to/lair.zip --fast-boot
 ```
 
-If `--video-dir` is omitted, clips are looked up next to the framefile.
-`--disc-fps` sets the rate the disc frame numbers count at (default 23.976,
-right for Dragon's Lair; see `src/video/disc_video.h`). Each game shows its
-own window icon, built into the program from `icons/`; `--icon
-FILE.ico` uses a different one.
-
-Like the real machine, the game waits about 20 seconds for the laserdisc to
-spin up, and the attract mode starts after about 35 seconds. Add
-`--fast-boot` to skip that wait: the start-up runs at full speed before the
-window appears, and you land straight in the attract mode. The default
-settings take two coins per credit, so press 5 twice, then 1.
+Press 5 twice to insert two coins (the factory setting is two coins per
+credit), then 1 to start. Watch the animation for danger or for something
+flashing, and move or use the sword at the right moment.
 
 | Key                   | Action                                    |
 |-----------------------|-------------------------------------------|
@@ -175,39 +168,64 @@ settings take two coins per credit, so press 5 twice, then 1.
 | Space / Ctrl          | sword                                     |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
+| P / Pause             | pause / resume                            |
 | S                     | show / hide the score displays            |
-| P / Pause             | pause / resume the game                   |
 | D                     | turn combing repair off / on              |
 | Escape                | quit                                      |
 
-On the arcade cabinet the scores, lives and credits aren't on the screen:
-they're on LED displays in the bezel around it. Add `--scores` (or press S)
-to show them in a panel beside the picture. The window title also shows the
+The number keys work on the top row or the numeric keypad. The console
+prints a line for each coin and start press.
+
+### Options
+
+| Option                | Meaning                                                        |
+|-----------------------|----------------------------------------------------------------|
+| `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
+| `--roms ROMS`         | run the game, from `lair.zip` or a folder of ROM files          |
+| `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
+| `--scores`            | show the score displays beside the picture (also the S key)    |
+| `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
+| `--unlimited-lives`   | Dirk never loses a life, so you can see the whole game         |
+| `--icon FILE.ico`     | use a different window icon                                    |
+| `--frame N`           | without `--roms`: the frame to start on                        |
+| `--disc-fps F`        | rate the disc's frame numbers count at (default 23.976, right for Dragon's Lair; see `src/video/disc_video.h`) |
+
+### What to expect
+
+**Start-up.** Like the real machine, the game waits about 20 seconds for
+the laserdisc to spin up, and the attract mode starts after about 35.
+`--fast-boot` runs that start-up at full speed before the window appears, so
+you land straight in the attract mode.
+
+**Scores.** On the arcade cabinet the scores, lives and credits aren't on
+the screen but on LED displays in the bezel around it. `--scores` (or S)
+shows them in a panel beside the picture. The window title always shows the
 raw display digits and what the laserdisc player is doing.
 
-Between scenes the screen goes black for a moment while the laserdisc player
-searches, as on the real machine; longer jumps take a little longer (from
-about 0.1 s up to 0.3 s).
+**Between scenes** the screen goes black for a moment while the laserdisc
+player searches, as on the real machine. Longer jumps take a little longer,
+from about 0.1 s up to 0.3 s.
 
-The soundtrack comes from the `.ogg` file next to each video clip, played in
-step with the picture. With the factory settings the attract mode is mostly
-silent: a DIP switch ("Sound Every 8 Attracts") has the game turn the disc's
-sound off and only let it through every few attract cycles, about every five
-minutes. Add `--attract-sound` to flip that switch and hear every cycle.
+**Sound.** The soundtrack comes from the `.ogg` file next to each video clip,
+played in step with the picture. The beeps (the credit chord, and a short
+tone for each joystick move or sword press) come from the board's
+AY-3-8910 sound chip, emulated and mixed in. With the factory settings the
+attract mode is mostly silent: a DIP switch ("Sound Every 8 Attracts") has
+the game turn the disc's sound off and let it through only every few cycles,
+about every five minutes. `--attract-sound` flips that switch.
 
-The beeps (for coins, and short "feedback" tones when you move the joystick
-or press the sword button) come from the board's AY-3-8910 sound chip, which
-is emulated too and mixed in with the soundtrack.
+**Unlimited lives.** `--unlimited-lives` turns on the game's own "Unlimited
+Dirks" DIP switch, meant for operators: Dirk still dies when you get a move
+wrong, but never loses a life.
 
-To see the whole game without starting over, add `--unlimited-lives`. It
-turns on the game's own "Unlimited Dirks" DIP switch, meant for operators:
-Dirk still dies when you get a move wrong, but never loses a life.
+**Window icon.** Each game has its own icon, built into the program from
+`icons/`.
 
 ### Driving the laserdisc player yourself
 
 Leave out `--roms` and you take the game's place: the keyboard controls the
-laserdisc player directly. Add `--frame N` to start somewhere other than the
-first frame.
+laserdisc player directly, with picture and sound. It's a good way to explore
+the disc. Add `--frame N` to start somewhere other than the first frame.
 
 | Key                   | Action                                    |
 |-----------------------|-------------------------------------------|
@@ -227,8 +245,11 @@ target frame; press Space to play from there.
 
 ## Tools
 
+These are built alongside `laser-vault`.
+
 `disc-gif` turns a range of disc frames into an animated GIF, using the same
-video code as the emulator. It's built alongside `laser-vault`.
+video code as the emulator. The GIF at the top of this page was made with
+it, from frames 530 to 715 with `--noise 32`.
 
 ```
 disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530 --to 715 -o intro.gif
@@ -247,7 +268,8 @@ if you're curious how GIF palettes and LZW compression work.
 `dlair-trace` runs Dragon's Lair without a window or video, hundreds of
 times faster than real time, and prints what happens: every command the game
 sends to the laserdisc player, every change in what the player is doing, and
-every change to the score display. `--press` scripts the controls.
+every change to the score display. It's how you can see what the game is
+doing without watching it.
 
 ```
 dlair-trace path/to/lair.zip --seconds 60 --press coin1@40 --press coin1@41 --press start1@43
@@ -255,8 +277,15 @@ dlair-trace path/to/lair.zip --seconds 60 --press coin1@40 --press coin1@41 --pr
 
 After about 35 seconds of game time you'll see it search to frame 323, where
 the attract mode's video starts. With the presses above, a game starts at
-frame 1424. Buttons: `up down left right sword start1 start2 coin1 coin2`.
-`--dsw1 HEX` and `--dsw2 HEX` set the DIP switches (defaults `20` and `79`).
+frame 1424.
+
+| Option                     | Meaning                                                   |
+|----------------------------|-----------------------------------------------------------|
+| `--seconds N`              | how much game time to run (default 60)                    |
+| `--press BUTTON@T[:LEN]`   | hold a button at T seconds, for LEN seconds (default 0.2) |
+| `--dsw1 HEX`, `--dsw2 HEX` | set the DIP switches (defaults `20` and `79`)             |
+
+Buttons: `up down left right sword start1 start2 coin1 coin2`.
 
 ## Testing the Z80
 

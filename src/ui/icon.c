@@ -89,10 +89,15 @@ SDL_Surface *icon_load_memory(const void *contents, size_t size)
             const uint8_t *data = file + get32(best + 12);
             size_t data_size = get32(best + 8);
             static const uint8_t png_signature[8] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
-            if (data_size >= 8 && memcmp(data, png_signature, 8) == 0)
+            if (data_size >= 8 && memcmp(data, png_signature, 8) == 0) {
+                // SDL reads PNG from version 3.4 on; with an older SDL,
+                // icons need their images stored as bitmaps.
+#if SDL_VERSION_ATLEAST(3, 4, 0)
                 surface = SDL_LoadPNG_IO(SDL_IOFromConstMem(data, data_size), true);
-            else
+#endif
+            } else {
                 surface = decode_dib(data, data_size);
+            }
         }
     }
     return surface;
