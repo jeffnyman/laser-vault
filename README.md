@@ -13,6 +13,10 @@ any frame by its number.)
   <a href="assets/laser-vault-ram-test.png"><img src="assets/laser-vault-ram-test.png" width="32%" alt="Diagnostics slate, frame 150"></a>
 </p>
 
+<p align="center">
+  <a href="assets/dl-530-715.gif"><img src="assets/dl-530-715.gif" width="480" height="360" alt="Dragon's Lair intro, frames 530 to 715"></a>
+</p>
+
 ## Setting up a development environment
 
 You need a C compiler, CMake (3.21 or newer), [SDL3](https://www.libsdl.org/)
@@ -165,12 +169,33 @@ The player starts paused on the first frame (or `--frame`). Like the
 Pioneer LD-V1000 in the Dragon's Lair cabinet, a search ends paused on the
 target frame; press Space to play from there.
 
+## Tools
+
+`disc-gif` turns a range of disc frames into an animated GIF, using the same
+video code as the emulator. It's built alongside `laser-vault`.
+
+```
+disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530 --to 715 -o intro.gif
+```
+
+| Option        | Default | Meaning                                                    |
+|---------------|---------|------------------------------------------------------------|
+| `--width W`   | 480     | output width; the height follows from 4:3                  |
+| `--fps F`     | 12      | frames per second in the GIF                               |
+| `--noise N`   | 24      | ignore colour changes smaller than this (smaller files)    |
+| `--disc-fps F`| 23.976  | rate the disc frame numbers count at                       |
+
+The GIF encoder (`src/tools/gif.c`) is written from scratch and commented,
+if you're curious how GIF palettes and LZW compression work.
+
 ## Source map
 
 - `src/main.c`: window, keyboard, main loop, drawing.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
+- `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, remove combing).
+- `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 
 ## License
 

@@ -7,31 +7,46 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(SDL3 REQUIRED CONFIG)
 
-add_executable(laser-vault
-    src/main.c
-    src/ldp/ldp.c
+# Laserdisc video (framefile + MPEG-2 decoding), shared by the emulator and
+# the tools.
+add_library(lv_video STATIC
     src/video/framefile.c
     src/video/disc_video.c
 )
-target_include_directories(laser-vault PRIVATE src)
-target_link_libraries(laser-vault PRIVATE SDL3::SDL3)
+target_include_directories(lv_video PUBLIC src)
 
 # FFmpeg: vcpkg ships a FindFFMPEG wrapper; elsewhere (Linux distro packages,
 # Homebrew) pkg-config is the standard way to find it.
 if(VCPKG_TOOLCHAIN)
     find_package(FFMPEG REQUIRED)
-    target_include_directories(laser-vault SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
-    target_link_directories(laser-vault PRIVATE ${FFMPEG_LIBRARY_DIRS})
-    target_link_libraries(laser-vault PRIVATE ${FFMPEG_LIBRARIES})
+    target_include_directories(lv_video SYSTEM PUBLIC ${FFMPEG_INCLUDE_DIRS})
+    target_link_directories(lv_video PUBLIC ${FFMPEG_LIBRARY_DIRS})
+    target_link_libraries(lv_video PUBLIC ${FFMPEG_LIBRARIES})
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil)
-    target_link_libraries(laser-vault PRIVATE PkgConfig::LIBAV)
+    target_link_libraries(lv_video PUBLIC PkgConfig::LIBAV)
 endif()
 
-if(MSVC)
-    target_compile_options(laser-vault PRIVATE /W4)
-    target_compile_definitions(laser-vault PRIVATE _CRT_SECURE_NO_WARNINGS)
-else()
-    target_compile_options(laser-vault PRIVATE -Wall -Wextra)
-endif()
+# The emulator.
+add_executable(laser-vault
+    src/main.c
+    src/ldp/ldp.c
+)
+target_link_libraries(laser-vault PRIVATE lv_video SDL3::SDL3)
+
+# Tool: turn a range of disc frames into an animated GIF.
+add_executable(disc-gif
+    src/tools/disc_gif.c
+    src/tools/gif.c
+)
+target_link_libraries(disc-gif PRIVATE lv_video)
+
+foreach(target lv_video laser-vault disc-gif)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4)
+        target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra)
+    endif()
+endforeach()
