@@ -173,11 +173,14 @@ settings take two coins per credit, so press 5 twice, then 1.
 | Space / Ctrl          | sword                                     |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
+| S                     | show / hide the score displays            |
 | D                     | turn combing repair off / on              |
 | Escape                | quit                                      |
 
-The window title shows the 16-digit score display and what the laserdisc
-player is doing.
+On the arcade cabinet the scores, lives and credits aren't on the screen:
+they're on LED displays in the bezel around it. Add `--scores` (or press S)
+to show them in a panel beside the picture. The window title also shows the
+raw display digits and what the laserdisc player is doing.
 
 The soundtrack comes from the `.ogg` file next to each video clip, played in
 step with the picture. With the factory settings the attract mode is mostly
@@ -273,6 +276,7 @@ and takes a minute or two.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the game board.
+- `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/dlair_trace.c`: the `dlair-trace` tool.

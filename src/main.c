@@ -1,19 +1,22 @@
 // laser-vault: a laserdisc arcade game emulator.
 //
-// Usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS [--fast-boot]]
+// Usage: laser-vault FRAMEFILE [--video-dir DIR]
+//                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]]
 //                    [--frame N] [--disc-fps F]
 //
 // With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
 // the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
-// the control panel. --attract-sound plays sound in every attract cycle (by
-// default, as on the real machine, it only does every few cycles).
-// --fast-boot skips the wait while the game spins up
-// the disc, starting straight in the attract mode.
+// the control panel. --fast-boot skips the wait while the game spins up the
+// disc, starting straight in the attract mode. --attract-sound plays sound
+// in every attract cycle (by default, as on the real machine, it only does
+// every few cycles). --scores shows the score displays, which on the real
+// cabinet are in the bezel, beside the picture.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        sword button
 //   5 / 6               insert a coin (slot 1 / 2)
 //   1 / 2               start (1 / 2 players)
+//   S                   show / hide the score displays
 //   D                   turn combing repair off / on (see video/decomb.h)
 //   Escape              quit
 //
@@ -33,6 +36,7 @@
 #include "games/dlair/dlair.h"
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
+#include "ui/bezel.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
 
@@ -47,6 +51,10 @@
 // numbers count 24 fps film frames; see video/disc_video.h.
 #define DEFAULT_DISC_FPS 23.976
 
+// The picture's area in the renderer's coordinates (a 4:3 screen).
+#define VIDEO_W 640
+#define VIDEO_H 480
+
 typedef struct {
     Framefile framefile;
     DiscVideo *video;
@@ -56,6 +64,7 @@ typedef struct {
 
     // Game mode: the board and its LD-V1000, which drive ldp.
     bool game;
+    bool show_scores;  // the score display panel beside the picture
     Dlair *board;
     Ldv1000 player;
 
@@ -72,7 +81,8 @@ typedef struct {
 static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
-                    "                   [--fast-boot] [--attract-sound] [--frame N] [--disc-fps F]\n");
+                    "                   [--fast-boot] [--attract-sound] [--scores]\n"
+                    "                   [--frame N] [--disc-fps F]\n");
 }
 
 static void update_title(App *app)
@@ -150,8 +160,24 @@ static void draw(App *app)
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
     SDL_RenderClear(app->renderer);
     if (ldp_has_picture(ldp) && app->texture_frame >= 0)
-        SDL_RenderTexture(app->renderer, app->texture, NULL, NULL);
+        SDL_RenderTexture(app->renderer, app->texture, NULL, &(SDL_FRect){0, 0, VIDEO_W, VIDEO_H});
+    if (app->game && app->show_scores) bezel_draw(app->renderer, VIDEO_W, 0, app->board->digits);
     SDL_RenderPresent(app->renderer);
+}
+
+// Lay out the window: the picture, plus the score panel to its right when
+// it's shown. Keeps the window's height and adjusts its width to fit.
+static void set_layout(App *app)
+{
+    int width = VIDEO_W + (app->game && app->show_scores ? BEZEL_WIDTH : 0);
+    // Laserdisc video is 720x480 pixels but is shown on a 4:3 screen, so the
+    // pixels aren't square. Drawing it into a 640x480 area of the logical
+    // canvas stretches it to the right shape; letterboxing keeps the
+    // proportions when the window is resized.
+    SDL_SetRenderLogicalPresentation(app->renderer, width, VIDEO_H, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    int w, h;
+    SDL_GetWindowSize(app->window, &w, &h);
+    SDL_SetWindowSize(app->window, h * width / VIDEO_H, h);
 }
 
 // Search relative to where the player is heading, so pressing Up twice
@@ -233,6 +259,10 @@ static bool handle_key(App *app, SDL_Keycode key)
     if (app->game) {  // the rest of the keyboard is the control panel
         if (key == SDLK_ESCAPE) return false;
         if (key == SDLK_D) toggle_decomb(app);
+        if (key == SDLK_S) {
+            app->show_scores = !app->show_scores;
+            set_layout(app);
+        }
         return true;
     }
 
@@ -289,6 +319,7 @@ int main(int argc, char **argv)
     const char *roms = NULL;
     bool want_fast_boot = false;
     bool attract_sound = false;
+    bool show_scores = false;
     int start_frame = -1;
     double disc_fps = DEFAULT_DISC_FPS;
 
@@ -297,6 +328,8 @@ int main(int argc, char **argv)
             video_dir = argv[++i];
         } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
             roms = argv[++i];
+        } else if (strcmp(argv[i], "--scores") == 0) {
+            show_scores = true;
         } else if (strcmp(argv[i], "--attract-sound") == 0) {
             attract_sound = true;
         } else if (strcmp(argv[i], "--fast-boot") == 0) {
@@ -345,10 +378,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
         return 1;
     }
-    // Laserdisc video is 720x480 pixels but is shown on a 4:3 screen, so the
-    // pixels aren't square. Drawing into a 640x480 logical canvas stretches
-    // it to the right shape; letterboxing keeps 4:3 when the window resizes.
-    SDL_SetRenderLogicalPresentation(app.renderer, 640, 480, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    app.show_scores = show_scores;
+    set_layout(&app);
 
     // With vsync, presenting a frame waits for the monitor's next refresh,
     // which paces the loop below. Without it, sleep a little each pass so
