@@ -1,7 +1,8 @@
 // laser-vault: a laserdisc arcade game emulator.
 //
 // Usage: laser-vault FRAMEFILE [--video-dir DIR]
-//                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]]
+//                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
+//                                 [--unlimited-lives]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico]
 //
 // Each game's window icon is built in (icons/); --icon uses a
@@ -13,7 +14,9 @@
 // disc, starting straight in the attract mode. --attract-sound plays sound
 // in every attract cycle (by default, as on the real machine, it only does
 // every few cycles). --scores shows the score displays, which on the real
-// cabinet are in the bezel, beside the picture.
+// cabinet are in the bezel, beside the picture. --unlimited-lives turns on
+// the game's own "Unlimited Dirks" setting: Dirk still dies, but never loses
+// a life.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        sword button
@@ -85,7 +88,7 @@ typedef struct {
 static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
-                    "                   [--fast-boot] [--attract-sound] [--scores]\n"
+                    "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico]\n");
 }
 
@@ -324,6 +327,7 @@ int main(int argc, char **argv)
     const char *roms = NULL;
     bool want_fast_boot = false;
     bool attract_sound = false;
+    bool unlimited_lives = false;
     bool show_scores = false;
     const char *icon_path = NULL;
     int start_frame = -1;
@@ -340,6 +344,8 @@ int main(int argc, char **argv)
             show_scores = true;
         } else if (strcmp(argv[i], "--attract-sound") == 0) {
             attract_sound = true;
+        } else if (strcmp(argv[i], "--unlimited-lives") == 0) {
+            unlimited_lives = true;
         } else if (strcmp(argv[i], "--fast-boot") == 0) {
             want_fast_boot = true;
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
@@ -415,7 +421,9 @@ int main(int argc, char **argv)
         // The LD-V1000 takes over the player model; the board talks to it.
         ldv1000_init(&app.player, &app.ldp, DLAIR_CPU_HZ);
         dlair_reset(app.board, dlair_ldv1000_link(&app.player));
+        // DIP switch settings, as an operator would set them in the cabinet.
         if (attract_sound) app.board->dsw2 &= ~DLAIR_DSW2_QUIET_ATTRACT;
+        if (unlimited_lives) app.board->dsw2 |= DLAIR_DSW2_UNLIMITED_LIVES;
         if (want_fast_boot) {
             fast_boot(&app);
         } else {

@@ -198,6 +198,10 @@ The beeps (for coins, and short "feedback" tones when you move the joystick
 or press the sword button) come from the board's AY-3-8910 sound chip, which
 is emulated too and mixed in with the soundtrack.
 
+To see the whole game without starting over, add `--unlimited-lives`. It
+turns on the game's own "Unlimited Dirks" DIP switch, meant for operators:
+Dirk still dies when you get a move wrong, but never loses a life.
+
 ### Driving the laserdisc player yourself
 
 Leave out `--roms` and you take the game's place: the keyboard controls the
