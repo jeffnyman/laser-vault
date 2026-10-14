@@ -162,6 +162,7 @@ right for Dragon's Lair; see `src/video/disc_video.h`).
 | Down / Up             | search one second back / forward          |
 | Page Down / Page Up   | search ten seconds back / forward         |
 | Home / End            | search to the first / last clip           |
+| D                     | turn combing repair off / on              |
 | digits, then Enter    | search to that frame number               |
 | Escape                | cancel typing, or quit                    |
 
@@ -194,7 +195,8 @@ if you're curious how GIF palettes and LZW compression work.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
-- `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, remove combing).
+- `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
+- `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 
 ## License

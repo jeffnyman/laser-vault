@@ -1,4 +1,5 @@
 #include "video/disc_video.h"
+#include "video/decomb.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -23,6 +24,14 @@ struct DiscVideo {
 
     int picture_index;  // index within the clip of `picture`, or -1 if none
     bool draining;      // reached end of file; decoder is flushing
+
+    // Combing repair (see video/decomb.h). Pictures are numbered as they're
+    // decoded so each one is checked at most once.
+    bool decomb;
+    AVFrame *decombed;          // repaired copy of `picture`
+    unsigned picture_serial;    // increases with every decoded picture
+    unsigned checked_serial;    // picture last checked for combing
+    bool picture_combed;        // result of that check
 };
 
 static void close_clip(DiscVideo *dv)
@@ -81,6 +90,7 @@ static bool decode_next(DiscVideo *dv)
             av_frame_unref(dv->picture);
             av_frame_move_ref(dv->picture, dv->scratch);
             dv->picture_index++;
+            dv->picture_serial++;
             return true;
         }
         if (ret != AVERROR(EAGAIN) || dv->draining) return false;
@@ -108,6 +118,8 @@ DiscVideo *disc_video_open(const Framefile *ff, double disc_fps)
     dv->picture = av_frame_alloc();
     dv->scratch = av_frame_alloc();
     dv->picture_index = -1;
+    dv->decomb = true;
+    dv->decombed = av_frame_alloc();
     av_log_set_level(AV_LOG_ERROR);
     return dv;
 }
@@ -119,6 +131,7 @@ void disc_video_close(DiscVideo *dv)
     av_packet_free(&dv->packet);
     av_frame_free(&dv->picture);
     av_frame_free(&dv->scratch);
+    av_frame_free(&dv->decombed);
     free(dv);
 }
 
@@ -139,5 +152,39 @@ const AVFrame *disc_video_get_frame(DiscVideo *dv, int frame)
     while (dv->picture_index < target) {
         if (!decode_next(dv)) break;  // past the end: keep the last picture
     }
-    return dv->picture_index >= 0 ? dv->picture : NULL;
+    if (dv->picture_index < 0) return NULL;
+    if (!dv->decomb || dv->picture->format != AV_PIX_FMT_YUV420P) return dv->picture;
+
+    // Check only the picture we're returning, not every picture decoded on
+    // the way to it, and only once.
+    if (dv->checked_serial != dv->picture_serial) {
+        dv->checked_serial = dv->picture_serial;
+        dv->picture_combed = decomb_is_combed(dv->picture);
+        if (dv->picture_combed) {
+            AVFrame *out = dv->decombed;
+            if (out->width != dv->picture->width || out->height != dv->picture->height) {
+                av_frame_unref(out);
+                out->format = dv->picture->format;
+                out->width = dv->picture->width;
+                out->height = dv->picture->height;
+                if (av_frame_get_buffer(out, 0) < 0) {
+                    av_frame_unref(out);
+                    dv->picture_combed = false;  // out of memory: show it as is
+                    return dv->picture;
+                }
+            }
+            decomb_rebuild_from_even_field(out, dv->picture);
+        }
+    }
+    return dv->picture_combed ? dv->decombed : dv->picture;
+}
+
+void disc_video_set_decomb(DiscVideo *dv, bool on)
+{
+    dv->decomb = on;
+}
+
+bool disc_video_decomb(const DiscVideo *dv)
+{
+    return dv->decomb;
 }

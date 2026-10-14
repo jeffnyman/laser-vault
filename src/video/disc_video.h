@@ -18,6 +18,9 @@
 // frames become 5 video frames). So one second of disc is 24 frame numbers
 // but 30 MPEG frames, and frame offsets within a clip must be scaled by
 // mpeg_fps / disc_fps (= 1.25) to find the right picture.
+//
+// Combing: some frames have their two interlaced fields from different film
+// frames. Those are repaired before being returned; see video/decomb.h.
 
 #ifndef LV_DISC_VIDEO_H
 #define LV_DISC_VIDEO_H
@@ -37,5 +40,9 @@ void disc_video_close(DiscVideo *dv);
 // video there. If the frame is past the end of its clip, the clip's last
 // frame is returned. The frame stays valid until the next call.
 const AVFrame *disc_video_get_frame(DiscVideo *dv, int frame);
+
+// Turn combing repair on or off (on by default).
+void disc_video_set_decomb(DiscVideo *dv, bool on);
+bool disc_video_decomb(const DiscVideo *dv);
 
 #endif

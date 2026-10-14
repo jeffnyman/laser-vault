@@ -35,42 +35,12 @@ static uint8_t clamp255(int v)
     return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v);
 }
 
-// Is this picture "combed"?
-//
-// Laserdisc video is interlaced: each frame is two fields, the even lines
-// and the odd lines, captured 1/60 s apart. When film is converted to video,
-// some frames end up with their two fields from different film frames, and
-// anything moving shows a comb of alternating lines. A CRT draws the fields
-// one after another so nobody notices, but a still frame shows it plainly.
-//
-// To detect it, compare each line with its neighbours from the other field
-// and with lines two away from its own field. In a clean picture the two
-// look alike; in a combed one the other field differs much more.
-static bool picture_is_combed(const AVFrame *pic)
-{
-    long long other_field = 0, same_field = 0;
-    for (int y = 2; y < pic->height - 2; y += 2) {
-        const uint8_t *above = pic->data[0] + (y - 1) * pic->linesize[0];
-        const uint8_t *line = pic->data[0] + y * pic->linesize[0];
-        const uint8_t *below = pic->data[0] + (y + 1) * pic->linesize[0];
-        const uint8_t *two_below = pic->data[0] + (y + 2) * pic->linesize[0];
-        for (int x = 0; x < pic->width; x += 2) {
-            other_field += abs(line[x] - above[x]) + abs(line[x] - below[x]);
-            same_field += abs(line[x] - two_below[x]) + abs(above[x] - below[x]);
-        }
-    }
-    return other_field > same_field;  // clean pictures measure about 0.6
-}
-
 // Scale a decoded YUV 4:2:0 picture to width x height RGB pixels.
 //
 // Each output pixel averages the block of source pixels it covers (a "box
 // filter"). The source is 720x480 with non-square pixels; squeezing it into
-// a 4:3 output gives the picture its proper shape. If one_field is set,
-// only the even lines are used, which removes combing at the cost of some
-// vertical detail.
-static void picture_to_rgb(const AVFrame *pic, bool one_field, int width, int height,
-                           uint8_t *rgb)
+// a 4:3 output gives the picture its proper shape.
+static void picture_to_rgb(const AVFrame *pic, int width, int height, uint8_t *rgb)
 {
     for (int dy = 0; dy < height; dy++) {
         int sy0 = dy * pic->height / height;
@@ -86,8 +56,7 @@ static void picture_to_rgb(const AVFrame *pic, bool one_field, int width, int he
             // at half resolution, where 4:2:0 stores it.
             int y_sum = 0, u_sum = 0, v_sum = 0, n = 0;
             for (int sy = sy0; sy < sy1; sy++) {
-                int line = one_field ? sy & ~1 : sy;
-                const uint8_t *y_row = pic->data[0] + line * pic->linesize[0];
+                const uint8_t *y_row = pic->data[0] + sy * pic->linesize[0];
                 const uint8_t *u_row = pic->data[1] + (sy / 2) * pic->linesize[1];
                 const uint8_t *v_row = pic->data[2] + (sy / 2) * pic->linesize[2];
                 for (int sx = sx0; sx < sx1; sx++) {
@@ -155,7 +124,6 @@ int main(int argc, char **argv)
 
     // Pass 1: decode every frame, and count colours for the palette.
     GifHistogram *hist = calloc(1, sizeof *hist);
-    int combed = 0;
     for (int i = 0; i < count; i++) {
         int frame = from + (int)(i * disc_fps / fps + 0.5);
         const AVFrame *pic = disc_video_get_frame(video, frame);
@@ -163,9 +131,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "no picture for frame %d\n", frame);
             return 1;
         }
-        bool one_field = picture_is_combed(pic);
-        combed += one_field;
-        picture_to_rgb(pic, one_field, width, height, rgb + i * frame_bytes);
+        picture_to_rgb(pic, width, height, rgb + i * frame_bytes);
         gif_histogram_add(hist, rgb + i * frame_bytes, width * height);
     }
 
@@ -191,8 +157,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    printf("Wrote %s: %d frames (%d to %d), %dx%d, %d colours, %d de-combed\n",
-           out_path, count, from, to, width, height, pal->count, combed);
+    printf("Wrote %s: %d frames (%d to %d), %dx%d, %d colours\n",
+           out_path, count, from, to, width, height, pal->count);
 
     free(indices);
     free(pal);

@@ -9,6 +9,7 @@
 //   Down / Up           search one second back / forward
 //   Page Down / Page Up search ten seconds back / forward
 //   Home / End          search to the first / last clip
+//   D                   turn combing repair off / on (see video/decomb.h)
 //   0-9, Enter          type a frame number and search to it
 //   Escape              cancel typing, or quit
 
@@ -66,8 +67,9 @@ static void update_title(App *app)
             if (backslash > slash) slash = backslash;
             name = slash ? slash + 1 : clip->path;
         }
-        snprintf(title, sizeof title, "laser-vault - %s, frame %d  (%s +%d)",
-                 ldp_state_name(ldp->state), ldp->frame, name, offset);
+        snprintf(title, sizeof title, "laser-vault - %s, frame %d  (%s +%d)%s",
+                 ldp_state_name(ldp->state), ldp->frame, name, offset,
+                 disc_video_decomb(app->video) ? "" : "  [combing repair off]");
     }
 
     // Titles change up to 24 times a second while playing; only touch the
@@ -160,6 +162,10 @@ static bool handle_key(App *app, SDL_Keycode key)
         else ldp_play(ldp);
         break;
     case SDLK_S:        ldp_stop(ldp); break;
+    case SDLK_D:
+        disc_video_set_decomb(app->video, !disc_video_decomb(app->video));
+        app->texture_frame = -1;  // fetch the picture again
+        break;
     case SDLK_RIGHT:    ldp_step(ldp, +1); break;
     case SDLK_LEFT:     ldp_step(ldp, -1); break;
     case SDLK_UP:       search_by(app, app->fps); break;

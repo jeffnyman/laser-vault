@@ -12,6 +12,7 @@ find_package(SDL3 REQUIRED CONFIG)
 add_library(lv_video STATIC
     src/video/framefile.c
     src/video/disc_video.c
+    src/video/decomb.c
 )
 target_include_directories(lv_video PUBLIC src)
 
