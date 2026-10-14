@@ -848,6 +848,7 @@ static int take_interrupt(Z80 *z)
 
     z->halted = false;
     z->iff1 = z->iff2 = false;
+    z->irq_taken = true;
     bump_r(z);
     switch (z->im) {
     case 2:  // jump through a table: address from (I * 256 + data byte)

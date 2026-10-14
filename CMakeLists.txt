@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(SDL3 REQUIRED CONFIG)
+find_package(ZLIB REQUIRED)
 
 # Laserdisc video (framefile + MPEG-2 decoding), shared by the emulator and
 # the tools.
@@ -55,7 +56,20 @@ add_executable(z80-zex
 )
 target_link_libraries(z80-zex PRIVATE lv_cpu)
 
-foreach(target lv_video lv_cpu laser-vault disc-gif z80-zex)
+# The Dragon's Lair board (CPU, memory map, I/O), plus loading ROMs from zips.
+add_library(lv_dlair STATIC
+    src/games/dlair/dlair.c
+    src/util/zip.c
+)
+target_link_libraries(lv_dlair PUBLIC lv_cpu ZLIB::ZLIB)
+
+# Tool: run the Dragon's Lair ROM headless and print what it does.
+add_executable(dlair-trace
+    src/tools/dlair_trace.c
+)
+target_link_libraries(dlair-trace PRIVATE lv_dlair)
+
+foreach(target lv_video lv_cpu lv_dlair laser-vault disc-gif z80-zex dlair-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

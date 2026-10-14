@@ -60,6 +60,8 @@ typedef struct {
     bool irq;           // maskable interrupt line held active
     uint8_t irq_data;   // byte the interrupting device puts on the data bus
     bool nmi;           // non-maskable interrupt requested (edge)
+    bool irq_taken;     // set when the CPU accepts a maskable interrupt, so
+                        // a board that holds the line until then can let go
 
     // Internal bookkeeping.
     bool ei_pending;    // EI was just executed: interrupts wait one instruction

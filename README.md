@@ -20,8 +20,8 @@ any frame by its number.)
 ## Setting up a development environment
 
 You need a C compiler, CMake (3.21 or newer), [SDL3](https://www.libsdl.org/)
-(3.2 or newer) and FFmpeg's development libraries (libavcodec, libavformat,
-libavutil). How you get them depends on the platform. Each section below goes
+(3.2 or newer), FFmpeg's development libraries (libavcodec, libavformat,
+libavutil) and zlib. How you get them depends on the platform. Each section below goes
 from a fresh machine to a built `laser-vault`.
 
 ### Windows (native, with Visual Studio)
@@ -90,7 +90,7 @@ and `make` may print harmless "clock skew" warnings.
 1. Install the compiler, build tools and FFmpeg:
    ```
    sudo apt install build-essential git cmake ninja-build pkg-config \
-       libavcodec-dev libavformat-dev libavutil-dev
+       libavcodec-dev libavformat-dev libavutil-dev zlib1g-dev
    ```
 2. Install SDL3. **Ubuntu 25.04 or newer:** `sudo apt install libsdl3-dev`,
    and you're done with this step. **Ubuntu 24.04** has no SDL3 package, so
@@ -120,7 +120,7 @@ and `make` may print harmless "clock skew" warnings.
 
 The program ends up at `build/linux/laser-vault`. On other distributions,
 install the same things with your package manager: a C compiler, CMake,
-pkg-config, FFmpeg development packages, and SDL3 if your distribution
+pkg-config, FFmpeg and zlib development packages, and SDL3 if your distribution
 packages it (otherwise build it from source as above).
 
 ### macOS
@@ -189,6 +189,19 @@ disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530
 The GIF encoder (`src/tools/gif.c`) is written from scratch and commented,
 if you're curious how GIF palettes and LZW compression work.
 
+`dlair-trace` runs the Dragon's Lair ROM without a window or video, much
+faster than real time, and prints what the game does: every command it sends
+to the laserdisc player and every change to the score display. There's no
+real player behind it yet, just a stand-in that always reports "parked".
+
+```
+dlair-trace path/to/lair.zip --seconds 60
+```
+
+`lair.zip` (or a folder with the same files) must hold the rev F2 ROMs:
+`dl_f2_u1.bin` to `dl_f2_u4.bin`. After about 35 seconds of game time you'll
+see it search to frame 323, where the attract mode's video starts.
+
 ## Testing the Z80
 
 The Z80 CPU emulator (`src/cpu/z80.c`) is checked with Frank D. Cringle's
@@ -210,11 +223,14 @@ and takes a minute or two.
 - `src/main.c`: window, keyboard, main loop, drawing.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/cpu/z80.c`: the Z80 CPU emulator.
+- `src/games/dlair/dlair.c`: the Dragon's Lair board (memory map, inputs, outputs, interrupts).
+- `src/util/zip.c`: reading ROMs out of zip files.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
+- `src/tools/dlair_trace.c`: the `dlair-trace` tool, with a stand-in laserdisc player.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
 
 ## License
