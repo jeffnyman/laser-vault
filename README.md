@@ -161,7 +161,9 @@ If `--video-dir` is omitted, clips are looked up next to the framefile.
 right for Dragon's Lair; see `src/video/disc_video.h`).
 
 Like the real machine, the game waits about 20 seconds for the laserdisc to
-spin up, and the attract mode starts after about 35 seconds. The default
+spin up, and the attract mode starts after about 35 seconds. Add
+`--fast-boot` to skip that wait: the start-up runs at full speed before the
+window appears, and you land straight in the attract mode. The default
 settings take two coins per credit, so press 5 twice, then 1.
 
 | Key                   | Action                                    |

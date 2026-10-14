@@ -1,11 +1,12 @@
 // laser-vault: a laserdisc arcade game emulator.
 //
-// Usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]
+// Usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS [--fast-boot]]
 //                    [--frame N] [--disc-fps F]
 //
 // With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
 // the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
-// the control panel.
+// the control panel. --fast-boot skips the wait while the game spins up
+// the disc, starting straight in the attract mode.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        sword button
@@ -66,7 +67,7 @@ typedef struct {
 static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
-                    "                   [--frame N] [--disc-fps F]\n");
+                    "                   [--fast-boot] [--frame N] [--disc-fps F]\n");
 }
 
 static void update_title(App *app)
@@ -184,6 +185,23 @@ static void read_game_inputs(App *app)
     fflush(stdout);
 }
 
+// Run the game as fast as possible, without drawing, until the attract mode
+// starts: the game's first search has finished and the disc is playing.
+// That skips the ~35 s the game spends spinning up the disc. Gives up after
+// two minutes of game time, in case the game never gets there.
+static void fast_boot(App *app)
+{
+    const uint64_t limit = 120ull * DLAIR_CPU_HZ;
+    bool searched = false;
+    while (app->board->cycles < limit) {
+        dlair_run(app->board, DLAIR_CPU_HZ / 100);  // 10 ms; a search takes 100 ms
+        ldv1000_update(&app->player, app->board->cycles);
+        if (app->ldp.state == LDP_SEARCHING) searched = true;
+        else if (searched && app->ldp.state == LDP_PLAYING) break;
+    }
+    printf("Fast boot: skipped %.1f s of start-up.\n", (double)app->board->cycles / DLAIR_CPU_HZ);
+}
+
 static void toggle_decomb(App *app)
 {
     disc_video_set_decomb(app->video, !disc_video_decomb(app->video));
@@ -250,6 +268,7 @@ int main(int argc, char **argv)
     const char *framefile_path = NULL;
     const char *video_dir = NULL;
     const char *roms = NULL;
+    bool want_fast_boot = false;
     int start_frame = -1;
     double disc_fps = DEFAULT_DISC_FPS;
 
@@ -258,6 +277,8 @@ int main(int argc, char **argv)
             video_dir = argv[++i];
         } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
             roms = argv[++i];
+        } else if (strcmp(argv[i], "--fast-boot") == 0) {
+            want_fast_boot = true;
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
             start_frame = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--disc-fps") == 0 && i + 1 < argc) {
@@ -319,9 +340,15 @@ int main(int argc, char **argv)
         // The LD-V1000 takes over the player model; the board talks to it.
         ldv1000_init(&app.player, &app.ldp, DLAIR_CPU_HZ);
         dlair_reset(app.board, dlair_ldv1000_link(&app.player));
-        printf("Dragon's Lair is starting. Like the real machine, it waits about 20 s for the\n"
-               "disc to spin up; the attract mode starts after about 35 s. With the game\n"
-               "window active, press 5 twice (two coins make one credit), then 1 to start.\n");
+        if (want_fast_boot) {
+            fast_boot(&app);
+        } else {
+            printf("Dragon's Lair is starting. Like the real machine, it waits about 20 s for\n"
+                   "the disc to spin up; the attract mode starts after about 35 s. (Use\n"
+                   "--fast-boot to skip the wait.)\n");
+        }
+        printf("With the game window active, press 5 twice (two coins make one credit),\n"
+               "then 1 to start.\n");
         fflush(stdout);
     }
 
