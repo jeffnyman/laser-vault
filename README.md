@@ -276,8 +276,9 @@ game should look like at the moment it's made; if the game has strayed
 from the plan (you pressed something too, say), the plans are thrown away
 and planning starts again from where the game is.
 
-**Window icon.** Each game has its own icon, built into the program from
-`icons/`.
+**Window icon.** Dragon's Lair has its own icon; the other games share one
+(most laserdisc game packs come with the same icon). Both are built into the
+program from `icons/`.
 
 ### Other ROM sets
 
@@ -512,7 +513,8 @@ and takes a minute or two.
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/cine_trace.c`: the `cine-trace` tool.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
-- `icons/`: each game's window icon. CMake builds them into the program
+- `icons/`: the window icons (`dlair.ico`, and `laser.ico` for the other
+  games). CMake builds them into the program
   (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
   `name.ico` there and add `name` to `EMBEDDED_ICONS` in `CMakeLists.txt`.
 

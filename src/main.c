@@ -6,7 +6,7 @@
 //                                 [--dsw1 HEX] [--dsw2 HEX] [--autoplay]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //
-// Each game's window icon is built in (icons/); --icon uses a
+// The window icons are built in (icons/); --icon uses a
 // Windows .ico file instead. F11 or Alt+Enter switches fullscreen on and
 // off in either mode; --fullscreen starts that way. F12 saves a screenshot
 // (a PNG of the picture, and the score panel if it's shown) in the current
@@ -678,12 +678,13 @@ int main(int argc, char **argv)
     if (app.game && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
         fprintf(stderr, "No gamepads: %s\n", SDL_GetError());
 
-    // The window icon: the game's own (built into the program), unless
-    // --icon names another.
+    // The window icon, built into the program: Dragon's Lair has its own,
+    // and other games share one (most laserdisc game packs come with the
+    // same icon). --icon names another.
     SDL_Surface *icon = NULL;
     if (icon_path) icon = icon_load(icon_path);
-    else if (app.game && app.board->game == CINE_SPACE_ACE) icon = icon_load_memory(icon_spaceace, icon_spaceace_size);
-    else if (app.game) icon = icon_load_memory(icon_dlair, icon_dlair_size);
+    else if (app.game && app.board->game == CINE_DRAGONS_LAIR) icon = icon_load_memory(icon_dlair, icon_dlair_size);
+    else if (app.game) icon = icon_load_memory(icon_laser, icon_laser_size);
     if (icon) {
         SDL_SetWindowIcon(app.window, icon);
         SDL_DestroySurface(icon);

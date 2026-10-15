@@ -17,10 +17,11 @@ SDL_Surface *icon_load(const char *path);
 // The same, for .ico data already in memory.
 SDL_Surface *icon_load_memory(const void *data, size_t size);
 
-// Icons built into the program from icons/ (see CMakeLists.txt).
+// Icons built into the program from icons/ (see CMakeLists.txt): Dragon's
+// Lair's own, and the one the other games share.
 extern const unsigned char icon_dlair[];
 extern const unsigned long icon_dlair_size;
-extern const unsigned char icon_spaceace[];
-extern const unsigned long icon_spaceace_size;
+extern const unsigned char icon_laser[];
+extern const unsigned long icon_laser_size;
 
 #endif

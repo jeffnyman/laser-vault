@@ -48,9 +48,9 @@ target_include_directories(lv_png PUBLIC src)
 target_link_libraries(lv_png PUBLIC ZLIB::ZLIB)
 
 # The emulator.
-# Each game's window icon is built into the program (as a C array generated
+# The window icons are built into the program (as a C array generated
 # from the .ico file), so it never has to find the file at run time.
-set(EMBEDDED_ICONS dlair spaceace)
+set(EMBEDDED_ICONS dlair laser)
 set(EMBEDDED_ICON_SOURCES "")
 foreach(icon ${EMBEDDED_ICONS})
     set(input ${CMAKE_SOURCE_DIR}/icons/${icon}.ico)

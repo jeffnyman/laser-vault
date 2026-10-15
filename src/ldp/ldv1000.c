@@ -16,7 +16,20 @@ enum {
     CMD_NO_ENTRY = 0xFF,
     CMD_AUDIO1 = 0xF4,
     CMD_AUDIO2 = 0xFC,
+    CMD_GET_FRAME = 0xC2,
+    CMD_FORWARD_X0 = 0xA0,  // A0-A7: play forward at a set speed (0, 1/4, 1/2, 1, 2, 3, 4, 5)
+    CMD_FORWARD_X5 = 0xA7,
 };
+
+// After GET FRAME NUMBER, the status byte carries the frame number's five
+// digits instead, most significant first, one per field (in its low four
+// bits), starting two fields later: time for the game to send the NO ENTRY
+// that follows the command. (Found by reading how Super Don Quix-ote reads
+// the reply.)
+#define FRAME_REPLY_DIGITS 5
+#define FRAME_REPLY_DELAY 2  // fields
+
+static int64_t field_number(const Ldv1000 *ld, uint64_t now);
 
 // Status bytes. READY (bit 7) is or'ed in when the player will take a
 // command; SEARCH_FINISH has it built in.
@@ -55,6 +68,7 @@ void ldv1000_init(Ldv1000 *ld, Ldp *ldp, double clock_hz)
         .clock_hz = clock_hz,
         .status = STATUS_PARK | STATUS_READY,
         .autostop_frame = -1,
+        .reply_field = -1,
         .audio = {true, true},
     };
     ldp->frame = 0;
@@ -148,10 +162,22 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
         ld->audio[ch] = ld->digit_count ? (number & 1) : !ld->audio[ch];
         break;
     }
-    case CMD_NO_ENTRY:
-        ld->status |= STATUS_READY;
+    case CMD_GET_FRAME:
+        ld->reply_frame = ldp->frame;
+        ld->reply_field = field_number(ld, now) + FRAME_REPLY_DELAY;
         break;
-    default:  // CLEAR, display and other commands: nothing to do
+    default:
+        if (byte == CMD_FORWARD_X0) {  // speed 0: hold the picture
+            ldp_pause(ldp);
+            ld->status = STATUS_STOP;
+        } else if (byte > CMD_FORWARD_X0 && byte <= CMD_FORWARD_X5) {
+            // Forward at 1/4 to 5 times normal speed. The player model only
+            // plays at normal speed, so all of them do for now.
+            ldp_play(ldp);
+            ld->autostop_frame = -1;
+            ld->status = STATUS_PLAY;
+        }
+        // CLEAR, display and other commands: nothing to do
         break;
     }
 }
@@ -160,11 +186,14 @@ void ldv1000_write(Ldv1000 *ld, uint64_t now, uint8_t byte)
 {
     ldv1000_update(ld, now);
 
-    if (!(ld->status & STATUS_READY)) {
-        // Busy with the last command; only NO ENTRY gets through.
-        if (byte == CMD_NO_ENTRY) ld->status |= STATUS_READY;
+    // NO ENTRY just makes the player ready for the next byte. It isn't a
+    // command, so it doesn't end a number being entered (games may send it
+    // more than once between digits).
+    if (byte == CMD_NO_ENTRY) {
+        ld->status |= STATUS_READY;
         return;
     }
+    if (!(ld->status & STATUS_READY)) return;  // busy with the last command
     ld->status &= ~STATUS_READY;
 
     int digit = digit_value(byte);
@@ -180,6 +209,16 @@ void ldv1000_write(Ldv1000 *ld, uint64_t now, uint8_t byte)
 uint8_t ldv1000_read_status(Ldv1000 *ld, uint64_t now)
 {
     ldv1000_update(ld, now);
+    if (ld->reply_field >= 0) {  // answering GET FRAME NUMBER
+        int64_t i = field_number(ld, now) - ld->reply_field;
+        if (i >= FRAME_REPLY_DIGITS) {
+            ld->reply_field = -1;
+        } else if (i >= 0) {
+            int digit = ld->reply_frame;
+            for (int64_t k = i; k < FRAME_REPLY_DIGITS - 1; k++) digit /= 10;
+            return (uint8_t)((ld->status & 0xF0) | (digit % 10));
+        }
+    }
     return ld->status;
 }
 
@@ -207,6 +246,15 @@ static double since_status_strobe(Ldv1000 *ld, uint64_t now)
     double us = (double)now * 1e6 / ld->clock_hz;
     if (ld->ldp->state == LDP_STOPPED) return fmod(us, PARKED_PERIOD_US);
     return fmod(us, FIELD_PERIOD_US) - FIELD_STROBE_OFFSET_US;
+}
+
+// Which field it is, counting from time zero, changing at each field's
+// status strobe. (A microsecond of slack, so a strobe exactly on time
+// counts as the new field.)
+static int64_t field_number(const Ldv1000 *ld, uint64_t now)
+{
+    double us = (double)now * 1e6 / ld->clock_hz;
+    return (int64_t)floor((us - FIELD_STROBE_OFFSET_US + 1.0) / FIELD_PERIOD_US);
 }
 
 bool ldv1000_status_strobe(Ldv1000 *ld, uint64_t now)
@@ -247,6 +295,14 @@ const char *ldv1000_command_name(uint8_t byte)
     case 0xCD: return "DISPLAY OFF";
     case 0xCE: return "DISPLAY ON";
     case 0xC2: return "GET FRAME NUMBER";
+    case 0xA0: return "FORWARD x0";
+    case 0xA1: return "FORWARD x1/4";
+    case 0xA2: return "FORWARD x1/2";
+    case 0xA3: return "FORWARD x1";
+    case 0xA4: return "FORWARD x2";
+    case 0xA5: return "FORWARD x3";
+    case 0xA6: return "FORWARD x4";
+    case 0xA7: return "FORWARD x5";
     default: return NULL;
     }
 }

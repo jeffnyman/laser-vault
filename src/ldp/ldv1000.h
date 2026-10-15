@@ -39,6 +39,8 @@ typedef struct {
     uint8_t status_before_stop;
     LdpState previous_state;
     bool audio[2];        // audio channel enables (AUDIO1, AUDIO2)
+    int reply_frame;      // GET FRAME NUMBER: the frame being reported
+    int64_t reply_field;  // and the field its first digit is in, or -1
 } Ldv1000;
 
 // Attach to a player model (already set up with ldp_init) and park it,
