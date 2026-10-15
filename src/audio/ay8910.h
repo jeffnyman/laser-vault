@@ -12,7 +12,7 @@
 //     R8-R10  volume for A, B, C (0-15), or bit 4 set: use the envelope
 //     R11-R12 envelope period (16 bits)
 //     R13     envelope shape (writing it restarts the envelope)
-//     R14-R15 the two 8-bit I/O ports (on Dragon's Lair, the DIP switches)
+//     R14-R15 the two 8-bit I/O ports (on the Cinematronics board, the DIP switches)
 //
 // A tone channel's frequency is clock / (16 * period). The chip is emulated
 // at its internal rate (clock / 8) and the result averaged down to the

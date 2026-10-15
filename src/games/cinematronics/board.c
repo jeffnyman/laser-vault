@@ -1,4 +1,4 @@
-#include "games/dlair/dlair.h"
+#include "games/cinematronics/board.h"
 #include "util/zip.h"
 
 #include <stdio.h>
@@ -16,9 +16,10 @@
 // ---------------------------------------------------------------------------
 //
 // Dragon's Lair went through several revisions, and fans later made their
-// own. Each set names its chips differently, so the files we find tell us
-// which set we have, and each chip's CRC-32 tells us whether it's a good
-// copy. (Names and checksums from MAME's dlair.cpp and the DLE readmes.)
+// own; Space Ace runs on the same board. Each set names its chips
+// differently, so the files we find tell us which set we have, and each
+// chip's CRC-32 tells us whether it's a good copy. (Names and checksums from
+// MAME's dlair.cpp and the fan sets' readmes.)
 
 #define ROM_CHIP_SIZE 0x2000
 
@@ -30,6 +31,7 @@ typedef struct {
 
 typedef struct {
     const char *title;
+    CineGame game;
     bool tested;         // known to work with laser-vault
     uint8_t dsw1, dsw2;  // the DIP switches, as the factory (or the authors) set them
     RomChip chips[6];    // up to 5, then an empty entry
@@ -37,7 +39,8 @@ typedef struct {
 
 // The sets this board can run, in order of preference (one zip may hold
 // several): the US revisions made for the LD-V1000, then the fans'
-// "Dragon's Lair Enhancement" sets, which began as rev F.
+// "Dragon's Lair Enhancement" sets, which began as rev F, and their "Space
+// Ace Enhancement".
 //
 // The DIP switches start as in MAME: 2 coins a credit, 5 lives, sound in
 // every 8th attract cycle, LD-V1000 player. The DLE sets give two switches
@@ -45,43 +48,54 @@ typedef struct {
 // for the standard game in 2.0 (on, it plays prototype scenes found only on
 // a disc pressed in 2002). In 2.0, B:5 on (bit clear) keeps the narrator in
 // the attract mode, as in the original game.
+//
+// SAE uses Dragon's Lair's switches too, except that B:6 and B:7 choose the
+// skill level (both on, bits clear: the player picks with the skill
+// buttons) and B:8 on picks a "hard" mode its authors advise against.
 static const RomSet rom_sets[] = {
-    {"Dragon's Lair (US Rev. F2)", true, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. F2)", CINE_DRAGONS_LAIR, true, 0x20, 0x79, {
         {"dl_f2_u1.bin", 0x0000, 0xF5EA3B9D},
         {"dl_f2_u2.bin", 0x2000, 0xDCC1DFF2},
         {"dl_f2_u3.bin", 0x4000, 0xAB514E5B},
         {"dl_f2_u4.bin", 0x6000, 0xF5EC23D2},
     }},
-    {"Dragon's Lair (US Rev. F)", false, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. F)", CINE_DRAGONS_LAIR, false, 0x20, 0x79, {
         {"dl_f_u1.bin", 0x0000, 0x06FC6941},
         {"dl_f_u2.bin", 0x2000, 0xDCC1DFF2},
         {"dl_f_u3.bin", 0x4000, 0xAB514E5B},
         {"dl_f_u4.bin", 0x6000, 0xA817324E},
     }},
-    {"Dragon's Lair (US Rev. E)", false, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. E)", CINE_DRAGONS_LAIR, false, 0x20, 0x79, {
         {"dl_e_u1.bin", 0x0000, 0x02980426},
         {"dl_e_u2.bin", 0x2000, 0x979D4C97},
         {"dl_e_u3.bin", 0x4000, 0x897BF075},
         {"dl_e_u4.bin", 0x6000, 0x4EBFFBA5},
     }},
-    {"Dragon's Lair (US Rev. D)", false, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. D)", CINE_DRAGONS_LAIR, false, 0x20, 0x79, {
         {"dl_d_u1.bin", 0x0000, 0x0B5AB120},
         {"dl_d_u2.bin", 0x2000, 0x93EBFFFB},
         {"dl_d_u3.bin", 0x4000, 0x22E6591F},
         {"dl_d_u4.bin", 0x6000, 0x5F7212CB},
         {"dl_d_u5.bin", 0x8000, 0x2B469C89},
     }},
-    {"Dragon's Lair Enhancement 2.0", true, 0x20, 0xE9, {
+    {"Dragon's Lair Enhancement 2.0", CINE_DRAGONS_LAIR, true, 0x20, 0xE9, {
         {"dle20_u1.bin", 0x0000, 0x0ACA15B4},
         {"dle20_u2.bin", 0x2000, 0x1CEA7622},
         {"dle20_u3.bin", 0x4000, 0x21A7E7CA},
         {"dle20_u4.bin", 0x6000, 0x4AE26073},
     }},
-    {"Dragon's Lair Enhancement 1.1", true, 0x20, 0xF9, {
+    {"Dragon's Lair Enhancement 1.1", CINE_DRAGONS_LAIR, true, 0x20, 0xF9, {
         {"dle11u1l.bin", 0x0000, 0x9E65B33D},
         {"dle11u2l.bin", 0x2000, 0xF16FA36F},
         {"dle11u3l.bin", 0x4000, 0xB8D07A16},
         {"dle11u4l.bin", 0x6000, 0x20FC79B7},
+    }},
+    {"Space Ace Enhancement 1.0", CINE_SPACE_ACE, true, 0x20, 0x89, {
+        {"sae10_u1.bin", 0x0000, 0xCBC5E425},
+        {"sae10_u2.bin", 0x2000, 0x71A26F47},
+        {"sae10_u3.bin", 0x4000, 0xBAC5CDD8},
+        {"sae10_u4.bin", 0x6000, 0xE18380F9},
+        {"sae10_u5.bin", 0x8000, 0x8A536CB0},
     }},
 };
 
@@ -89,7 +103,7 @@ static const RomSet rom_sets[] = {
 // can say why instead of just "not found".
 #define NEEDS_PR7820 "it was made for the Pioneer PR-7820 laserdisc player, and laser-vault only emulates the LD-V1000 (used from rev D on)"
 #define EUROPEAN "it runs on the European board, which is different hardware"
-#define SPACE_ACE "laser-vault doesn't play Space Ace yet"
+#define SPACE_ACE "the original Space Ace doesn't play properly in laser-vault yet (the SAE fan set does)"
 
 static const struct {
     const char *chip, *title, *reason;
@@ -105,7 +119,7 @@ static const struct {
     {"sa_a3_u1.bin", "Space Ace (US Rev. A3)", SPACE_ACE},
     {"sa_a2_u1.bin", "Space Ace (US Rev. A2)", SPACE_ACE},
     {"sa_a_u1.bin", "Space Ace (US Rev. A)", SPACE_ACE},
-    {"sa_u45a.bin", "Space Ace (European)", SPACE_ACE},
+    {"sa_u45a.bin", "Space Ace (European)", EUROPEAN},
 };
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
@@ -141,11 +155,11 @@ static bool has_chip(const char *path, const char *name)
     return true;
 }
 
-bool dlair_load_roms(Dlair *board, const char *path)
+bool cine_load_roms(CineBoard *board, const char *path)
 {
     struct stat st;
     if (stat(path, &st) != 0) {
-        fprintf(stderr, "dlair: cannot find %s\n", path);
+        fprintf(stderr, "ROMs: cannot find %s\n", path);
         return false;
     }
 
@@ -156,14 +170,15 @@ bool dlair_load_roms(Dlair *board, const char *path)
     if (!set) {
         for (size_t i = 0; i < COUNT(other_sets); i++) {
             if (has_chip(path, other_sets[i].chip)) {
-                fprintf(stderr, "dlair: %s holds %s, but %s.\n",
+                fprintf(stderr, "ROMs: %s holds %s, but %s.\n",
                         path, other_sets[i].title, other_sets[i].reason);
                 return false;
             }
         }
-        fprintf(stderr, "dlair: found no Dragon's Lair ROMs in %s. laser-vault plays rev F2\n"
-                        "(lair.zip, or dl_f2_u1.bin to dl_f2_u4.bin in a folder), and also revs D,\n"
-                        "E and F and the Dragon's Lair Enhancement 1.1 and 2.0 sets.\n", path);
+        fprintf(stderr, "ROMs: found no ROMs laser-vault knows in %s. It plays Dragon's Lair\n"
+                        "rev F2 (lair.zip, or dl_f2_u1.bin to dl_f2_u4.bin in a folder), revs D, E\n"
+                        "and F, the Dragon's Lair Enhancement 1.1 and 2.0 sets, and the Space Ace\n"
+                        "Enhancement (sae.zip).\n", path);
         return false;
     }
 
@@ -172,11 +187,11 @@ bool dlair_load_roms(Dlair *board, const char *path)
         uint8_t *data = NULL;
         size_t size = 0;
         if (!load_chip(path, chip->name, &data, &size)) {
-            fprintf(stderr, "dlair: %s looks like %s, but %s is missing\n", path, set->title, chip->name);
+            fprintf(stderr, "ROMs: %s looks like %s, but %s is missing\n", path, set->title, chip->name);
             return false;
         }
         if (size != ROM_CHIP_SIZE) {
-            fprintf(stderr, "dlair: %s is %zu bytes, expected %d\n", chip->name, size, ROM_CHIP_SIZE);
+            fprintf(stderr, "ROMs: %s is %zu bytes, expected %d\n", chip->name, size, ROM_CHIP_SIZE);
             free(data);
             return false;
         }
@@ -184,15 +199,21 @@ bool dlair_load_roms(Dlair *board, const char *path)
         // carry on: it might still run.
         uint32_t crc = (uint32_t)crc32(0, data, (uInt)size);
         if (crc != chip->crc)
-            fprintf(stderr, "dlair: warning: %s has CRC %08X, expected %08X (a bad copy or a\n"
+            fprintf(stderr, "ROMs: warning: %s has CRC %08X, expected %08X (a bad copy or a\n"
                             "modified chip?); trying it anyway\n", chip->name, crc, chip->crc);
         memcpy(board->rom + chip->addr, data, size);
         free(data);
     }
     printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
+    board->game = set->game;
     board->dsw1 = set->dsw1;
     board->dsw2 = set->dsw2;
     return true;
+}
+
+const char *cine_game_name(CineGame game)
+{
+    return game == CINE_SPACE_ACE ? "Space Ace" : "Dragon's Lair";
 }
 
 // ---------------------------------------------------------------------------
@@ -202,39 +223,43 @@ bool dlair_load_roms(Dlair *board, const char *path)
 // The board only decodes some address lines, so each device appears at many
 // addresses. In C000-FFFF, bits 3-5 pick the device: C000, C008, C010, ...
 
-static uint8_t read_system_port(Dlair *b)
+static uint8_t read_system_port(CineBoard *b)
 {
     // Bits 0-3: start and coin buttons, active low. Bits 4-5 unused (high).
     // Bit 6: the player's status strobe; it goes low for a moment when the
     // player has fresh status. Bit 7: the command strobe, high for a moment
     // when the player is ready for the next command byte.
-    const DlairInputs *in = &b->inputs;
+    const CineInputs *in = &b->inputs;
     uint8_t v = 0x3F;
     if (in->start1) v &= ~0x01;
     if (in->start2) v &= ~0x02;
     if (in->coin1) v &= ~0x04;
     if (in->coin2) v &= ~0x08;
-    const DlairLaserdisc *ld = &b->laserdisc;
+    const CineLaserdisc *ld = &b->laserdisc;
     if (!ld->status_strobe(ld->ctx, b->cycles)) v |= 0x40;
     if (ld->command_strobe(ld->ctx, b->cycles)) v |= 0x80;
     return v;
 }
 
-static uint8_t read_joystick_port(Dlair *b)
+static uint8_t read_joystick_port(CineBoard *b)
 {
-    const DlairInputs *in = &b->inputs;
+    const CineInputs *in = &b->inputs;
     uint8_t v = 0xFF;
     if (in->up) v &= ~0x01;
     if (in->down) v &= ~0x02;
     if (in->left) v &= ~0x04;
     if (in->right) v &= ~0x08;
     if (in->sword) v &= ~0x10;
+    // Bits 5-7: Space Ace's skill-level buttons (unused in Dragon's Lair).
+    if (in->cadet) v &= ~0x20;
+    if (in->captain) v &= ~0x40;
+    if (in->ace) v &= ~0x80;
     return v;
 }
 
 static uint8_t mem_read(void *ctx, uint16_t addr)
 {
-    Dlair *b = ctx;
+    CineBoard *b = ctx;
     if (addr < 0xA000) return b->rom[addr];
     if (addr < 0xC000) return b->ram[addr & 0x7FF];
     if (addr >= 0xE000) return 0xFF;  // output-only area
@@ -251,7 +276,7 @@ static uint8_t mem_read(void *ctx, uint16_t addr)
     }
 }
 
-static void misc_write(Dlair *b, uint8_t v)
+static void misc_write(CineBoard *b, uint8_t v)
 {
     // Bit 5 going low sends the byte in the laserdisc latch to the player.
     // (Bit 4 drives the coin counter, bit 6 the player's ENTER line; neither
@@ -264,7 +289,7 @@ static void misc_write(Dlair *b, uint8_t v)
 
 static void mem_write(void *ctx, uint16_t addr, uint8_t v)
 {
-    Dlair *b = ctx;
+    CineBoard *b = ctx;
     if (addr < 0xA000) return;  // ROM
     if (addr < 0xC000) {
         b->ram[addr & 0x7FF] = v;
@@ -296,9 +321,9 @@ static void ldv_send_command(void *ctx, uint64_t now, uint8_t b) { ldv1000_write
 static bool ldv_status_strobe(void *ctx, uint64_t now) { return ldv1000_status_strobe(ctx, now); }
 static bool ldv_command_strobe(void *ctx, uint64_t now) { return ldv1000_command_strobe(ctx, now); }
 
-DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player)
+CineLaserdisc cine_ldv1000_link(Ldv1000 *player)
 {
-    return (DlairLaserdisc){
+    return (CineLaserdisc){
         .ctx = player,
         .read_status = ldv_read_status,
         .send_command = ldv_send_command,
@@ -311,13 +336,13 @@ DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player)
 // Running
 // ---------------------------------------------------------------------------
 
-void dlair_reset(Dlair *b, DlairLaserdisc laserdisc)
+void cine_reset(CineBoard *b, CineLaserdisc laserdisc)
 {
     b->laserdisc = laserdisc;
     memset(&b->inputs, 0, sizeof b->inputs);
     memset(b->ram, 0, sizeof b->ram);
     ay8910_free(&b->ay);
-    ay8910_init(&b->ay, DLAIR_CPU_HZ, DLAIR_SOUND_CHIP_HZ, DLAIR_SAMPLE_RATE);
+    ay8910_init(&b->ay, CINE_CPU_HZ, CINE_SOUND_CHIP_HZ, CINE_SAMPLE_RATE);
     memset(b->digits, 15, sizeof b->digits);  // blank
     b->ay_select = 0;
     b->ld_latch = 0;
@@ -328,7 +353,7 @@ void dlair_reset(Dlair *b, DlairLaserdisc laserdisc)
                                .in = io_in, .out = io_out});
 }
 
-void dlair_run(Dlair *b, uint64_t cycles)
+void cine_run(CineBoard *b, uint64_t cycles)
 {
     uint64_t end = b->cycles + cycles;
     while (b->cycles < end) {

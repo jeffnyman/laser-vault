@@ -20,5 +20,7 @@ SDL_Surface *icon_load_memory(const void *data, size_t size);
 // Icons built into the program from icons/ (see CMakeLists.txt).
 extern const unsigned char icon_dlair[];
 extern const unsigned long icon_dlair_size;
+extern const unsigned char icon_spaceace[];
+extern const unsigned long icon_spaceace_size;
 
 #endif

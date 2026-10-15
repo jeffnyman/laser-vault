@@ -1,8 +1,8 @@
-// bezel.h - draw the Dragon's Lair score displays.
+// bezel.h - draw the game board's score displays.
 //
 // On the arcade cabinet the scores aren't on the screen at all: they're on
 // seven-segment LED displays in the bezel around it. The board drives 16
-// digits (see games/dlair/dlair.h):
+// digits (see games/cinematronics/board.h):
 //
 //     digits 0-5    player 1 score      digit 6    player 1 lives
 //     digits 8-13   player 2 score      digit 7    player 2 lives

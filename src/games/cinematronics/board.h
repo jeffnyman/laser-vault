@@ -1,4 +1,5 @@
-// dlair.h - the Dragon's Lair game board (US version, Pioneer LD-V1000).
+// board.h - the Cinematronics laserdisc game board (US version, Pioneer
+// LD-V1000), which runs Dragon's Lair and Space Ace.
 //
 // The board is small: a Z80 CPU at 4 MHz, 40 KB of ROM space (most sets
 // use 32 KB), 2 KB of RAM, an AY-3-8910 sound chip (which also reads
@@ -17,8 +18,8 @@
 //
 // Details come from the schematics as documented in MAME's dlair.cpp.
 
-#ifndef LV_DLAIR_H
-#define LV_DLAIR_H
+#ifndef LV_CINE_BOARD_H
+#define LV_CINE_BOARD_H
 
 #include "audio/ay8910.h"
 #include "cpu/z80.h"
@@ -27,27 +28,38 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define DLAIR_CPU_HZ 4000000
-#define DLAIR_SOUND_CHIP_HZ 2000000  // the AY-3-8910 runs at 16 MHz / 8
-#define DLAIR_SAMPLE_RATE 44100      // rate of the sound chip's output samples
+#define CINE_CPU_HZ 4000000
+#define CINE_SOUND_CHIP_HZ 2000000  // the AY-3-8910 runs at 16 MHz / 8
+#define CINE_SAMPLE_RATE 44100      // rate of the sound chip's output samples
+
+// The games on this board.
+typedef enum {
+    CINE_DRAGONS_LAIR,
+    CINE_SPACE_ACE,
+} CineGame;
+
+// The game's name, for the window title: "Dragon's Lair" or "Space Ace".
+const char *cine_game_name(CineGame game);
 
 // The DIP switches: two banks of eight, DSW1 (A:1-8) and DSW2 (B:1-8), bit 0
 // first. What each switch does depends on the ROM set; the three below mean
-// the same in rev F2 and the DLE sets. (The DLE readmes give the physical
-// switch positions instead, numbered 0-7: a bit set is a switch OFF.)
+// the same in Dragon's Lair rev F2 and all the fan sets. (The fan sets'
+// readmes give the physical switch positions instead, numbered 0-7: a bit
+// set is a switch OFF.)
 
 // DIP switch A:5, "2 Credits/Free play". On, the game always has two
 // credits, so start works without coins. Off by default.
-#define DLAIR_DSW1_FREE_PLAY 0x10
+#define CINE_DSW1_FREE_PLAY 0x10
 
 // DIP switch B:1, "Sound Every 8 Attracts". On (the default) keeps the
 // attract mode quiet: the game switches the disc's sound off and only lets
 // it through every few attract cycles. Off: the attract mode always has sound.
-#define DLAIR_DSW2_QUIET_ATTRACT 0x01
+#define CINE_DSW2_QUIET_ATTRACT 0x01
 
-// DIP switch B:3, "Unlimited Dirks". On, Dirk still dies but never loses a
-// life, so a player can see the whole game. Off by default.
-#define DLAIR_DSW2_UNLIMITED_LIVES 0x04
+// DIP switch B:3, "Unlimited Dirks" (in SAE, "unlimited lives"). On, the
+// hero still dies but never loses a life, so a player can see the whole
+// game. Off by default.
+#define CINE_DSW2_UNLIMITED_LIVES 0x04
 
 // How the board talks to the laserdisc player. The player drives two
 // strobe lines that tell the game when to read status and when to send
@@ -59,22 +71,26 @@ typedef struct {
     void (*send_command)(void *ctx, uint64_t now, uint8_t byte);  // byte latched to the player
     bool (*status_strobe)(void *ctx, uint64_t now);  // true while the strobe is active
     bool (*command_strobe)(void *ctx, uint64_t now);
-} DlairLaserdisc;
+} CineLaserdisc;
 
 // Inputs are active low on the real board; here, true means pressed.
+// Space Ace adds three skill-level buttons, chosen at the start of a game.
 typedef struct {
     bool up, down, left, right, sword;
     bool start1, start2, coin1, coin2;
-} DlairInputs;
+    bool cadet, captain, ace;
+} CineInputs;
 
 typedef struct {
+    CineGame game;           // which game the ROMs hold (set by cine_load_roms)
+
     Z80 cpu;
     uint8_t rom[0xA000];
     uint8_t ram[0x800];
 
     uint8_t dsw1, dsw2;      // DIP switches (read through the sound chip)
-    DlairInputs inputs;
-    DlairLaserdisc laserdisc;
+    CineInputs inputs;
+    CineLaserdisc laserdisc;
 
     Ay8910 ay;               // the sound chip
     uint8_t ay_select;       // sound chip register selected by the CPU
@@ -84,21 +100,21 @@ typedef struct {
 
     uint64_t cycles;         // CPU clock cycles since power-on
     uint64_t next_irq;
-} Dlair;
+} CineBoard;
 
 // Load the ROMs from a zip file or a folder of .bin files. This works out
-// which set they are (rev F2, another revision, or a fan-made set), checks
+// which set they are (which game, which revision, or a fan-made set), checks
 // each chip's checksum, and sets the DIP switches as that set expects.
 // Returns false (after printing why) if it finds no set it can run.
-bool dlair_load_roms(Dlair *board, const char *path);
+bool cine_load_roms(CineBoard *board, const char *path);
 
 // A laserdisc link to an LD-V1000 model, the player this board was built for.
-DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player);
+CineLaserdisc cine_ldv1000_link(Ldv1000 *player);
 
 // Power on: reset the CPU. (The DIP switches stay as they are.)
-void dlair_reset(Dlair *board, DlairLaserdisc laserdisc);
+void cine_reset(CineBoard *board, CineLaserdisc laserdisc);
 
 // Run the board for (at least) the given number of CPU cycles.
-void dlair_run(Dlair *board, uint64_t cycles);
+void cine_run(CineBoard *board, uint64_t cycles);
 
 #endif

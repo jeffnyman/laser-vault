@@ -1,4 +1,4 @@
-#include "games/dlair/dlair_autoplay.h"
+#include "games/cinematronics/autoplay.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +8,8 @@
 // The game's list of moves
 // ---------------------------------------------------------------------------
 //
-// Found by watching the rev F2 game run (the DLE sets use the same list).
+// Found by watching Dragon's Lair rev F2 run; the fan sets for Dragon's Lair
+// and Space Ace use the same list.
 // While a scene plays, RAM from A0E0 holds 16-byte entries, one per input
 // the game is watching for:
 //
@@ -30,7 +31,7 @@
 #define MOVE_ENTRY_SIZE 16
 #define MOVE_LIST_MAX 16
 
-int dlair_open_moves(const Dlair *b, DlairMove *moves, int max)
+int cine_open_moves(const CineBoard *b, CineMove *moves, int max)
 {
     int n = 0;
     for (int e = 0; e < MOVE_LIST_MAX && n < max; e++) {
@@ -41,14 +42,14 @@ int dlair_open_moves(const Dlair *b, DlairMove *moves, int max)
         for (int w = 0; w < windows; w++) {
             if (x[13 + w] == 0) continue;  // this window is over
             uint8_t outcome = x[2 + ((x[1] >> (2 + 2 * w)) & 3)];
-            if (outcome != 0xFF) moves[n++] = (DlairMove){x[0] & 0x0F, outcome};
+            if (outcome != 0xFF) moves[n++] = (CineMove){x[0] & 0x0F, outcome};
             break;
         }
     }
     return n;
 }
 
-static bool same_moves(const DlairMove *a, int na, const DlairMove *b, int nb)
+static bool same_moves(const CineMove *a, int na, const CineMove *b, int nb)
 {
     return na == nb && memcmp(a, b, (size_t)na * sizeof *a) == 0;
 }
@@ -58,38 +59,38 @@ static bool same_moves(const DlairMove *a, int na, const DlairMove *b, int nb)
 // ---------------------------------------------------------------------------
 
 #define PRESS_SECONDS 0.1  // how long to hold a move (a few timer ticks)
-#define SETTLE_CYCLES (DLAIR_CPU_HZ / 100)  // 10 ms
+#define SETTLE_CYCLES (CINE_CPU_HZ / 100)  // 10 ms
 #define LOOKAHEAD_SECONDS 6.0
-#define SLICE_CYCLES (DLAIR_CPU_HZ / 1000)
+#define SLICE_CYCLES (CINE_CPU_HZ / 1000)
 
 // A copy of everything that decides what the game does next.
 typedef struct {
-    Dlair board;
+    CineBoard board;
     Ldp ldp;
     Ldv1000 player;
 } Machine;
 
-static void copy_machine(Machine *m, const Dlair *board, const Ldp *ldp, const Ldv1000 *player)
+static void copy_machine(Machine *m, const CineBoard *board, const Ldp *ldp, const Ldv1000 *player)
 {
     m->board = *board;
     m->ldp = *ldp;
     m->player = *player;
     // Point the copy's parts at each other instead of at the originals.
     m->player.ldp = &m->ldp;
-    m->board.laserdisc = dlair_ldv1000_link(&m->player);
+    m->board.laserdisc = cine_ldv1000_link(&m->player);
     m->board.cpu.bus.ctx = &m->board;
     // A lost life is how the copy shows a move was fatal, so it plays with
     // lives that run out even when the real game has unlimited ones. The
     // game keeps its own copy of the switches at A011, so clear it there too.
-    m->board.dsw2 &= ~DLAIR_DSW2_UNLIMITED_LIVES;
-    m->board.ram[0x011] &= ~DLAIR_DSW2_UNLIMITED_LIVES;
+    m->board.dsw2 &= ~CINE_DSW2_UNLIMITED_LIVES;
+    m->board.ram[0x011] &= ~CINE_DSW2_UNLIMITED_LIVES;
     // The copy makes no sound, and mustn't touch the original's samples.
     m->board.ay.rendering = false;
     m->board.ay.samples = NULL;
     m->board.ay.sample_count = m->board.ay.sample_capacity = 0;
 }
 
-static void set_input(DlairInputs *in, int input, bool down)
+static void set_input(CineInputs *in, int input, bool down)
 {
     if (input == 0) {
         in->sword = down;
@@ -103,7 +104,7 @@ static void set_input(DlairInputs *in, int input, bool down)
 
 // Lives left, from the score display (digit 6 for player 1, 7 for player
 // 2; blank counts as none).
-static int lives(const Dlair *b)
+static int lives(const CineBoard *b)
 {
     int n = 0;
     for (int i = 6; i <= 7; i++)
@@ -113,7 +114,7 @@ static int lives(const Dlair *b)
 
 // The entries' fixed parts (bytes 0-11, not the timers). The game rewrites
 // them when it takes a move.
-static void list_headers(const Dlair *b, uint8_t out[MOVE_LIST_MAX * 12])
+static void list_headers(const CineBoard *b, uint8_t out[MOVE_LIST_MAX * 12])
 {
     memset(out, 0, MOVE_LIST_MAX * 12);
     for (int e = 0; e < MOVE_LIST_MAX; e++) {
@@ -137,7 +138,7 @@ typedef enum { DIES, SURVIVES, IGNORED } Verdict;
 //
 // A window running out on its own changes the open set too, but leaves the
 // list as it was, so it doesn't count as moving on.
-static Verdict try_move(Machine *m, int input, const DlairMove *open, int open_count)
+static Verdict try_move(Machine *m, int input, const CineMove *open, int open_count)
 {
     // The copy doesn't need a real player at the controls.
     memset(&m->board.inputs, 0, sizeof m->board.inputs);
@@ -145,11 +146,11 @@ static Verdict try_move(Machine *m, int input, const DlairMove *open, int open_c
     uint8_t start_headers[MOVE_LIST_MAX * 12], headers[MOVE_LIST_MAX * 12];
     list_headers(&m->board, start_headers);
     bool taken = false;
-    uint64_t release = m->board.cycles + (uint64_t)(PRESS_SECONDS * DLAIR_CPU_HZ);
-    uint64_t end = m->board.cycles + (uint64_t)(LOOKAHEAD_SECONDS * DLAIR_CPU_HZ);
+    uint64_t release = m->board.cycles + (uint64_t)(PRESS_SECONDS * CINE_CPU_HZ);
+    uint64_t end = m->board.cycles + (uint64_t)(LOOKAHEAD_SECONDS * CINE_CPU_HZ);
     while (m->board.cycles < end) {
         set_input(&m->board.inputs, input, m->board.cycles < release);
-        dlair_run(&m->board, SLICE_CYCLES);
+        cine_run(&m->board, SLICE_CYCLES);
         ldv1000_update(&m->player, m->board.cycles);
         if (lives(&m->board) < start_lives) return DIES;
         if (!taken) {
@@ -157,8 +158,8 @@ static Verdict try_move(Machine *m, int input, const DlairMove *open, int open_c
             taken = memcmp(headers, start_headers, sizeof headers) != 0;
         }
         if (taken && m->board.cycles >= release) {
-            DlairMove now[DLAIR_AUTOPLAY_MAX_MOVES];
-            int n = dlair_open_moves(&m->board, now, DLAIR_AUTOPLAY_MAX_MOVES);
+            CineMove now[CINE_AUTOPLAY_MAX_MOVES];
+            int n = cine_open_moves(&m->board, now, CINE_AUTOPLAY_MAX_MOVES);
             if (n > 0 && !same_moves(now, n, open, open_count)) return SURVIVES;
         }
     }
@@ -178,27 +179,27 @@ static const char *input_name(int input)
 // Playing
 // ---------------------------------------------------------------------------
 
-void dlair_autoplay_init(DlairAutoplay *ap, bool verbose)
+void cine_autoplay_init(CineAutoplay *ap, bool verbose)
 {
     memset(ap, 0, sizeof *ap);
     ap->verbose = verbose;
     ap->pressing = -1;
 }
 
-void dlair_autoplay_free(DlairAutoplay *ap)
+void cine_autoplay_free(CineAutoplay *ap)
 {
     free(ap->machine);
     ap->machine = NULL;
 }
 
-void dlair_autoplay_resume(DlairAutoplay *ap)
+void cine_autoplay_resume(CineAutoplay *ap)
 {
     ap->seen_count = 0;
     ap->decided_count = 0;
     ap->pressing = -1;
 }
 
-void dlair_autoplay_update(DlairAutoplay *ap, Dlair *board, const Ldp *ldp, const Ldv1000 *player)
+void cine_autoplay_update(CineAutoplay *ap, CineBoard *board, const Ldp *ldp, const Ldv1000 *player)
 {
     // Holding a move: keep it down until it's time to let go.
     if (ap->pressing >= 0) {
@@ -211,8 +212,8 @@ void dlair_autoplay_update(DlairAutoplay *ap, Dlair *board, const Ldp *ldp, cons
     // Moves only count while the scene plays (their windows count down
     // then), and the game writes a new list one entry at a time, so wait
     // until a set has been open for a moment before judging it.
-    DlairMove open[DLAIR_AUTOPLAY_MAX_MOVES];
-    int n = ldp->state == LDP_PLAYING ? dlair_open_moves(board, open, DLAIR_AUTOPLAY_MAX_MOVES) : 0;
+    CineMove open[CINE_AUTOPLAY_MAX_MOVES];
+    int n = ldp->state == LDP_PLAYING ? cine_open_moves(board, open, CINE_AUTOPLAY_MAX_MOVES) : 0;
     if (!same_moves(open, n, ap->seen, ap->seen_count)) {
         memcpy(ap->seen, open, sizeof open);
         ap->seen_count = n;
@@ -236,9 +237,9 @@ void dlair_autoplay_update(DlairAutoplay *ap, Dlair *board, const Ldp *ldp, cons
         if (try_move(m, open[i].input, open, n) == SURVIVES) {
             if (ap->verbose)
                 printf("%8.3f s  autoplay: %s at frame %d\n",
-                       (double)board->cycles / DLAIR_CPU_HZ, input_name(open[i].input), ldp->frame);
+                       (double)board->cycles / CINE_CPU_HZ, input_name(open[i].input), ldp->frame);
             ap->pressing = open[i].input;
-            ap->release_at = board->cycles + (uint64_t)(PRESS_SECONDS * DLAIR_CPU_HZ);
+            ap->release_at = board->cycles + (uint64_t)(PRESS_SECONDS * CINE_CPU_HZ);
             ap->moves_made++;
             set_input(&board->inputs, ap->pressing, true);
             return;

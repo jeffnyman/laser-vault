@@ -10,9 +10,10 @@
 // Windows .ico file instead. F11 or Alt+Enter switches fullscreen on and
 // off in either mode; --fullscreen starts that way.
 //
-// With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
-// the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
-// the control panel. --fast-boot skips the wait while the game spins up the
+// With --roms (a ROM set such as lair.zip or sae.zip, or a folder of ROM
+// files), it runs the game: Dragon's Lair or Space Ace, whichever the ROMs
+// hold. The game's CPU drives an LD-V1000 laserdisc player, and the
+// keyboard is the control panel. --fast-boot skips the wait while the game spins up the
 // disc, starting straight in the attract mode. --attract-sound plays sound
 // in every attract cycle (by default, as on the real machine, it only does
 // every few cycles). --scores shows the score displays, which on the real
@@ -22,12 +23,13 @@
 // switches directly (each bank as a hex byte, replacing the ROM set's
 // defaults); the options above then change their own switches on top.
 // --autoplay lets the program play the joystick and sword (see
-// games/dlair/dlair_autoplay.h); A switches it on and off during a game.
+// games/cinematronics/autoplay.h); A switches it on and off during a game.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        sword button
 //   5 / 6               insert a coin (slot 1 / 2)
 //   1 / 2               start (1 / 2 players)
+//   F1 / F2 / F3        Space Ace: choose Cadet / Captain / Ace
 //   S                   show / hide the score displays
 //   P / Pause           pause / resume the game
 //   A                   autoplay on / off
@@ -50,8 +52,8 @@
 //   Escape              cancel typing, or quit
 
 #include "audio/disc_audio.h"
-#include "games/dlair/dlair.h"
-#include "games/dlair/dlair_autoplay.h"
+#include "games/cinematronics/board.h"
+#include "games/cinematronics/autoplay.h"
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
 #include "ui/bezel.h"
@@ -86,8 +88,8 @@ typedef struct {
     bool show_scores;  // the score display panel beside the picture
     bool paused;       // game mode: everything frozen
     bool autoplaying;  // game mode: the program plays the joystick and sword
-    DlairAutoplay autoplay;
-    Dlair *board;
+    CineAutoplay autoplay;
+    CineBoard *board;
     Ldv1000 player;
 
     SDL_Gamepad *gamepads[8];  // game mode: controllers plugged in (NULL = free slot)
@@ -130,8 +132,8 @@ static void update_title(App *app)
         char digits[17];
         for (int i = 0; i < 16; i++) digits[i] = glyphs[app->board->digits[i]];
         digits[16] = '\0';
-        snprintf(title, sizeof title, "Dragon's Lair - [%.8s] [%.8s] - %s, frame %d%s%s%s",
-                 digits, digits + 8, ldp_state_name(ldp->state), ldp->frame,
+        snprintf(title, sizeof title, "%s - [%.8s] [%.8s] - %s, frame %d%s%s%s",
+                 cine_game_name(app->board->game), digits, digits + 8, ldp_state_name(ldp->state), ldp->frame,
                  app->paused ? "  [paused]" : "",
                  app->autoplaying ? "  [autoplay]" : "",
                  disc_video_decomb(app->video) ? "" : "  [combing repair off]");
@@ -214,7 +216,17 @@ static void draw(App *app)
     SDL_RenderClear(app->renderer);
     if (ldp_has_picture(ldp) && app->texture_frame >= 0)
         SDL_RenderTexture(app->renderer, app->texture, NULL, &(SDL_FRect){0, 0, VIDEO_W, VIDEO_H});
-    if (app->game && app->show_scores) bezel_draw(app->renderer, VIDEO_W, 0, app->board->digits);
+    if (app->game && app->show_scores) {
+        // Space Ace uses the letter codes as blanks (A) and as signals for a
+        // separate board that lights the skill-level lamps (the letters its
+        // display would otherwise show), so only its digits are shown.
+        uint8_t digits[16];
+        memcpy(digits, app->board->digits, sizeof digits);
+        if (app->board->game == CINE_SPACE_ACE)
+            for (int i = 0; i < 16; i++)
+                if (digits[i] > 9) digits[i] = 15;
+        bezel_draw(app->renderer, VIDEO_W, 0, digits);
+    }
     if (app->paused) draw_paused_banner(app->renderer);
     SDL_RenderPresent(app->renderer);
 }
@@ -280,8 +292,9 @@ static void gamepad_removed(App *app, SDL_JoystickID id)
 
 // Add a controller to the control panel: the d-pad or left stick is the
 // joystick, any face button the sword, Back (Select) inserts a coin and
-// Start starts a one-player game.
-static void read_gamepad(SDL_Gamepad *pad, DlairInputs *in)
+// Start starts a one-player game. For Space Ace's skill levels, the left
+// shoulder button is Cadet, the right one Captain and the right trigger Ace.
+static void read_gamepad(SDL_Gamepad *pad, CineInputs *in)
 {
     const int tilt = 16384;  // the stick counts as pushed half way out
     int x = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
@@ -296,6 +309,9 @@ static void read_gamepad(SDL_Gamepad *pad, DlairInputs *in)
                 SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
     in->coin1 = in->coin1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK);
     in->start1 = in->start1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
+    in->cadet = in->cadet || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
+    in->captain = in->captain || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
+    in->ace = in->ace || SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > tilt;
 }
 
 // The control panel, read from the keyboard and any controllers every pass
@@ -304,8 +320,8 @@ static void read_game_inputs(App *app)
 {
     // Number keys work on the top row or the numeric keypad.
     const bool *key = SDL_GetKeyboardState(NULL);
-    DlairInputs *in = &app->board->inputs;
-    DlairInputs before = *in;
+    CineInputs *in = &app->board->inputs;
+    CineInputs before = *in;
     in->up = key[SDL_SCANCODE_UP];
     in->down = key[SDL_SCANCODE_DOWN];
     in->left = key[SDL_SCANCODE_LEFT];
@@ -315,18 +331,26 @@ static void read_game_inputs(App *app)
     in->coin2 = key[SDL_SCANCODE_6] || key[SDL_SCANCODE_KP_6];
     in->start1 = key[SDL_SCANCODE_1] || key[SDL_SCANCODE_KP_1];
     in->start2 = key[SDL_SCANCODE_2] || key[SDL_SCANCODE_KP_2];
+    in->cadet = key[SDL_SCANCODE_F1];
+    in->captain = key[SDL_SCANCODE_F2];
+    in->ace = key[SDL_SCANCODE_F3];
     // (A pad just unplugged reads its stick as pushed all the way up until
     // the event saying it's gone arrives, so check it's still there.)
     for (int i = 0; i < (int)SDL_arraysize(app->gamepads); i++)
         if (app->gamepads[i] && SDL_GamepadConnected(app->gamepads[i])) read_gamepad(app->gamepads[i], in);
 
-    // Say so on the console when a coin or start button goes down, so it's
-    // easy to tell whether the keyboard is reaching the game.
-    double t = (double)app->board->cycles / DLAIR_CPU_HZ;
+    // Say so on the console when a coin, start or skill button goes down, so
+    // it's easy to tell whether the keyboard is reaching the game.
+    double t = (double)app->board->cycles / CINE_CPU_HZ;
     if (in->coin1 && !before.coin1) printf("%6.1f s  coin inserted (slot 1)\n", t);
     if (in->coin2 && !before.coin2) printf("%6.1f s  coin inserted (slot 2)\n", t);
     if (in->start1 && !before.start1) printf("%6.1f s  start (1 player)\n", t);
     if (in->start2 && !before.start2) printf("%6.1f s  start (2 players)\n", t);
+    if (app->board->game == CINE_SPACE_ACE) {
+        if (in->cadet && !before.cadet) printf("%6.1f s  skill: Cadet\n", t);
+        if (in->captain && !before.captain) printf("%6.1f s  skill: Captain\n", t);
+        if (in->ace && !before.ace) printf("%6.1f s  skill: Ace\n", t);
+    }
     fflush(stdout);
 }
 
@@ -336,15 +360,15 @@ static void read_game_inputs(App *app)
 // two minutes of game time, in case the game never gets there.
 static void fast_boot(App *app)
 {
-    const uint64_t limit = 120ull * DLAIR_CPU_HZ;
+    const uint64_t limit = 120ull * CINE_CPU_HZ;
     bool searched = false;
     while (app->board->cycles < limit) {
-        dlair_run(app->board, DLAIR_CPU_HZ / 100);  // 10 ms; searches take longer
+        cine_run(app->board, CINE_CPU_HZ / 100);  // 10 ms; searches take longer
         ldv1000_update(&app->player, app->board->cycles);
         if (app->ldp.state == LDP_SEARCHING) searched = true;
         else if (searched && app->ldp.state == LDP_PLAYING) break;
     }
-    printf("Fast boot: skipped %.1f s of start-up.\n", (double)app->board->cycles / DLAIR_CPU_HZ);
+    printf("Fast boot: skipped %.1f s of start-up.\n", (double)app->board->cycles / CINE_CPU_HZ);
 }
 
 // Pass the sound chip's newly generated samples to the speakers. The chip
@@ -356,7 +380,7 @@ static void play_chip_sound(App *app)
     const float *samples;
     ay8910_run(&app->board->ay, app->board->cycles);
     int n = ay8910_take_samples(&app->board->ay, &samples);
-    int max_bytes = DLAIR_SAMPLE_RATE / 4 * (int)sizeof(float);  // 0.25 s
+    int max_bytes = CINE_SAMPLE_RATE / 4 * (int)sizeof(float);  // 0.25 s
     if (SDL_GetAudioStreamQueued(app->chip_sound) > max_bytes) SDL_ClearAudioStream(app->chip_sound);
     if (n > 0) SDL_PutAudioStreamData(app->chip_sound, samples, n * (int)sizeof(float));
 }
@@ -390,7 +414,7 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
         }
         if (key == SDLK_A) {
             app->autoplaying = !app->autoplaying;
-            if (app->autoplaying) dlair_autoplay_resume(&app->autoplay);
+            if (app->autoplaying) cine_autoplay_resume(&app->autoplay);
             printf("Autoplay %s\n", app->autoplaying ? "on" : "off");
             fflush(stdout);
         }
@@ -513,7 +537,7 @@ int main(int argc, char **argv)
     if (roms) {
         app.game = true;
         app.board = calloc(1, sizeof *app.board);
-        if (!dlair_load_roms(app.board, roms)) return 1;
+        if (!cine_load_roms(app.board, roms)) return 1;
     }
     if (!framefile_load(&app.framefile, framefile_path, video_dir)) return 1;
     printf("Loaded %d clips, frames %d to %d+\n", app.framefile.clip_count,
@@ -540,6 +564,7 @@ int main(int argc, char **argv)
     // --icon names another.
     SDL_Surface *icon = NULL;
     if (icon_path) icon = icon_load(icon_path);
+    else if (app.game && app.board->game == CINE_SPACE_ACE) icon = icon_load_memory(icon_spaceace, icon_spaceace_size);
     else if (app.game) icon = icon_load_memory(icon_dlair, icon_dlair_size);
     if (icon) {
         SDL_SetWindowIcon(app.window, icon);
@@ -560,31 +585,33 @@ int main(int argc, char **argv)
              start_frame >= 0 ? start_frame : app.framefile.clips[0].start_frame);
     if (app.game) {
         // The LD-V1000 takes over the player model; the board talks to it.
-        ldv1000_init(&app.player, &app.ldp, DLAIR_CPU_HZ);
-        dlair_reset(app.board, dlair_ldv1000_link(&app.player));
+        ldv1000_init(&app.player, &app.ldp, CINE_CPU_HZ);
+        cine_reset(app.board, cine_ldv1000_link(&app.player));
         // DIP switch settings, as an operator would set them in the cabinet.
         // First any banks given whole, then the named options.
         if (dsw1 >= 0) app.board->dsw1 = (uint8_t)dsw1;
         if (dsw2 >= 0) app.board->dsw2 = (uint8_t)dsw2;
-        if (attract_sound) app.board->dsw2 &= ~DLAIR_DSW2_QUIET_ATTRACT;
-        if (unlimited_lives) app.board->dsw2 |= DLAIR_DSW2_UNLIMITED_LIVES;
-        if (free_play) app.board->dsw1 |= DLAIR_DSW1_FREE_PLAY;
+        if (attract_sound) app.board->dsw2 &= ~CINE_DSW2_QUIET_ATTRACT;
+        if (unlimited_lives) app.board->dsw2 |= CINE_DSW2_UNLIMITED_LIVES;
+        if (free_play) app.board->dsw1 |= CINE_DSW1_FREE_PLAY;
         printf("DIP switches: DSW1 %02X, DSW2 %02X\n", app.board->dsw1, app.board->dsw2);
         if (want_fast_boot) {
             fast_boot(&app);
         } else {
-            printf("Dragon's Lair is starting. Like the real machine, it waits about 20 s for\n"
-                   "the disc to spin up; the attract mode starts after about 35 s. (Use\n"
-                   "--fast-boot to skip the wait.)\n");
+            printf("%s is starting. Like the real machine, it waits about 20 s for the\n"
+                   "disc to spin up; the attract mode starts after about 35 s. (Use\n"
+                   "--fast-boot to skip the wait.)\n", cine_game_name(app.board->game));
         }
-        if (app.board->dsw1 & DLAIR_DSW1_FREE_PLAY)
+        if (app.board->dsw1 & CINE_DSW1_FREE_PLAY)
             printf("With the game window active, press 1 to start (free play).\n");
         else if (dsw1 >= 0)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");
         else
             printf("With the game window active, press 5 twice (two coins make one credit),\n"
                    "then 1 to start.\n");
-        dlair_autoplay_init(&app.autoplay, true);
+        if (app.board->game == CINE_SPACE_ACE)
+            printf("Then choose a skill level: F1 Cadet, F2 Captain or F3 Ace.\n");
+        cine_autoplay_init(&app.autoplay, true);
         app.autoplaying = autoplay;
         if (autoplay) printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
         fflush(stdout);
@@ -593,7 +620,7 @@ int main(int argc, char **argv)
         // the laserdisc's. Start it now, after any fast boot, so the beeps
         // from the skipped start-up don't all play at once.
         if (app.audio) {
-            SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, DLAIR_SAMPLE_RATE};
+            SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, CINE_SAMPLE_RATE};
             app.chip_sound = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
             if (app.chip_sound) {
                 SDL_ResumeAudioStreamDevice(app.chip_sound);
@@ -629,8 +656,8 @@ int main(int argc, char **argv)
             // when the board doesn't run, the disc stands still too.
             if (!app.paused) {
                 read_game_inputs(&app);
-                if (app.autoplaying) dlair_autoplay_update(&app.autoplay, app.board, &app.ldp, &app.player);
-                dlair_run(app.board, (uint64_t)(elapsed * DLAIR_CPU_HZ));
+                if (app.autoplaying) cine_autoplay_update(&app.autoplay, app.board, &app.ldp, &app.player);
+                cine_run(app.board, (uint64_t)(elapsed * CINE_CPU_HZ));
                 ldv1000_update(&app.player, app.board->cycles);
                 if (app.chip_sound) play_chip_sound(&app);
             }
@@ -661,7 +688,7 @@ int main(int argc, char **argv)
     SDL_DestroyWindow(app.window);
     SDL_Quit();
     framefile_free(&app.framefile);
-    if (app.game) dlair_autoplay_free(&app.autoplay);
+    if (app.game) cine_autoplay_free(&app.autoplay);
     free(app.board);
     return 0;
 }

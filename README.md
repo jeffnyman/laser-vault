@@ -1,7 +1,7 @@
 # LaserVault
 
 A small, readable laserdisc arcade game emulator, written from scratch in C11
-with SDL3 and FFmpeg. It plays *Dragon's Lair*.
+with SDL3 and FFmpeg. It plays *Dragon's Lair* and *Space Ace*.
 
 The original game code runs on an emulated Z80 CPU and drives an emulated
 Pioneer LD-V1000 laserdisc player, just as on the arcade board: the attract
@@ -151,7 +151,8 @@ You need your own copy of the game:
   tool at the first part. There's no need to run a self-extracting `.exe`.
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
-  [Other ROM sets](#other-rom-sets).
+  [Other ROM sets](#other-rom-sets). For Space Ace, see
+  [Space Ace](#space-ace).
 
 Then:
 
@@ -169,6 +170,7 @@ flashing, and move or use the sword at the right moment.
 | Space / Ctrl          | sword                                     |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
+| F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
 | P / Pause             | pause / resume                            |
 | A                     | autoplay on / off (see below)             |
 | S                     | show / hide the score displays            |
@@ -177,7 +179,7 @@ flashing, and move or use the sword at the right moment.
 | Escape                | quit                                      |
 
 The number keys work on the top row or the numeric keypad. The console
-prints a line for each coin and start press.
+prints a line for each coin, start and skill-level press.
 
 Game controllers work too, plugged in before or during play:
 
@@ -187,6 +189,7 @@ Game controllers work too, plugged in before or during play:
 | any face button       | sword                                     |
 | Back (Select)         | insert a coin                             |
 | Start                 | start (1 player)                          |
+| left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace |
 
 That covers Xbox, PlayStation and Switch pads, and arcade sticks that
 present themselves as one; the console names each controller as it
@@ -245,8 +248,9 @@ wrong, but never loses a life.
 **Autoplay.** With `--autoplay`, or after pressing A, the program plays the
 joystick and sword itself; you still insert coins and press start. It
 plays the whole game, from the first room to rescuing Daphne, without losing
-a life, with the original ROMs and both DLE sets. Press A at any time to
-take over, and again to hand back. The console prints each move it makes.
+a life, with the original ROMs and both DLE sets; Space Ace too, at every
+skill level, to Borf's defeat. Press A at any time to take over, and again
+to hand back. The console prints each move it makes.
 
 It works by reading the game's mind. While a scene plays, the game keeps a
 list in RAM of the inputs it's watching for, each with its time windows and
@@ -254,9 +258,9 @@ what happens if you press it in each one. Nothing in the list says which
 outcome is good, so whenever a new set of moves opens, the program tries
 each on a copy of the whole machine, runs the copy a few seconds ahead
 (hundreds of times faster than real time), and makes the move after which
-Dirk doesn't lose a life. `src/games/dlair/dlair_autoplay.c` describes the
-list. Judging a move takes up to about 50 ms, so the picture can hitch for a
-frame as Dirk makes it.
+the hero doesn't lose a life. `src/games/cinematronics/autoplay.c`
+describes the list. Judging a move takes up to about 50 ms, so the picture
+can hitch for a frame as a move is made.
 
 **Window icon.** Each game has its own icon, built into the program from
 `icons/`.
@@ -291,15 +295,15 @@ Each DLE zip includes its authors' readme, which describes every change and
 what the DIP switches do in that set. The program tells you if a chip
 doesn't match the known copy, and explains why it can't run the sets it
 doesn't support: the early revisions made for the Pioneer PR-7820 player,
-the European board, and Space Ace.
+and the European board.
 
 ### DIP switches
 
 The game board has two banks of eight DIP switches, DSW1 and DSW2, that
 the operator sets inside the cabinet: pricing, lives, difficulty and so on.
 Each ROM set starts with its usual settings (rev F2: DSW1 `20`, DSW2 `79`;
-DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`), and the console shows the
-settings in use when the game starts.
+DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`; SAE: `20`, `89`), and the console
+shows the settings in use when the game starts.
 
 `--dsw1 HEX` and `--dsw2 HEX` replace a whole bank. `--free-play`,
 `--attract-sound` and `--unlimited-lives` then change their own switches on
@@ -317,10 +321,43 @@ top, so you can combine them. In rev F2, the bits mean (from MAME's
 | `40`   | pay as you go                          | pay-as-you-go options (with `20`)             |
 | `80`   | diagnostics                            | difficulty (with `10`)                        |
 
-So `--dsw1 00` gives 3 lives. The DLE sets change what several switches do;
-their readmes have the charts. They number the switches 0 to 7 and give
-physical positions, where OFF means the bit is set. The three named options
-mean the same in every set laser-vault runs.
+So `--dsw1 00` gives 3 lives. The fan sets (DLE and SAE) change what several
+switches do; their readmes have the charts. They number the switches 0 to 7
+and give physical positions, where OFF means the bit is set. The three named
+options mean the same in every set laser-vault runs.
+
+### Space Ace
+
+Space Ace (1983) came from the same team and runs on the same Cinematronics
+board, so laser-vault plays it the same way. You need:
+
+- **The video:** Daphne-style clips and their framefile, `spaceace.txt`. Its
+  first line is often a placeholder instead of a folder, so give the folder
+  with `--video-dir`.
+- **The ROMs:** the Space Ace Enhancement 1.0 fan set (`sae.zip`, chips
+  `sae10_u1.bin` to `sae10_u5.bin`), by Dave Hallock (2002). It uses all
+  the animation on the disc, smooths the transitions and fixes problems in
+  the original program; its readme describes the changes. The original
+  Space Ace ROMs (rev A3, `ace.zip`) don't play properly yet: a game starts,
+  but then repeats the same few scenes.
+
+```
+laser-vault path/to/spaceace.txt --video-dir path/to/mpeg/spaceace --roms path/to/sae.zip --fast-boot
+```
+
+Insert two coins and press 1, then choose a skill level within a few seconds
+with F1, F2 or F3 (on a controller: left shoulder, right shoulder, right
+trigger). Cadet plays about half the animation, Captain more, and Ace all
+of it. On the cabinet these were three buttons on the control panel.
+
+SAE uses Dragon's Lair's DIP switches, apart from skill (B:6 and B:7; with
+both on, as laser-vault sets them, you pick with the buttons) and a "hard"
+mode on B:8 that its authors advise against.
+
+The score panel shows only the digits. Space Ace also sends the display
+codes that aren't digits: one stands for a blank, and others are signals
+for a separate board that lit the skill-level lamps on the cabinet. The
+window title still shows the raw codes.
 
 ### Driving the laserdisc player yourself
 
@@ -367,14 +404,14 @@ disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530
 The GIF encoder (`src/tools/gif.c`) is written from scratch and commented,
 if you're curious how GIF palettes and LZW compression work.
 
-`dlair-trace` runs Dragon's Lair without a window or video, hundreds of
-times faster than real time, and prints what happens: every command the game
-sends to the laserdisc player, every change in what the player is doing, and
-every change to the score display. It's how you can see what the game is
-doing without watching it.
+`cine-trace` runs a game (Dragon's Lair or Space Ace) without a window or
+video, hundreds of times faster than real time, and prints what happens:
+every command the game sends to the laserdisc player, every change in what
+the player is doing, and every change to the score display. It's how you
+can see what the game is doing without watching it.
 
 ```
-dlair-trace path/to/lair.zip --seconds 60 --press coin1@40 --press coin1@41 --press start1@43
+cine-trace path/to/lair.zip --seconds 60 --press coin1@40 --press coin1@41 --press start1@43
 ```
 
 After about 35 seconds of game time you'll see it search to frame 323, where
@@ -385,16 +422,17 @@ frame 1424.
 |----------------------------|-----------------------------------------------------------|
 | `--seconds N`              | how much game time to run (default 60)                    |
 | `--press BUTTON@T[:LEN]`   | hold a button at T seconds, for LEN seconds (default 0.2) |
-| `--dsw1 HEX`, `--dsw2 HEX` | set the DIP switches (defaults `20` and `79`)             |
+| `--dsw1 HEX`, `--dsw2 HEX` | set the DIP switches (default: the ROM set's)             |
 | `--autoplay`               | let the program play, printing each move it makes         |
 
-Buttons: `up down left right sword start1 start2 coin1 coin2`.
+Buttons: `up down left right sword start1 start2 coin1 coin2`, and for
+Space Ace `cadet captain ace`.
 
 With `--autoplay`, a whole game takes seconds. This plays through to the
 rescue (about 11 minutes of game time) in under 10 seconds:
 
 ```
-dlair-trace path/to/lair.zip --seconds 700 --press coin1@40 --press coin1@41 --press start1@43 --autoplay
+cine-trace path/to/lair.zip --seconds 700 --press coin1@40 --press coin1@41 --press start1@43 --autoplay
 ```
 
 ## Testing the Z80
@@ -419,8 +457,9 @@ and takes a minute or two.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
-- `src/games/dlair/dlair.c`: the Dragon's Lair board (memory map, inputs, outputs, interrupts).
-- `src/games/dlair/dlair_autoplay.c`: autoplay (the game's list of moves, and looking ahead).
+- `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
+  (memory map, inputs, outputs, interrupts, ROM sets).
+- `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
 - `src/util/zip.c`: reading ROMs out of zip files.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
@@ -431,7 +470,7 @@ and takes a minute or two.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
-- `src/tools/dlair_trace.c`: the `dlair-trace` tool.
+- `src/tools/cine_trace.c`: the `cine-trace` tool.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
 - `icons/`: each game's window icon. CMake builds them into the program
   (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
