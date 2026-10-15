@@ -29,21 +29,56 @@ typedef struct {
     uint32_t crc;  // CRC-32 of a known-good dump
 } RomChip;
 
+// Where a set's switches put the settings that every set has (see
+// CineSetting): which bank, which bit, and whether setting the bit turns the
+// setting on or off.
+struct CineSwitchLayout {
+    struct {
+        uint8_t bank;  // 1 = DSW1, 2 = DSW2
+        uint8_t bit;
+        bool on_when_set;
+    } settings[3];
+};
+
+// Dragon's Lair (A:5 free play, B:3 unlimited Dirks, B:1 sound every 8
+// attracts), which the fan sets kept.
+static const CineSwitchLayout dragons_lair_switches = {{
+    [CINE_FREE_PLAY] = {1, 0x10, true},
+    [CINE_UNLIMITED_LIVES] = {2, 0x04, true},
+    [CINE_QUIET_ATTRACT] = {2, 0x01, true},
+}};
+
+// The original Space Ace, found by testing rev A3. Its switches mostly work
+// the opposite way to MAME's labels: a bit set is the switch off, and off is
+// the normal setting. DSW1: bit 0 set = 2 coins a credit (clear: 3), bit 1
+// clear = 5 lives (set: 3), bit 4 set = sound in the attract mode, bit 5
+// clear = only one cycle in eight. DSW2: bit 0 clear = LD-V1000 (set: the
+// PR-7820, whose protocol is different), bit 3 must be set (clear, the game
+// starts at the wrong scene), bit 4 clear = free play, bit 5 clear =
+// unlimited lives, bit 6 clear = the player shows frame numbers on screen,
+// bit 7 clear = self-test, then wait for the switch to be set.
+static const CineSwitchLayout space_ace_switches = {{
+    [CINE_FREE_PLAY] = {2, 0x10, false},
+    [CINE_UNLIMITED_LIVES] = {2, 0x20, false},
+    [CINE_QUIET_ATTRACT] = {1, 0x20, false},
+}};
+
 typedef struct {
     const char *title;
     CineGame game;
+    const CineSwitchLayout *switches;
     bool tested;         // known to work with laser-vault
     uint8_t dsw1, dsw2;  // the DIP switches, as the factory (or the authors) set them
     RomChip chips[6];    // up to 5, then an empty entry
 } RomSet;
 
 // The sets this board can run, in order of preference (one zip may hold
-// several): the US revisions made for the LD-V1000, then the fans'
-// "Dragon's Lair Enhancement" sets, which began as rev F, and their "Space
-// Ace Enhancement".
+// several): the Dragon's Lair US revisions made for the LD-V1000, then the
+// fans' "Dragon's Lair Enhancement" sets, which began as rev F, then Space
+// Ace and the fans' "Space Ace Enhancement".
 //
-// The DIP switches start as in MAME: 2 coins a credit, 5 lives, sound in
-// every 8th attract cycle, LD-V1000 player. The DLE sets give two switches
+// The DIP switches start as the factory set them: 2 coins a credit, 5
+// lives, sound in every 8th attract cycle, LD-V1000 player. The DLE sets give two switches
 // new meanings. B:8 must be off (bit set) for the enhanced game in 1.1, and
 // for the standard game in 2.0 (on, it plays prototype scenes found only on
 // a disc pressed in 2002). In 2.0, B:5 on (bit clear) keeps the narrator in
@@ -53,44 +88,51 @@ typedef struct {
 // skill level (both on, bits clear: the player picks with the skill
 // buttons) and B:8 on picks a "hard" mode its authors advise against.
 static const RomSet rom_sets[] = {
-    {"Dragon's Lair (US Rev. F2)", CINE_DRAGONS_LAIR, true, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. F2)", CINE_DRAGONS_LAIR, &dragons_lair_switches, true, 0x20, 0x79, {
         {"dl_f2_u1.bin", 0x0000, 0xF5EA3B9D},
         {"dl_f2_u2.bin", 0x2000, 0xDCC1DFF2},
         {"dl_f2_u3.bin", 0x4000, 0xAB514E5B},
         {"dl_f2_u4.bin", 0x6000, 0xF5EC23D2},
     }},
-    {"Dragon's Lair (US Rev. F)", CINE_DRAGONS_LAIR, false, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. F)", CINE_DRAGONS_LAIR, &dragons_lair_switches, false, 0x20, 0x79, {
         {"dl_f_u1.bin", 0x0000, 0x06FC6941},
         {"dl_f_u2.bin", 0x2000, 0xDCC1DFF2},
         {"dl_f_u3.bin", 0x4000, 0xAB514E5B},
         {"dl_f_u4.bin", 0x6000, 0xA817324E},
     }},
-    {"Dragon's Lair (US Rev. E)", CINE_DRAGONS_LAIR, false, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. E)", CINE_DRAGONS_LAIR, &dragons_lair_switches, false, 0x20, 0x79, {
         {"dl_e_u1.bin", 0x0000, 0x02980426},
         {"dl_e_u2.bin", 0x2000, 0x979D4C97},
         {"dl_e_u3.bin", 0x4000, 0x897BF075},
         {"dl_e_u4.bin", 0x6000, 0x4EBFFBA5},
     }},
-    {"Dragon's Lair (US Rev. D)", CINE_DRAGONS_LAIR, false, 0x20, 0x79, {
+    {"Dragon's Lair (US Rev. D)", CINE_DRAGONS_LAIR, &dragons_lair_switches, false, 0x20, 0x79, {
         {"dl_d_u1.bin", 0x0000, 0x0B5AB120},
         {"dl_d_u2.bin", 0x2000, 0x93EBFFFB},
         {"dl_d_u3.bin", 0x4000, 0x22E6591F},
         {"dl_d_u4.bin", 0x6000, 0x5F7212CB},
         {"dl_d_u5.bin", 0x8000, 0x2B469C89},
     }},
-    {"Dragon's Lair Enhancement 2.0", CINE_DRAGONS_LAIR, true, 0x20, 0xE9, {
+    {"Dragon's Lair Enhancement 2.0", CINE_DRAGONS_LAIR, &dragons_lair_switches, true, 0x20, 0xE9, {
         {"dle20_u1.bin", 0x0000, 0x0ACA15B4},
         {"dle20_u2.bin", 0x2000, 0x1CEA7622},
         {"dle20_u3.bin", 0x4000, 0x21A7E7CA},
         {"dle20_u4.bin", 0x6000, 0x4AE26073},
     }},
-    {"Dragon's Lair Enhancement 1.1", CINE_DRAGONS_LAIR, true, 0x20, 0xF9, {
+    {"Dragon's Lair Enhancement 1.1", CINE_DRAGONS_LAIR, &dragons_lair_switches, true, 0x20, 0xF9, {
         {"dle11u1l.bin", 0x0000, 0x9E65B33D},
         {"dle11u2l.bin", 0x2000, 0xF16FA36F},
         {"dle11u3l.bin", 0x4000, 0xB8D07A16},
         {"dle11u4l.bin", 0x6000, 0x20FC79B7},
     }},
-    {"Space Ace Enhancement 1.0", CINE_SPACE_ACE, true, 0x20, 0x89, {
+    {"Space Ace (US Rev. A3)", CINE_SPACE_ACE, &space_ace_switches, true, 0xDD, 0xFE, {
+        {"sa_a3_u1.bin", 0x0000, 0x427522D0},
+        {"sa_a3_u2.bin", 0x2000, 0x18D0262D},
+        {"sa_a3_u3.bin", 0x4000, 0x4646832D},
+        {"sa_a3_u4.bin", 0x6000, 0x57DB2A79},
+        {"sa_a3_u5.bin", 0x8000, 0x85CBCDC4},
+    }},
+    {"Space Ace Enhancement 1.0", CINE_SPACE_ACE, &dragons_lair_switches, true, 0x20, 0x89, {
         {"sae10_u1.bin", 0x0000, 0xCBC5E425},
         {"sae10_u2.bin", 0x2000, 0x71A26F47},
         {"sae10_u3.bin", 0x4000, 0xBAC5CDD8},
@@ -103,7 +145,7 @@ static const RomSet rom_sets[] = {
 // can say why instead of just "not found".
 #define NEEDS_PR7820 "it was made for the Pioneer PR-7820 laserdisc player, and laser-vault only emulates the LD-V1000 (used from rev D on)"
 #define EUROPEAN "it runs on the European board, which is different hardware"
-#define SPACE_ACE "the original Space Ace doesn't play properly in laser-vault yet (the SAE fan set does)"
+#define SPACE_ACE "laser-vault plays rev A3, the last one (ace.zip)"
 
 static const struct {
     const char *chip, *title, *reason;
@@ -116,7 +158,6 @@ static const struct {
     {"elu45.bin", "Dragon's Lair (European)", EUROPEAN},
     {"elu45_d2.bin", "Dragon's Lair (European, alternate)", EUROPEAN},
     {"dlita45.bin", "Dragon's Lair (Italian)", EUROPEAN},
-    {"sa_a3_u1.bin", "Space Ace (US Rev. A3)", SPACE_ACE},
     {"sa_a2_u1.bin", "Space Ace (US Rev. A2)", SPACE_ACE},
     {"sa_a_u1.bin", "Space Ace (US Rev. A)", SPACE_ACE},
     {"sa_u45a.bin", "Space Ace (European)", EUROPEAN},
@@ -177,8 +218,8 @@ bool cine_load_roms(CineBoard *board, const char *path)
         }
         fprintf(stderr, "ROMs: found no ROMs laser-vault knows in %s. It plays Dragon's Lair\n"
                         "rev F2 (lair.zip, or dl_f2_u1.bin to dl_f2_u4.bin in a folder), revs D, E\n"
-                        "and F, the Dragon's Lair Enhancement 1.1 and 2.0 sets, and the Space Ace\n"
-                        "Enhancement (sae.zip).\n", path);
+                        "and F, the Dragon's Lair Enhancement 1.1 and 2.0 sets, Space Ace rev A3\n"
+                        "(ace.zip) and the Space Ace Enhancement (sae.zip).\n", path);
         return false;
     }
 
@@ -206,9 +247,35 @@ bool cine_load_roms(CineBoard *board, const char *path)
     }
     printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
     board->game = set->game;
+    board->switches = set->switches;
     board->dsw1 = set->dsw1;
     board->dsw2 = set->dsw2;
     return true;
+}
+
+void cine_set(CineBoard *b, CineSetting setting, bool on)
+{
+    uint8_t bit = b->switches->settings[setting].bit;
+    uint8_t *bank = b->switches->settings[setting].bank == 1 ? &b->dsw1 : &b->dsw2;
+    if (on == b->switches->settings[setting].on_when_set) *bank |= bit;
+    else *bank &= (uint8_t)~bit;
+}
+
+bool cine_get(const CineBoard *b, CineSetting setting)
+{
+    uint8_t bit = b->switches->settings[setting].bit;
+    uint8_t bank = b->switches->settings[setting].bank == 1 ? b->dsw1 : b->dsw2;
+    return ((bank & bit) != 0) == b->switches->settings[setting].on_when_set;
+}
+
+void cine_set_now(CineBoard *b, CineSetting setting, bool on)
+{
+    cine_set(b, setting, on);
+    // And the same bit in the game's copy: DSW1 at A010, DSW2 at A011.
+    uint8_t bit = b->switches->settings[setting].bit;
+    uint8_t *copy = &b->ram[b->switches->settings[setting].bank == 1 ? 0x010 : 0x011];
+    if (on == b->switches->settings[setting].on_when_set) *copy |= bit;
+    else *copy &= (uint8_t)~bit;
 }
 
 const char *cine_game_name(CineGame game)

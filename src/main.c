@@ -591,9 +591,10 @@ int main(int argc, char **argv)
         // First any banks given whole, then the named options.
         if (dsw1 >= 0) app.board->dsw1 = (uint8_t)dsw1;
         if (dsw2 >= 0) app.board->dsw2 = (uint8_t)dsw2;
-        if (attract_sound) app.board->dsw2 &= ~CINE_DSW2_QUIET_ATTRACT;
-        if (unlimited_lives) app.board->dsw2 |= CINE_DSW2_UNLIMITED_LIVES;
-        if (free_play) app.board->dsw1 |= CINE_DSW1_FREE_PLAY;
+        // (Each ROM set knows which switch each named option is.)
+        if (attract_sound) cine_set(app.board, CINE_QUIET_ATTRACT, false);
+        if (unlimited_lives) cine_set(app.board, CINE_UNLIMITED_LIVES, true);
+        if (free_play) cine_set(app.board, CINE_FREE_PLAY, true);
         printf("DIP switches: DSW1 %02X, DSW2 %02X\n", app.board->dsw1, app.board->dsw2);
         if (want_fast_boot) {
             fast_boot(&app);
@@ -602,7 +603,7 @@ int main(int argc, char **argv)
                    "disc to spin up; the attract mode starts after about 35 s. (Use\n"
                    "--fast-boot to skip the wait.)\n", cine_game_name(app.board->game));
         }
-        if (app.board->dsw1 & CINE_DSW1_FREE_PLAY)
+        if (cine_get(app.board, CINE_FREE_PLAY))
             printf("With the game window active, press 1 to start (free play).\n");
         else if (dsw1 >= 0)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");

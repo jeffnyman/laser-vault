@@ -248,8 +248,8 @@ wrong, but never loses a life.
 **Autoplay.** With `--autoplay`, or after pressing A, the program plays the
 joystick and sword itself; you still insert coins and press start. It
 plays the whole game, from the first room to rescuing Daphne, without losing
-a life, with the original ROMs and both DLE sets; Space Ace too, at every
-skill level, to Borf's defeat. Press A at any time to take over, and again
+a life, with the original ROMs and both DLE sets; Space Ace too, original
+and SAE, at every skill level, to Borf's defeat. Press A at any time to take over, and again
 to hand back. The console prints each move it makes.
 
 It works by reading the game's mind. While a scene plays, the game keeps a
@@ -302,8 +302,8 @@ and the European board.
 The game board has two banks of eight DIP switches, DSW1 and DSW2, that
 the operator sets inside the cabinet: pricing, lives, difficulty and so on.
 Each ROM set starts with its usual settings (rev F2: DSW1 `20`, DSW2 `79`;
-DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`; SAE: `20`, `89`), and the console
-shows the settings in use when the game starts.
+DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`; Space Ace rev A3: `DD`, `FE`; SAE:
+`20`, `89`), and the console shows the settings in use when the game starts.
 
 `--dsw1 HEX` and `--dsw2 HEX` replace a whole bank. `--free-play`,
 `--attract-sound` and `--unlimited-lives` then change their own switches on
@@ -323,8 +323,9 @@ top, so you can combine them. In rev F2, the bits mean (from MAME's
 
 So `--dsw1 00` gives 3 lives. The fan sets (DLE and SAE) change what several
 switches do; their readmes have the charts. They number the switches 0 to 7
-and give physical positions, where OFF means the bit is set. The three named
-options mean the same in every set laser-vault runs.
+and give physical positions, where OFF means the bit is set. The original
+Space Ace has a layout of its own (see [Space Ace](#space-ace)). In every
+set, the three named options flip whichever switches that set uses.
 
 ### Space Ace
 
@@ -334,21 +335,30 @@ board, so laser-vault plays it the same way. You need:
 - **The video:** Daphne-style clips and their framefile, `spaceace.txt`. Its
   first line is often a placeholder instead of a folder, so give the folder
   with `--video-dir`.
-- **The ROMs:** the Space Ace Enhancement 1.0 fan set (`sae.zip`, chips
-  `sae10_u1.bin` to `sae10_u5.bin`), by Dave Hallock (2002). It uses all
-  the animation on the disc, smooths the transitions and fixes problems in
-  the original program; its readme describes the changes. The original
-  Space Ace ROMs (rev A3, `ace.zip`) don't play properly yet: a game starts,
-  but then repeats the same few scenes.
+- **The ROMs:** either of these.
+  - **`ace.zip`, rev A3:** the arcade original, chips `sa_a3_u1.bin` to
+    `sa_a3_u5.bin`. (Revs A and A2 aren't supported; A3 replaced them.)
+  - **`sae.zip`, Space Ace Enhancement 1.0:** a fan set by Dave Hallock
+    (2002), chips `sae10_u1.bin` to `sae10_u5.bin`. It uses all the
+    animation on the disc, smooths the transitions and fixes problems in
+    the original program; its readme describes the changes.
 
 ```
-laser-vault path/to/spaceace.txt --video-dir path/to/mpeg/spaceace --roms path/to/sae.zip --fast-boot
+laser-vault path/to/spaceace.txt --video-dir path/to/mpeg/spaceace --roms path/to/ace.zip --fast-boot
 ```
 
 Insert two coins and press 1, then choose a skill level within a few seconds
 with F1, F2 or F3 (on a controller: left shoulder, right shoulder, right
 trigger). Cadet plays about half the animation, Captain more, and Ace all
 of it. On the cabinet these were three buttons on the control panel.
+
+The original's DIP switches are its own, and mostly work the opposite way
+to MAME's labels for them (a bit set is the switch off), which is probably
+why MAME lists Space Ace as not working. laser-vault starts it with DSW1
+`DD` and DSW2 `FE`: every switch off except the LD-V1000 player, which is
+how the game expects to be set up. `src/games/cinematronics/board.c` lists
+what each switch does; `--free-play`, `--unlimited-lives` and
+`--attract-sound` flip the right ones.
 
 SAE uses Dragon's Lair's DIP switches, apart from skill (B:6 and B:7; with
 both on, as laser-vault sets them, you pick with the buttons) and a "hard"

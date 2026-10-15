@@ -80,10 +80,8 @@ static void copy_machine(Machine *m, const CineBoard *board, const Ldp *ldp, con
     m->board.laserdisc = cine_ldv1000_link(&m->player);
     m->board.cpu.bus.ctx = &m->board;
     // A lost life is how the copy shows a move was fatal, so it plays with
-    // lives that run out even when the real game has unlimited ones. The
-    // game keeps its own copy of the switches at A011, so clear it there too.
-    m->board.dsw2 &= ~CINE_DSW2_UNLIMITED_LIVES;
-    m->board.ram[0x011] &= ~CINE_DSW2_UNLIMITED_LIVES;
+    // lives that run out even when the real game has unlimited ones.
+    cine_set_now(&m->board, CINE_UNLIMITED_LIVES, false);
     // The copy makes no sound, and mustn't touch the original's samples.
     m->board.ay.rendering = false;
     m->board.ay.samples = NULL;

@@ -42,24 +42,26 @@ typedef enum {
 const char *cine_game_name(CineGame game);
 
 // The DIP switches: two banks of eight, DSW1 (A:1-8) and DSW2 (B:1-8), bit 0
-// first. What each switch does depends on the ROM set; the three below mean
-// the same in Dragon's Lair rev F2 and all the fan sets. (The fan sets'
-// readmes give the physical switch positions instead, numbered 0-7: a bit
-// set is a switch OFF.)
+// first. What each switch does depends on the ROM set. Dragon's Lair and
+// all the fan sets share one layout; the original Space Ace has its own.
+// (The fan sets' readmes give the physical switch positions instead,
+// numbered 0-7: a bit set is a switch OFF.)
+//
+// These settings exist in every set, wherever its switches put them:
+typedef enum {
+    // The game always has two credits, so start works without coins.
+    CINE_FREE_PLAY,
+    // The hero still dies but never loses a life, so a player can see the
+    // whole game.
+    CINE_UNLIMITED_LIVES,
+    // On (as the factory set it), the attract mode is mostly quiet: the game
+    // switches the disc's sound off and only lets it through one attract
+    // cycle in eight. Off: the attract mode always has sound.
+    CINE_QUIET_ATTRACT,
+} CineSetting;
 
-// DIP switch A:5, "2 Credits/Free play". On, the game always has two
-// credits, so start works without coins. Off by default.
-#define CINE_DSW1_FREE_PLAY 0x10
-
-// DIP switch B:1, "Sound Every 8 Attracts". On (the default) keeps the
-// attract mode quiet: the game switches the disc's sound off and only lets
-// it through every few attract cycles. Off: the attract mode always has sound.
-#define CINE_DSW2_QUIET_ATTRACT 0x01
-
-// DIP switch B:3, "Unlimited Dirks" (in SAE, "unlimited lives"). On, the
-// hero still dies but never loses a life, so a player can see the whole
-// game. Off by default.
-#define CINE_DSW2_UNLIMITED_LIVES 0x04
+// Where a set's switches put the settings above (see board.c).
+typedef struct CineSwitchLayout CineSwitchLayout;
 
 // How the board talks to the laserdisc player. The player drives two
 // strobe lines that tell the game when to read status and when to send
@@ -83,6 +85,7 @@ typedef struct {
 
 typedef struct {
     CineGame game;           // which game the ROMs hold (set by cine_load_roms)
+    const CineSwitchLayout *switches;  // and where its settings are
 
     Z80 cpu;
     uint8_t rom[0xA000];
@@ -107,6 +110,16 @@ typedef struct {
 // each chip's checksum, and sets the DIP switches as that set expects.
 // Returns false (after printing why) if it finds no set it can run.
 bool cine_load_roms(CineBoard *board, const char *path);
+
+// Turn a setting on or off by flipping its DIP switch, as an operator would
+// before switching the machine on.
+void cine_set(CineBoard *board, CineSetting setting, bool on);
+bool cine_get(const CineBoard *board, CineSetting setting);
+
+// The same while the game runs. The games read their switches at power-up
+// and keep a copy in RAM (DSW1 at A010, DSW2 at A011), so this changes the
+// copy too.
+void cine_set_now(CineBoard *board, CineSetting setting, bool on);
 
 // A laserdisc link to an LD-V1000 model, the player this board was built for.
 CineLaserdisc cine_ldv1000_link(Ldv1000 *player);
