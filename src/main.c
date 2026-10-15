@@ -8,7 +8,9 @@
 //
 // Each game's window icon is built in (icons/); --icon uses a
 // Windows .ico file instead. F11 or Alt+Enter switches fullscreen on and
-// off in either mode; --fullscreen starts that way.
+// off in either mode; --fullscreen starts that way. F12 saves a screenshot
+// (a PNG of the picture, and the score panel if it's shown) in the current
+// folder.
 //
 // With --roms (a ROM set such as lair.zip or sae.zip, or a folder of ROM
 // files), it runs the game: Dragon's Lair or Space Ace, whichever the ROMs
@@ -58,6 +60,7 @@
 #include "ldp/ldv1000.h"
 #include "ui/bezel.h"
 #include "ui/icon.h"
+#include "util/png.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
 
@@ -67,6 +70,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 // The rate the game's disc frame numbers count at. Dragon's Lair's frame
 // numbers count 24 fps film frames; see video/disc_video.h.
@@ -87,6 +91,7 @@ typedef struct {
     bool game;
     bool show_scores;  // the score display panel beside the picture
     bool paused;       // game mode: everything frozen
+    bool screenshot;   // save the next frame drawn
     bool autoplaying;  // game mode: the program plays the joystick and sword
     CineAutoplay autoplay;
     SDL_Thread *autoplay_thread;    // planning the next move, or NULL
@@ -202,6 +207,52 @@ static void draw_paused_banner(SDL_Renderer *r)
     SDL_SetRenderScale(r, 1, 1);
 }
 
+// Save what's drawn in the window as a PNG: the picture (and the score panel,
+// if shown) at the size it fills the window, without the bars around it.
+// Named for the date and time, in the current folder.
+static void save_screenshot(App *app)
+{
+    SDL_Renderer *r = app->renderer;
+    // Read the window's real pixels, so step out of the logical coordinates
+    // for a moment.
+    SDL_FRect area;
+    SDL_GetRenderLogicalPresentationRect(r, &area);
+    int logical_w, logical_h;
+    SDL_RendererLogicalPresentation mode;
+    SDL_GetRenderLogicalPresentation(r, &logical_w, &logical_h, &mode);
+    SDL_SetRenderLogicalPresentation(r, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
+    SDL_Rect rect = {(int)(area.x + 0.5f), (int)(area.y + 0.5f), (int)(area.w + 0.5f), (int)(area.h + 0.5f)};
+    SDL_Surface *shot = SDL_RenderReadPixels(r, &rect);
+    SDL_SetRenderLogicalPresentation(r, logical_w, logical_h, mode);
+    SDL_Surface *rgb = shot ? SDL_ConvertSurface(shot, SDL_PIXELFORMAT_RGB24) : NULL;
+    SDL_DestroySurface(shot);
+    if (!rgb) {
+        fprintf(stderr, "Screenshot failed: %s\n", SDL_GetError());
+        return;
+    }
+
+    // RGB rows may be padded; the PNG writer wants them packed.
+    size_t row_bytes = (size_t)rgb->w * 3;
+    uint8_t *pixels = malloc(row_bytes * (size_t)rgb->h);
+    for (int y = 0; y < rgb->h; y++)
+        memcpy(pixels + row_bytes * (size_t)y, (const uint8_t *)rgb->pixels + (size_t)y * (size_t)rgb->pitch, row_bytes);
+
+    char name[64];
+    time_t now = time(NULL);
+    strftime(name, sizeof name, "laser-vault-%Y%m%d-%H%M%S.png", localtime(&now));
+    for (int n = 2; n < 100; n++) {  // two in the same second: add a number
+        FILE *f = fopen(name, "rb");
+        if (!f) break;
+        fclose(f);
+        strftime(name, sizeof name, "laser-vault-%Y%m%d-%H%M%S", localtime(&now));
+        snprintf(name + strlen(name), sizeof name - strlen(name), "-%d.png", n);
+    }
+    if (png_write(name, pixels, rgb->w, rgb->h)) printf("Screenshot: %s (%dx%d)\n", name, rgb->w, rgb->h);
+    fflush(stdout);
+    free(pixels);
+    SDL_DestroySurface(rgb);
+}
+
 static void draw(App *app)
 {
     const Ldp *ldp = &app->ldp;
@@ -232,6 +283,11 @@ static void draw(App *app)
             lamps = app->board->lamps;
         }
         bezel_draw(app->renderer, VIDEO_W, 0, digits, lamps);
+    }
+    // (Before the PAUSED banner, so pausing to line up a shot keeps it out.)
+    if (app->screenshot) {
+        save_screenshot(app);
+        app->screenshot = false;
     }
     if (app->paused) draw_paused_banner(app->renderer);
     SDL_RenderPresent(app->renderer);
@@ -452,6 +508,10 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
 {
     if (key == SDLK_F11 || (key == SDLK_RETURN && (mod & SDL_KMOD_ALT))) {
         toggle_fullscreen(app);
+        return true;
+    }
+    if (key == SDLK_F12) {
+        app->screenshot = true;  // taken when the next frame is drawn
         return true;
     }
     if (app->game) {  // the rest of the keyboard is the control panel

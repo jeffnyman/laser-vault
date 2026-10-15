@@ -40,6 +40,13 @@ if(NOT WIN32)
     target_link_libraries(lv_ldp PUBLIC m)  # fmod
 endif()
 
+# Writing PNG files (for screenshots), with zlib.
+add_library(lv_png STATIC
+    src/util/png.c
+)
+target_include_directories(lv_png PUBLIC src)
+target_link_libraries(lv_png PUBLIC ZLIB::ZLIB)
+
 # The emulator.
 # Each game's window icon is built into the program (as a C array generated
 # from the .ico file), so it never has to find the file at run time.
@@ -64,14 +71,14 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
     src/tools/disc_gif.c
     src/tools/gif.c
 )
-target_link_libraries(disc-gif PRIVATE lv_video)
+target_link_libraries(disc-gif PRIVATE lv_video lv_png)
 
 # The Z80 CPU.
 add_library(lv_cpu STATIC
@@ -101,7 +108,7 @@ add_executable(cine-trace
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_cine laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_cine lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

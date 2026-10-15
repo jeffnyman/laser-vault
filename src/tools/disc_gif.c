@@ -1,10 +1,16 @@
-// disc-gif: turn a range of laserdisc frames into an animated GIF.
+// disc-gif: turn a range of laserdisc frames into an animated GIF, or one
+// frame into a PNG.
 //
 // Usage: disc-gif FRAMEFILE --from N --to N -o OUT.gif
 //                 [--video-dir DIR] [--width W] [--fps F] [--noise N]
 //                 [--disc-fps F]
+//        disc-gif FRAMEFILE --from N -o OUT.png [--video-dir DIR] [--width W]
 //
 // Example: disc-gif dragonslair.txt --video-dir mpeg --from 530 --to 715 -o intro.gif
+//
+// A name ending in .png writes the single frame N as a PNG, in full colour,
+// 640 pixels wide unless --width says otherwise (the width a 4:3 picture
+// has at the disc's 480 lines).
 //
 // Frames are decoded with the same code the emulator uses, scaled to a 4:3
 // picture W pixels wide, and sampled at F frames per second (default 12,
@@ -13,6 +19,7 @@
 // values make smaller files but can leave smudges behind moving objects.
 
 #include "tools/gif.h"
+#include "util/png.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
 
@@ -27,7 +34,8 @@ static void usage(void)
     fprintf(stderr,
             "usage: disc-gif FRAMEFILE --from N --to N -o OUT.gif\n"
             "                [--video-dir DIR] [--width W] [--fps F] [--noise N]\n"
-            "                [--disc-fps F]\n");
+            "                [--disc-fps F]\n"
+            "       disc-gif FRAMEFILE --from N -o OUT.png [--video-dir DIR] [--width W]\n");
 }
 
 static uint8_t clamp255(int v)
@@ -83,7 +91,7 @@ static void picture_to_rgb(const AVFrame *pic, int width, int height, uint8_t *r
 int main(int argc, char **argv)
 {
     const char *framefile_path = NULL, *video_dir = NULL, *out_path = NULL;
-    int from = -1, to = -1, width = 480;
+    int from = -1, to = -1, width = 0;  // 0: the default for the kind of file
     int noise = 24;
     double fps = 12, disc_fps = DEFAULT_DISC_FPS;
 
@@ -103,7 +111,13 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    if (!framefile_path || !out_path || from < 0 || to < from || width < 16 || fps <= 0 || disc_fps <= 0) {
+    size_t name_len = out_path ? strlen(out_path) : 0;
+    bool png = name_len >= 4 && (strcmp(out_path + name_len - 4, ".png") == 0 ||
+                                 strcmp(out_path + name_len - 4, ".PNG") == 0);
+    if (png && to < 0) to = from;
+    if (width == 0) width = png ? 640 : 480;
+    if (!framefile_path || !out_path || from < 0 || to < from || (png && to != from) || width < 16 ||
+        fps <= 0 || disc_fps <= 0) {
         usage();
         return 1;
     }
@@ -112,6 +126,22 @@ int main(int argc, char **argv)
     Framefile ff;
     if (!framefile_load(&ff, framefile_path, video_dir)) return 1;
     DiscVideo *video = disc_video_open(&ff, disc_fps);
+
+    if (png) {  // one frame, full colour
+        const AVFrame *pic = disc_video_get_frame(video, from);
+        if (!pic || pic->format != AV_PIX_FMT_YUV420P) {
+            fprintf(stderr, "no picture for frame %d\n", from);
+            return 1;
+        }
+        uint8_t *rgb = malloc((size_t)width * height * 3);
+        picture_to_rgb(pic, width, height, rgb);
+        if (!png_write(out_path, rgb, width, height)) return 1;
+        printf("Wrote %s: frame %d, %dx%d\n", out_path, from, width, height);
+        free(rgb);
+        disc_video_close(video);
+        framefile_free(&ff);
+        return 0;
+    }
 
     // Which disc frames to sample: every disc_fps / fps frames.
     int count = (int)((to - from) * fps / disc_fps) + 1;

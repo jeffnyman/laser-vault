@@ -176,6 +176,7 @@ flashing, and move or use the sword at the right moment.
 | S                     | show / hide the score displays            |
 | D                     | turn combing repair off / on              |
 | F11 / Alt+Enter       | fullscreen on / off                       |
+| F12                   | save a screenshot (see below)             |
 | Escape                | quit                                      |
 
 The number keys work on the top row or the numeric keypad. The console
@@ -395,6 +396,7 @@ the disc. Add `--frame N` to start somewhere other than the first frame.
 | D                     | turn combing repair off / on              |
 | digits, then Enter    | search to that frame number               |
 | F11 / Alt+Enter       | fullscreen on / off                       |
+| F12                   | save a screenshot (see below)             |
 | Escape                | cancel typing, or quit                    |
 
 The player starts paused on the first frame (or `--frame`). Like the
@@ -405,23 +407,32 @@ target frame; press Space to play from there.
 
 These are built alongside `laser-vault`.
 
-`disc-gif` turns a range of disc frames into an animated GIF, using the same
-video code as the emulator. The GIF at the top of this page was made with
-it, from frames 530 to 715 with `--noise 32`.
+`disc-gif` turns a range of disc frames into an animated GIF, or a single
+frame into a PNG, using the same video code as the emulator. The GIF at the
+top of this page was made with it, from frames 530 to 715 with `--noise 32`.
 
 ```
 disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530 --to 715 -o intro.gif
+disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 1600 -o drawbridge.png
 ```
 
 | Option        | Default | Meaning                                                    |
 |---------------|---------|------------------------------------------------------------|
-| `--width W`   | 480     | output width; the height follows from 4:3                  |
+| `--width W`   | 480 (GIF), 640 (PNG) | output width; the height follows from 4:3     |
 | `--fps F`     | 12      | frames per second in the GIF                               |
 | `--noise N`   | 24      | ignore colour changes smaller than this (smaller files)    |
 | `--disc-fps F`| 23.976  | rate the disc frame numbers count at                       |
 
-The GIF encoder (`src/tools/gif.c`) is written from scratch and commented,
-if you're curious how GIF palettes and LZW compression work.
+A name ending in `.png` writes just the frame given by `--from`, in full
+colour. The GIF encoder (`src/tools/gif.c`) and the PNG writer
+(`src/util/png.c`) are written from scratch and commented, if you're curious
+how GIF palettes, LZW compression or PNG's row filters work.
+
+For screenshots of the game itself, with the score panel, press F12 in
+`laser-vault`. It saves the picture (and the panel, if shown) as a PNG named
+for the date and time, in the folder you ran it from, at the size it fills
+the window: 960x720 at the window's starting size. Pause first (P) to line
+up a moment; the PAUSED banner stays out of the shot.
 
 `cine-trace` runs a game (Dragon's Lair or Space Ace) without a window or
 video, hundreds of times faster than real time, and prints what happens:
@@ -480,6 +491,7 @@ and takes a minute or two.
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
 - `src/util/zip.c`: reading ROMs out of zip files.
+- `src/util/png.c`: writing PNG files, for screenshots.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
