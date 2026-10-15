@@ -24,6 +24,8 @@
 
 // Draw the panel with its top-left corner at (x, y). digits[i] is the value
 // the board wrote for digit i: 0-9, 10-14 for A b C d E, 15 for blank.
-void bezel_draw(SDL_Renderer *renderer, float x, float y, const uint8_t digits[16]);
+// lamps, if it isn't -1, adds Space Ace's skill-level lamps below: bit 0
+// Cadet, bit 1 Captain, bit 2 Ace, set for those that are lit.
+void bezel_draw(SDL_Renderer *renderer, float x, float y, const uint8_t digits[16], int lamps);
 
 #endif

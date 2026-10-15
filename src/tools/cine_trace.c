@@ -129,6 +129,7 @@ int main(int argc, char **argv)
     // Run in slices of 1 ms, reporting changes between them.
     uint8_t shown[16];
     memcpy(shown, board.digits, sizeof shown);
+    uint8_t shown_lamps = board.lamps;
     LdpState shown_state = ldp.state;
     uint64_t total = (uint64_t)(seconds * CINE_CPU_HZ);
     while (board.cycles < total) {
@@ -156,6 +157,11 @@ int main(int argc, char **argv)
         if (memcmp(shown, board.digits, sizeof shown) != 0) {
             memcpy(shown, board.digits, sizeof shown);
             print_digits();
+        }
+        if (board.lamps != shown_lamps) {  // Space Ace's skill-level lamps
+            shown_lamps = board.lamps;
+            printf("%8.3f s  lamps    %s %s %s\n", seconds_now(), shown_lamps & CINE_LAMP_CADET ? "CADET" : "-",
+                   shown_lamps & CINE_LAMP_CAPTAIN ? "CAPTAIN" : "-", shown_lamps & CINE_LAMP_ACE ? "ACE" : "-");
         }
     }
 

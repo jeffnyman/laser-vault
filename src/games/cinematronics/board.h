@@ -75,6 +75,11 @@ typedef struct {
     bool (*command_strobe)(void *ctx, uint64_t now);
 } CineLaserdisc;
 
+// Space Ace's skill-level lamps, beside the skill buttons (see board.c).
+#define CINE_LAMP_CADET 0x01
+#define CINE_LAMP_CAPTAIN 0x02
+#define CINE_LAMP_ACE 0x04
+
 // Inputs are active low on the real board; here, true means pressed.
 // Space Ace adds three skill-level buttons, chosen at the start of a game.
 typedef struct {
@@ -100,6 +105,7 @@ typedef struct {
     uint8_t ld_latch;        // byte waiting to be sent to the player
     uint8_t misc;            // last value written to the misc latch
     uint8_t digits[16];      // score display: 0-9, 10-14 = A b C d E, 15 = blank
+    uint8_t lamps;           // Space Ace's skill-level lamps (CINE_LAMP_*) that are lit
 
     uint64_t cycles;         // CPU clock cycles since power-on
     uint64_t next_irq;

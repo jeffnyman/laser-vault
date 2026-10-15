@@ -220,15 +220,18 @@ static void draw(App *app)
     if (ldp_has_picture(ldp) && app->texture_frame >= 0)
         SDL_RenderTexture(app->renderer, app->texture, NULL, &(SDL_FRect){0, 0, VIDEO_W, VIDEO_H});
     if (app->game && app->show_scores) {
-        // Space Ace uses the letter codes as blanks (A) and as signals for a
-        // separate board that lights the skill-level lamps (the letters its
-        // display would otherwise show), so only its digits are shown.
+        // Space Ace writes A for a blank digit, so only its digits are shown,
+        // along with its skill-level lamps (whose signals the board takes
+        // off the display; see games/cinematronics/board.c).
         uint8_t digits[16];
         memcpy(digits, app->board->digits, sizeof digits);
-        if (app->board->game == CINE_SPACE_ACE)
+        int lamps = -1;
+        if (app->board->game == CINE_SPACE_ACE) {
             for (int i = 0; i < 16; i++)
                 if (digits[i] > 9) digits[i] = 15;
-        bezel_draw(app->renderer, VIDEO_W, 0, digits);
+            lamps = app->board->lamps;
+        }
+        bezel_draw(app->renderer, VIDEO_W, 0, digits, lamps);
     }
     if (app->paused) draw_paused_banner(app->renderer);
     SDL_RenderPresent(app->renderer);

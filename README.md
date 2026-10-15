@@ -370,10 +370,13 @@ SAE uses Dragon's Lair's DIP switches, apart from skill (B:6 and B:7; with
 both on, as laser-vault sets them, you pick with the buttons) and a "hard"
 mode on B:8 that its authors advise against.
 
-The score panel shows only the digits. Space Ace also sends the display
-codes that aren't digits: one stands for a blank, and others are signals
-for a separate board that lit the skill-level lamps on the cabinet. The
-window title still shows the raw codes.
+On the cabinet, a lamp beside each skill button flashes while the game
+waits for you to choose, and the chosen one stays lit. The score panel
+shows them under the credits. The game drives the lamps through the score
+display's wires, with a code a separate lamp board picked off before it
+reached the digits; `src/games/cinematronics/board.c` describes it. Space
+Ace also uses a letter code for a blank digit, so the panel shows only
+digits; the window title shows the raw codes.
 
 ### Driving the laserdisc player yourself
 

@@ -1,5 +1,7 @@
 #include "ui/bezel.h"
 
+#include <string.h>
+
 // Which segments light up for each value the board can send. Segments are
 // the bits gfedcba:
 //
@@ -55,7 +57,20 @@ static void draw_label(SDL_Renderer *r, float x, float y, const char *text)
     SDL_RenderDebugText(r, x, y, text);  // SDL's built-in 8x8 font
 }
 
-void bezel_draw(SDL_Renderer *r, float x, float y, const uint8_t digits[16])
+// A row of three lamps with their names under them, centered on the panel.
+static void draw_lamps(SDL_Renderer *r, float x, float y, int lit)
+{
+    static const char *names[3] = {"CADET", "CAPTAIN", "ACE"};
+    for (int i = 0; i < 3; i++) {
+        float center = x + BEZEL_WIDTH / 2 + (i - 1) * 54;
+        if (lit & (1 << i)) SDL_SetRenderDrawColor(r, 255, 235, 150, 255);
+        else SDL_SetRenderDrawColor(r, 55, 50, 32, 255);
+        SDL_RenderFillRect(r, &(SDL_FRect){center - 14, y, 28, 16});
+        draw_label(r, center - 4 * (float)strlen(names[i]), y + 24, names[i]);
+    }
+}
+
+void bezel_draw(SDL_Renderer *r, float x, float y, const uint8_t digits[16], int lamps)
 {
     SDL_SetRenderDrawColor(r, 16, 16, 16, 255);
     SDL_RenderFillRect(r, &(SDL_FRect){x, y, BEZEL_WIDTH, BEZEL_HEIGHT});
@@ -75,4 +90,6 @@ void bezel_draw(SDL_Renderer *r, float x, float y, const uint8_t digits[16])
 
     draw_label(r, left, y + 357, "CREDITS");
     draw_digits(r, left + score_width - 2 * DIGIT_W - DIGIT_GAP, y + 344, &digits[14], 2);
+
+    if (lamps >= 0) draw_lamps(r, x, y + 410, lamps);
 }

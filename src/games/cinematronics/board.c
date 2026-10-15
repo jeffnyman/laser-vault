@@ -354,6 +354,25 @@ static void misc_write(CineBoard *b, uint8_t v)
         b->laserdisc.send_command(b->laserdisc.ctx, b->cycles, b->ld_latch);
 }
 
+// The Space Ace cabinet has a small extra board that lights a lamp beside
+// each skill-level button. It sits on the score display's wires and takes
+// the writes of CC (a code the display has no use for) to four of the
+// digits: digit 7 turns all three lamps off, and digits 6, 5 and 3 turn on
+// the Cadet, Captain and Ace lamps. The game chases the lamps while it waits
+// for a skill to be chosen, then lights the chosen one for the whole game.
+// (Without the lamp board, these writes reach the display; the SAE readme
+// mentions the stray letters.) Returns false for a digit the board ignores.
+static bool space_ace_lamps(CineBoard *b, int digit)
+{
+    switch (digit) {
+    case 7: b->lamps = 0; return true;
+    case 6: b->lamps |= CINE_LAMP_CADET; return true;
+    case 5: b->lamps |= CINE_LAMP_CAPTAIN; return true;
+    case 3: b->lamps |= CINE_LAMP_ACE; return true;
+    default: return false;
+    }
+}
+
 static void mem_write(void *ctx, uint16_t addr, uint8_t v)
 {
     CineBoard *b = ctx;
@@ -370,7 +389,10 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
     case 0x10: b->ay_select = v; break;                   // sound chip register select
     case 0x20: b->ld_latch = v; break;
     case 0x30: b->digits[8 + (addr & 7)] = v & 0x0F; break;  // score digits 8-15
-    case 0x38: b->digits[addr & 7] = v & 0x0F; break;        // score digits 0-7
+    case 0x38:                                               // score digits 0-7
+        if (b->game == CINE_SPACE_ACE && v == 0xCC && space_ace_lamps(b, addr & 7)) break;
+        b->digits[addr & 7] = v & 0x0F;
+        break;
     default: break;
     }
 }
@@ -411,6 +433,7 @@ void cine_reset(CineBoard *b, CineLaserdisc laserdisc)
     ay8910_free(&b->ay);
     ay8910_init(&b->ay, CINE_CPU_HZ, CINE_SOUND_CHIP_HZ, CINE_SAMPLE_RATE);
     memset(b->digits, 15, sizeof b->digits);  // blank
+    b->lamps = 0;
     b->ay_select = 0;
     b->ld_latch = 0;
     b->misc = 0xFF;
