@@ -117,6 +117,10 @@ typedef struct {
 // Returns false (after printing why) if it finds no set it can run.
 bool cine_load_roms(CineBoard *board, const char *path);
 
+// Does path hold a ROM set for this board (even one it can't run)? Quiet:
+// for choosing a board before loading.
+bool cine_recognizes(const char *path);
+
 // Turn a setting on or off by flipping its DIP switch, as an operator would
 // before switching the machine on.
 void cine_set(CineBoard *board, CineSetting setting, bool on);

@@ -1,7 +1,8 @@
 # LaserVault
 
 A small, readable laserdisc arcade game emulator, written from scratch in C11
-with SDL3 and FFmpeg. It plays *Dragon's Lair* and *Space Ace*.
+with SDL3 and FFmpeg. It plays *Dragon's Lair*, *Space Ace* and *Super Don
+Quix-ote*.
 
 The original game code runs on an emulated Z80 CPU and drives an emulated
 Pioneer LD-V1000 laserdisc player, just as on the arcade board: the attract
@@ -158,8 +159,8 @@ You need your own copy of the game:
   tool at the first part. There's no need to run a self-extracting `.exe`.
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
-  [Other ROM sets](#other-rom-sets). For Space Ace, see
-  [Space Ace](#space-ace).
+  [Other ROM sets](#other-rom-sets). For the other games, see
+  [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote).
 
 Then:
 
@@ -174,13 +175,13 @@ flashing, and move or use the sword at the right moment.
 | Key                   | Action                                    |
 |-----------------------|-------------------------------------------|
 | Arrow keys            | joystick                                  |
-| Space / Ctrl          | sword                                     |
+| Space / Ctrl          | sword (the action button)                 |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
 | P / Pause             | pause / resume                            |
 | A                     | autoplay on / off (see below)             |
-| S                     | show / hide the score displays            |
+| S                     | show / hide the score displays (Dragon's Lair, Space Ace) |
 | D                     | turn combing repair off / on              |
 | F11 / Alt+Enter       | fullscreen on / off                       |
 | F12                   | save a screenshot (see below)             |
@@ -194,7 +195,7 @@ Game controllers work too, plugged in before or during play:
 | Controller            | Action                                    |
 |-----------------------|-------------------------------------------|
 | D-pad or left stick   | joystick                                  |
-| any face button       | sword                                     |
+| any face button       | sword (the action button)                 |
 | Back (Select)         | insert a coin                             |
 | Start                 | start (1 player)                          |
 | left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace |
@@ -212,18 +213,18 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from `lair.zip` or a folder of ROM files          |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
-| `--scores`            | show the score displays beside the picture (also the S key)    |
+| `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
-| `--unlimited-lives`   | Dirk never loses a life, so you can see the whole game         |
+| `--unlimited-lives`   | the hero never loses a life, so you can see the whole game     |
 | `--free-play`         | no coins needed: press 1 to start                              |
-| `--autoplay`          | the program plays the game for you (also the A key)            |
+| `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches)) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--frame N`           | without `--roms`: the frame to start on                        |
-| `--disc-fps F`        | rate the disc's frame numbers count at (default 23.976, right for Dragon's Lair; see `src/video/disc_video.h`) |
+| `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for Super Don Quix-ote; 23.976 without `--roms`; see `src/video/disc_video.h`) |
 
 ### What to expect
 
@@ -318,7 +319,8 @@ The game board has two banks of eight DIP switches, DSW1 and DSW2, that
 the operator sets inside the cabinet: pricing, lives, difficulty and so on.
 Each ROM set starts with its usual settings (rev F2: DSW1 `20`, DSW2 `79`;
 DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`; Space Ace rev A3: `DD`, `FE`; SAE:
-`20`, `89`), and the console shows the settings in use when the game starts.
+`20`, `89`; Super Don Quix-ote: `FF`, `FF`), and the console shows the
+settings in use when the game starts.
 
 `--dsw1 HEX` and `--dsw2 HEX` replace a whole bank. `--free-play`,
 `--attract-sound` and `--unlimited-lives` then change their own switches on
@@ -339,8 +341,9 @@ top, so you can combine them. In rev F2, the bits mean (from MAME's
 So `--dsw1 00` gives 3 lives. The fan sets (DLE and SAE) change what several
 switches do; their readmes have the charts. They number the switches 0 to 7
 and give physical positions, where OFF means the bit is set. The original
-Space Ace has a layout of its own (see [Space Ace](#space-ace)). In every
-set, the three named options flip whichever switches that set uses.
+Space Ace and Super Don Quix-ote have layouts of their own (see
+[Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote)). In
+every set, the three named options flip whichever switches that set uses.
 
 ### Space Ace
 
@@ -386,6 +389,52 @@ display's wires, with a code a separate lamp board picked off before it
 reached the digits; `src/games/cinematronics/board.c` describes it. Space
 Ace also uses a letter code for a blank digit, so the panel shows only
 digits; the window title shows the raw codes.
+
+### Super Don Quix-ote
+
+Super Don Quix-ote (Universal, 1984) runs on Universal's own board, the
+System 1. Like the Cinematronics board, it has a Z80 that drives an LD-V1000
+player, but it can also draw over the picture: the scores, lives and
+credits, the messages, and the arrows that tell you which way to move. You
+need:
+
+- **The video:** the Daphne-style clip `sdq.m2v` with its soundtrack, and
+  the framefile `superdonquixote.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** `superdq.zip`, the "long scenes" version: `sdq-prog.bin`
+  (the program), `sdq-char.bin` (the letters and arrows drawn over the
+  picture) and `sdq-cprm.bin` (their colours). The two "short scenes" sets
+  (`sdq_c45.rom` or `sdq_c45a.rom`, with `sdq_a8.rom`) should work too, but
+  haven't been tested.
+
+```
+laser-vault path/to/superdonquixote.txt --video-dir path/to/mpeg/superdonquixote --roms path/to/superdq.zip --fast-boot
+```
+
+Press 5 to insert a coin (one coin per credit at the factory setting), then
+1 to start. When an arrow appears over the picture, push the joystick that
+way before it goes; each one you miss costs a life. Everything the game
+shows is drawn on the screen by the board itself, so there's no score panel.
+
+The game keeps time with the disc: every few fields it asks the player
+which frame it's on, and times the arrows from the answer. The overlay's
+place on the picture is worked out from how the game sets up its video
+chip (a real cabinet to compare with would settle it).
+
+Its DIP switches, from MAME's `superdq.cpp` (the game's own code agrees): a
+switch on reads as a clear bit, and the factory setting is every switch off.
+
+| Bit    | DSW1                                        | DSW2                    |
+|--------|---------------------------------------------|-------------------------|
+| `03`   | difficulty: both set easy, both clear hardest | coin slot 2: both set 1 coin 1 credit |
+| `04`   | clear: no sound in the attract mode         | coin slot 1 (with `08`) |
+| `08`   | clear: no bonus life (set: at 100,000)      | coin slot 1 (with `04`): both set 1 coin 1 credit |
+| `30`   | lives: both set 3, `20` only 4, `10` only 5, neither 2 | unused       |
+| `40`   | clear: unlimited lives (`--unlimited-lives`) | unused                 |
+| `80`   | clear: free play (`--free-play`)            | unused                  |
+
+With demo sounds off, the game plays the attract mode's video in a way the
+player keeps silent; `src/ldp/ldv1000.c` explains.
 
 ### Driving the laserdisc player yourself
 
@@ -494,19 +543,24 @@ and takes a minute or two.
 ## Source map
 
 - `src/main.c`: window, keyboard, main loop, drawing.
+- `src/games/machine.c`: what the main program needs from a game board, passed on to the right one.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
-- `src/util/zip.c`: reading ROMs out of zip files.
+- `src/games/universal/board.c`: Universal's System 1 board that runs Super Don Quix-ote
+  (memory map, I/O, the tiles drawn over the picture, ROM sets).
+- `src/util/roms.c`: reading ROM chips from a zip file or a folder.
+- `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
-- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the game board.
+- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
+- `src/audio/sn76496.c`: the SN76496 sound chip on the Universal board.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).

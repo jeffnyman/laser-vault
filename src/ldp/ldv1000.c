@@ -23,11 +23,12 @@ enum {
 
 // After GET FRAME NUMBER, the status byte carries the frame number's five
 // digits instead, most significant first, one per field (in its low four
-// bits), starting two fields later: time for the game to send the NO ENTRY
-// that follows the command. (Found by reading how Super Don Quix-ote reads
-// the reply.)
+// bits), starting at the next field's status. (Found by reading how Super
+// Don Quix-ote reads the reply: it sends the NO ENTRY that follows the
+// command in the next field, and takes the first digit from the status read
+// in that same exchange.)
 #define FRAME_REPLY_DIGITS 5
-#define FRAME_REPLY_DELAY 2  // fields
+#define FRAME_REPLY_DELAY 1  // fields
 
 static int64_t field_number(const Ldv1000 *ld, uint64_t now);
 
@@ -120,6 +121,7 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
         }
         ldp_play(ldp);
         ld->autostop_frame = -1;
+        ld->muted = false;
         ld->status = STATUS_PLAY;
         break;
     case CMD_STOP:
@@ -141,6 +143,7 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
             ld->status = STATUS_SEARCH;
         } else {
             ld->autostop_frame = number;
+            ld->muted = false;
             ldp_play(ldp);
             ld->status = STATUS_AUTOSTOP;
         }
@@ -173,6 +176,13 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
         } else if (byte > CMD_FORWARD_X0 && byte <= CMD_FORWARD_X5) {
             // Forward at 1/4 to 5 times normal speed. The player model only
             // plays at normal speed, so all of them do for now.
+            //
+            // Started from a standstill, this plays without sound; sent
+            // while the disc is already playing, the sound stays on. (Super
+            // Don Quix-ote's "demo sounds" switch depends on it: after each
+            // search in the attract mode, it sends PLAY then FORWARD x1 for
+            // sound, or STOP then FORWARD x1 for silence.)
+            if (ldp->state != LDP_PLAYING) ld->muted = true;
             ldp_play(ldp);
             ld->autostop_frame = -1;
             ld->status = STATUS_PLAY;
@@ -220,6 +230,11 @@ uint8_t ldv1000_read_status(Ldv1000 *ld, uint64_t now)
         }
     }
     return ld->status;
+}
+
+bool ldv1000_audio_on(const Ldv1000 *ld, int channel)
+{
+    return ld->audio[channel] && !ld->muted;
 }
 
 // ---------------------------------------------------------------------------

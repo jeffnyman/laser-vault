@@ -66,12 +66,13 @@ endforeach()
 
 add_executable(laser-vault
     src/main.c
+    src/games/machine.c
     src/audio/disc_audio.c
     src/ui/bezel.c
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -92,15 +93,32 @@ add_executable(z80-zex
 )
 target_link_libraries(z80-zex PRIVATE lv_cpu)
 
+# Reading ROM sets, from zips or folders.
+add_library(lv_roms STATIC
+    src/util/roms.c
+    src/util/zip.c
+)
+target_include_directories(lv_roms PUBLIC src)
+target_link_libraries(lv_roms PUBLIC ZLIB::ZLIB)
+
 # The Cinematronics laserdisc board (CPU, memory map, I/O) that runs Dragon's
-# Lair and Space Ace, plus loading ROMs from zips, and the autoplayer.
+# Lair and Space Ace, and the autoplayer.
 add_library(lv_cine STATIC
     src/games/cinematronics/board.c
     src/games/cinematronics/autoplay.c
     src/audio/ay8910.c
-    src/util/zip.c
 )
-target_link_libraries(lv_cine PUBLIC lv_cpu lv_ldp ZLIB::ZLIB)
+target_link_libraries(lv_cine PUBLIC lv_cpu lv_ldp lv_roms)
+
+# Universal's System 1 laserdisc board, which runs Super Don Quix-ote.
+add_library(lv_universal STATIC
+    src/games/universal/board.c
+    src/audio/sn76496.c
+)
+target_link_libraries(lv_universal PUBLIC lv_cpu lv_ldp lv_roms)
+if(NOT WIN32)
+    target_link_libraries(lv_universal PUBLIC m)  # powf
+endif()
 
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
@@ -108,7 +126,7 @@ add_executable(cine-trace
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_cine lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_cine lv_universal lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

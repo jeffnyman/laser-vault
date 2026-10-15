@@ -12,23 +12,25 @@
 // (a PNG of the picture, and the score panel if it's shown) in the current
 // folder.
 //
-// With --roms (a ROM set such as lair.zip or sae.zip, or a folder of ROM
-// files), it runs the game: Dragon's Lair or Space Ace, whichever the ROMs
-// hold. The game's CPU drives an LD-V1000 laserdisc player, and the
-// keyboard is the control panel. --fast-boot skips the wait while the game spins up the
-// disc, starting straight in the attract mode. --attract-sound plays sound
-// in every attract cycle (by default, as on the real machine, it only does
-// every few cycles). --scores shows the score displays, which on the real
-// cabinet are in the bezel, beside the picture. --unlimited-lives turns on
-// the game's own "Unlimited Dirks" setting: Dirk still dies, but never loses
-// a life. --free-play needs no coins. --dsw1 and --dsw2 set the game's DIP
-// switches directly (each bank as a hex byte, replacing the ROM set's
-// defaults); the options above then change their own switches on top.
-// --autoplay lets the program play the joystick and sword (see
+// With --roms (a ROM set such as lair.zip, sae.zip or superdq.zip, or a
+// folder of ROM files), it runs the game: Dragon's Lair, Space Ace or Super
+// Don Quix-ote, whichever the ROMs hold (see games/machine.h). The game's
+// CPU drives an LD-V1000 laserdisc player, and the keyboard is the control
+// panel. --fast-boot skips the wait while the game spins up the disc,
+// starting straight in the attract mode. --attract-sound plays sound in
+// every attract cycle (by default, as on the real machine, Dragon's Lair
+// and Space Ace only do every few cycles). --scores shows Dragon's Lair's
+// and Space Ace's score displays, which on the real cabinet are in the
+// bezel, beside the picture. --unlimited-lives turns on the game's own
+// unlimited lives setting: the hero still dies, but never loses a life.
+// --free-play needs no coins. --dsw1 and --dsw2 set the game's DIP switches
+// directly (each bank as a hex byte, replacing the ROM set's defaults); the
+// options above then change their own switches on top. --autoplay lets the
+// program play Dragon's Lair or Space Ace (see
 // games/cinematronics/autoplay.h); A switches it on and off during a game.
 //
 //   Arrow keys          joystick
-//   Space / Ctrl        sword button
+//   Space / Ctrl        action button (the sword)
 //   5 / 6               insert a coin (slot 1 / 2)
 //   1 / 2               start (1 / 2 players)
 //   F1 / F2 / F3        Space Ace: choose Cadet / Captain / Ace
@@ -39,7 +41,7 @@
 //   Escape              quit
 //
 // Game controllers work too: the d-pad or left stick is the joystick, any
-// face button the sword, Back (Select) inserts a coin, Start starts.
+// face button the action button, Back (Select) inserts a coin, Start starts.
 //
 // Without --roms, you're the game: drive the laserdisc player yourself.
 //
@@ -54,8 +56,8 @@
 //   Escape              cancel typing, or quit
 
 #include "audio/disc_audio.h"
-#include "games/cinematronics/board.h"
 #include "games/cinematronics/autoplay.h"
+#include "games/machine.h"
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
 #include "ui/bezel.h"
@@ -72,8 +74,9 @@
 #include <string.h>
 #include <time.h>
 
-// The rate the game's disc frame numbers count at. Dragon's Lair's frame
-// numbers count 24 fps film frames; see video/disc_video.h.
+// The rate the disc frame numbers count at, without ROMs to say (with them,
+// see machine_disc_fps). Dragon's Lair's frame numbers count 24 fps film
+// frames; see video/disc_video.h.
 #define DEFAULT_DISC_FPS 23.976
 
 // The picture's area in the renderer's coordinates (a 4:3 screen).
@@ -87,9 +90,12 @@ typedef struct {
     SDL_AudioStream *chip_sound;  // the game board's sound chip, or NULL
     Ldp ldp;
 
-    // Game mode: the board and its LD-V1000, which drive ldp.
+    // Game mode: the machine and its LD-V1000, which drive ldp.
     bool game;
-    bool show_scores;  // the score display panel beside the picture
+    Machine machine;
+    Ldv1000 player;
+    Controls controls; // the control panel, as last read
+    bool show_scores;  // the score display panel beside the picture (Cinematronics)
     bool paused;       // game mode: everything frozen
     bool screenshot;   // save the next frame drawn
     bool autoplaying;  // game mode: the program plays the joystick and sword
@@ -97,8 +103,13 @@ typedef struct {
     SDL_Thread *autoplay_thread;    // planning the next move, or NULL
     CineAutoplayJob *autoplay_job;  // what it's planning
     SDL_AtomicInt autoplay_done;    // set by the thread when the plan is ready
-    CineBoard *board;
-    Ldv1000 player;
+
+    // What the board draws over the picture, if it does.
+    bool has_overlay;
+    OverlayLayout overlay_layout;
+    uint32_t *overlay_pixels;
+    SDL_Texture *overlay;
+    unsigned overlay_serial;  // the board's serial when it was last drawn
 
     SDL_Gamepad *gamepads[8];  // game mode: controllers plugged in (NULL = free slot)
 
@@ -135,13 +146,18 @@ static void update_title(App *app)
     char title[sizeof app->title];
 
     if (app->game) {
-        // The score display, then what the player is doing.
-        static const char glyphs[] = "0123456789AbCdE ";
-        char digits[17];
-        for (int i = 0; i < 16; i++) digits[i] = glyphs[app->board->digits[i]];
-        digits[16] = '\0';
-        snprintf(title, sizeof title, "%s - [%.8s] [%.8s] - %s, frame %d%s%s%s",
-                 cine_game_name(app->board->game), digits, digits + 8, ldp_state_name(ldp->state), ldp->frame,
+        // The score display (if the board has one), then what the player is
+        // doing.
+        char scores[32] = "";
+        if (app->machine.kind == MACHINE_CINEMATRONICS) {
+            static const char glyphs[] = "0123456789AbCdE ";
+            char digits[17];
+            for (int i = 0; i < 16; i++) digits[i] = glyphs[app->machine.cine->digits[i]];
+            digits[16] = '\0';
+            snprintf(scores, sizeof scores, " - [%.8s] [%.8s]", digits, digits + 8);
+        }
+        snprintf(title, sizeof title, "%s%s - %s, frame %d%s%s%s",
+                 machine_game_name(&app->machine), scores, ldp_state_name(ldp->state), ldp->frame,
                  app->paused ? "  [paused]" : "",
                  app->autoplaying ? "  [autoplay]" : "",
                  disc_video_decomb(app->video) ? "" : "  [combing repair off]");
@@ -253,6 +269,35 @@ static void save_screenshot(App *app)
     SDL_DestroySurface(rgb);
 }
 
+// The board's graphics, over the picture where they belong. They're redrawn
+// only when the board says they may have changed. (They show even while the
+// player is searching, when the picture is blank, as on the real machine.)
+static void draw_overlay(App *app)
+{
+    const OverlayLayout *l = &app->overlay_layout;
+    if (!app->overlay) {
+        app->overlay = SDL_CreateTexture(app->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+                                         l->width, l->height);
+        if (!app->overlay) {
+            fprintf(stderr, "Cannot draw the overlay: %s\n", SDL_GetError());
+            app->has_overlay = false;
+            return;
+        }
+        SDL_SetTextureBlendMode(app->overlay, SDL_BLENDMODE_BLEND);
+        // Its pixels are big and blocky; keep them crisp rather than blurred.
+        SDL_SetTextureScaleMode(app->overlay, SDL_SCALEMODE_PIXELART);
+        app->overlay_serial = machine_overlay_serial(&app->machine) - 1;  // draw it the first time
+    }
+    unsigned serial = machine_overlay_serial(&app->machine);
+    if (serial != app->overlay_serial) {
+        machine_draw_overlay(&app->machine, app->overlay_pixels);
+        SDL_UpdateTexture(app->overlay, NULL, app->overlay_pixels, l->width * (int)sizeof(uint32_t));
+        app->overlay_serial = serial;
+    }
+    SDL_RenderTexture(app->renderer, app->overlay, NULL,
+                      &(SDL_FRect){l->x * VIDEO_W, l->y * VIDEO_H, l->w * VIDEO_W, l->h * VIDEO_H});
+}
+
 static void draw(App *app)
 {
     const Ldp *ldp = &app->ldp;
@@ -270,17 +315,19 @@ static void draw(App *app)
     SDL_RenderClear(app->renderer);
     if (ldp_has_picture(ldp) && app->texture_frame >= 0)
         SDL_RenderTexture(app->renderer, app->texture, NULL, &(SDL_FRect){0, 0, VIDEO_W, VIDEO_H});
-    if (app->game && app->show_scores) {
+    if (app->has_overlay) draw_overlay(app);
+    if (app->game && app->show_scores && app->machine.kind == MACHINE_CINEMATRONICS) {
         // Space Ace writes A for a blank digit, so only its digits are shown,
         // along with its skill-level lamps (whose signals the board takes
         // off the display; see games/cinematronics/board.c).
+        const CineBoard *board = app->machine.cine;
         uint8_t digits[16];
-        memcpy(digits, app->board->digits, sizeof digits);
+        memcpy(digits, board->digits, sizeof digits);
         int lamps = -1;
-        if (app->board->game == CINE_SPACE_ACE) {
+        if (board->game == CINE_SPACE_ACE) {
             for (int i = 0; i < 16; i++)
                 if (digits[i] > 9) digits[i] = 15;
-            lamps = app->board->lamps;
+            lamps = board->lamps;
         }
         bezel_draw(app->renderer, VIDEO_W, 0, digits, lamps);
     }
@@ -297,7 +344,8 @@ static void draw(App *app)
 // it's shown. Keeps the window's height and adjusts its width to fit.
 static void set_layout(App *app)
 {
-    int width = VIDEO_W + (app->game && app->show_scores ? BEZEL_WIDTH : 0);
+    bool scores = app->game && app->show_scores && app->machine.kind == MACHINE_CINEMATRONICS;
+    int width = VIDEO_W + (scores ? BEZEL_WIDTH : 0);
     // Laserdisc video is 720x480 pixels but is shown on a 4:3 screen, so the
     // pixels aren't square. Drawing it into a 640x480 area of the logical
     // canvas stretches it to the right shape; letterboxing keeps the
@@ -353,10 +401,10 @@ static void gamepad_removed(App *app, SDL_JoystickID id)
 }
 
 // Add a controller to the control panel: the d-pad or left stick is the
-// joystick, any face button the sword, Back (Select) inserts a coin and
-// Start starts a one-player game. For Space Ace's skill levels, the left
+// joystick, any face button the action button, Back (Select) inserts a coin
+// and Start starts a one-player game. For Space Ace's skill levels, the left
 // shoulder button is Cadet, the right one Captain and the right trigger Ace.
-static void read_gamepad(SDL_Gamepad *pad, CineInputs *in)
+static void read_gamepad(SDL_Gamepad *pad, Controls *in)
 {
     const int tilt = 16384;  // the stick counts as pushed half way out
     int x = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
@@ -365,19 +413,17 @@ static void read_gamepad(SDL_Gamepad *pad, CineInputs *in)
     in->down = in->down || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > tilt;
     in->left = in->left || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -tilt;
     in->right = in->right || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > tilt;
-    in->sword = in->sword || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH) ||
+    in->button = in->button || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH) ||
                 SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST) ||
                 SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_WEST) ||
                 SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
     in->coin1 = in->coin1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK);
     in->start1 = in->start1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
-    in->cadet = in->cadet || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
-    in->captain = in->captain || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
-    in->ace = in->ace || SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > tilt;
+    in->skill[0] = in->skill[0] || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
+    in->skill[1] = in->skill[1] || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
+    in->skill[2] = in->skill[2] || SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > tilt;
 }
 
-// The control panel, read from the keyboard and any controllers every pass
-// of the main loop.
 // Autoplay plans each move on its own thread, so the picture never waits
 // for it (see games/cinematronics/autoplay.h).
 static int SDLCALL autoplay_thread(void *data)
@@ -405,12 +451,13 @@ static void finish_autoplay_thread(App *app, bool wait, bool use)
 // planned for, and start planning whenever the game writes new moves.
 static void run_board(App *app, uint64_t cycles)
 {
-    uint64_t end = app->board->cycles + cycles;
-    while (app->board->cycles < end) {
+    Machine *m = &app->machine;
+    uint64_t end = machine_cycles(m) + cycles;
+    while (machine_cycles(m) < end) {
         uint64_t stop = end;
         if (app->autoplaying) {
             finish_autoplay_thread(app, false, true);
-            CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, app->board, &app->ldp, &app->player);
+            CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, m->cine, &app->ldp, &app->player);
             if (job) {
                 app->autoplay_job = job;
                 app->autoplay_thread = SDL_CreateThread(autoplay_thread, "autoplay", app);
@@ -421,47 +468,51 @@ static void run_board(App *app, uint64_t cycles)
                 }
             }
             uint64_t next = cine_autoplay_next_event(&app->autoplay);
-            if (next > app->board->cycles && next < stop) stop = next;
+            if (next > m->cine->cycles && next < stop) stop = next;
         }
-        cine_run(app->board, stop - app->board->cycles);
-        ldv1000_update(&app->player, app->board->cycles);
+        machine_run(m, stop - machine_cycles(m));
+        ldv1000_update(&app->player, machine_cycles(m));
     }
 }
 
+// The control panel, read from the keyboard and any controllers every pass
+// of the main loop.
 static void read_game_inputs(App *app)
 {
     // Number keys work on the top row or the numeric keypad.
     const bool *key = SDL_GetKeyboardState(NULL);
-    CineInputs *in = &app->board->inputs;
-    CineInputs before = *in;
+    Controls *in = &app->controls;
+    Controls before = *in;
     in->up = key[SDL_SCANCODE_UP];
     in->down = key[SDL_SCANCODE_DOWN];
     in->left = key[SDL_SCANCODE_LEFT];
     in->right = key[SDL_SCANCODE_RIGHT];
-    in->sword = key[SDL_SCANCODE_SPACE] || key[SDL_SCANCODE_LCTRL] || key[SDL_SCANCODE_RCTRL];
+    in->button = key[SDL_SCANCODE_SPACE] || key[SDL_SCANCODE_LCTRL] || key[SDL_SCANCODE_RCTRL];
     in->coin1 = key[SDL_SCANCODE_5] || key[SDL_SCANCODE_KP_5];
     in->coin2 = key[SDL_SCANCODE_6] || key[SDL_SCANCODE_KP_6];
     in->start1 = key[SDL_SCANCODE_1] || key[SDL_SCANCODE_KP_1];
     in->start2 = key[SDL_SCANCODE_2] || key[SDL_SCANCODE_KP_2];
-    in->cadet = key[SDL_SCANCODE_F1];
-    in->captain = key[SDL_SCANCODE_F2];
-    in->ace = key[SDL_SCANCODE_F3];
+    in->skill[0] = key[SDL_SCANCODE_F1];
+    in->skill[1] = key[SDL_SCANCODE_F2];
+    in->skill[2] = key[SDL_SCANCODE_F3];
     // (A pad just unplugged reads its stick as pushed all the way up until
     // the event saying it's gone arrives, so check it's still there.)
     for (int i = 0; i < (int)SDL_arraysize(app->gamepads); i++)
         if (app->gamepads[i] && SDL_GamepadConnected(app->gamepads[i])) read_gamepad(app->gamepads[i], in);
 
+    machine_set_controls(&app->machine, in);
+
     // Say so on the console when a coin, start or skill button goes down, so
     // it's easy to tell whether the keyboard is reaching the game.
-    double t = (double)app->board->cycles / CINE_CPU_HZ;
+    double t = (double)machine_cycles(&app->machine) / machine_cpu_hz(&app->machine);
     if (in->coin1 && !before.coin1) printf("%6.1f s  coin inserted (slot 1)\n", t);
     if (in->coin2 && !before.coin2) printf("%6.1f s  coin inserted (slot 2)\n", t);
     if (in->start1 && !before.start1) printf("%6.1f s  start (1 player)\n", t);
     if (in->start2 && !before.start2) printf("%6.1f s  start (2 players)\n", t);
-    if (app->board->game == CINE_SPACE_ACE) {
-        if (in->cadet && !before.cadet) printf("%6.1f s  skill: Cadet\n", t);
-        if (in->captain && !before.captain) printf("%6.1f s  skill: Captain\n", t);
-        if (in->ace && !before.ace) printf("%6.1f s  skill: Ace\n", t);
+    if (app->machine.kind == MACHINE_CINEMATRONICS && app->machine.cine->game == CINE_SPACE_ACE) {
+        static const char *skills[3] = {"Cadet", "Captain", "Ace"};
+        for (int i = 0; i < 3; i++)
+            if (in->skill[i] && !before.skill[i]) printf("%6.1f s  skill: %s\n", t, skills[i]);
     }
     fflush(stdout);
 }
@@ -472,15 +523,17 @@ static void read_game_inputs(App *app)
 // two minutes of game time, in case the game never gets there.
 static void fast_boot(App *app)
 {
-    const uint64_t limit = 120ull * CINE_CPU_HZ;
+    Machine *m = &app->machine;
+    double hz = machine_cpu_hz(m);
+    const uint64_t limit = (uint64_t)(120 * hz);
     bool searched = false;
-    while (app->board->cycles < limit) {
-        cine_run(app->board, CINE_CPU_HZ / 100);  // 10 ms; searches take longer
-        ldv1000_update(&app->player, app->board->cycles);
+    while (machine_cycles(m) < limit) {
+        machine_run(m, (uint64_t)(hz / 100));  // 10 ms; searches take longer
+        ldv1000_update(&app->player, machine_cycles(m));
         if (app->ldp.state == LDP_SEARCHING) searched = true;
         else if (searched && app->ldp.state == LDP_PLAYING) break;
     }
-    printf("Fast boot: skipped %.1f s of start-up.\n", (double)app->board->cycles / CINE_CPU_HZ);
+    printf("Fast boot: skipped %.1f s of start-up.\n", (double)machine_cycles(m) / hz);
 }
 
 // Pass the sound chip's newly generated samples to the speakers. The chip
@@ -490,9 +543,8 @@ static void fast_boot(App *app)
 static void play_chip_sound(App *app)
 {
     const float *samples;
-    ay8910_run(&app->board->ay, app->board->cycles);
-    int n = ay8910_take_samples(&app->board->ay, &samples);
-    int max_bytes = CINE_SAMPLE_RATE / 4 * (int)sizeof(float);  // 0.25 s
+    int n = machine_take_samples(&app->machine, &samples);
+    int max_bytes = machine_sample_rate(&app->machine) / 4 * (int)sizeof(float);  // 0.25 s
     if (SDL_GetAudioStreamQueued(app->chip_sound) > max_bytes) SDL_ClearAudioStream(app->chip_sound);
     if (n > 0) SDL_PutAudioStreamData(app->chip_sound, samples, n * (int)sizeof(float));
 }
@@ -517,7 +569,7 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
     if (app->game) {  // the rest of the keyboard is the control panel
         if (key == SDLK_ESCAPE) return false;
         if (key == SDLK_D) toggle_decomb(app);
-        if (key == SDLK_S) {
+        if (key == SDLK_S && app->machine.kind == MACHINE_CINEMATRONICS) {
             app->show_scores = !app->show_scores;
             set_layout(app);
         }
@@ -528,7 +580,7 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
             // right place on resume.)
             if (app->paused && app->chip_sound) SDL_ClearAudioStream(app->chip_sound);
         }
-        if (key == SDLK_A) {
+        if (key == SDLK_A && app->machine.kind == MACHINE_CINEMATRONICS) {
             app->autoplaying = !app->autoplaying;
             // A plan in the works is for the moment autoplay stopped; drop it.
             finish_autoplay_thread(app, true, false);
@@ -600,7 +652,7 @@ int main(int argc, char **argv)
     bool fullscreen = false;
     const char *icon_path = NULL;
     int start_frame = -1;
-    double disc_fps = DEFAULT_DISC_FPS;
+    double disc_fps = 0;  // 0 = the game's own rate, or the default without ROMs
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--video-dir") == 0 && i + 1 < argc) {
@@ -631,6 +683,7 @@ int main(int argc, char **argv)
             start_frame = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--disc-fps") == 0 && i + 1 < argc) {
             disc_fps = atof(argv[++i]);
+            if (disc_fps <= 0) disc_fps = -1;
         } else if (argv[i][0] != '-' && !framefile_path) {
             framefile_path = argv[i];
         } else {
@@ -644,19 +697,24 @@ int main(int argc, char **argv)
         usage();
         return 1;
     }
-    if (disc_fps <= 0 || dsw1 == -2 || dsw2 == -2) {
+    if (disc_fps < 0 || dsw1 == -2 || dsw2 == -2) {
         usage();
         return 1;
     }
 
     App app = {0};
-    app.fps = (int)(disc_fps + 0.5);
     app.texture_frame = -1;
     if (roms) {
         app.game = true;
-        app.board = calloc(1, sizeof *app.board);
-        if (!cine_load_roms(app.board, roms)) return 1;
+        if (!machine_load_roms(&app.machine, roms)) return 1;
+        if (!disc_fps) disc_fps = machine_disc_fps(&app.machine);
+        app.has_overlay = machine_overlay_layout(&app.machine, &app.overlay_layout);
+        if (app.has_overlay)
+            app.overlay_pixels = calloc((size_t)app.overlay_layout.width * (size_t)app.overlay_layout.height,
+                                        sizeof(uint32_t));
     }
+    if (!disc_fps) disc_fps = DEFAULT_DISC_FPS;
+    app.fps = (int)(disc_fps + 0.5);
     if (!framefile_load(&app.framefile, framefile_path, video_dir)) return 1;
     printf("Loaded %d clips, frames %d to %d+\n", app.framefile.clip_count,
            app.framefile.clips[0].start_frame,
@@ -683,7 +741,8 @@ int main(int argc, char **argv)
     // same icon). --icon names another.
     SDL_Surface *icon = NULL;
     if (icon_path) icon = icon_load(icon_path);
-    else if (app.game && app.board->game == CINE_DRAGONS_LAIR) icon = icon_load_memory(icon_dlair, icon_dlair_size);
+    else if (app.game && app.machine.kind == MACHINE_CINEMATRONICS && app.machine.cine->game == CINE_DRAGONS_LAIR)
+        icon = icon_load_memory(icon_dlair, icon_dlair_size);
     else if (app.game) icon = icon_load_memory(icon_laser, icon_laser_size);
     if (icon) {
         SDL_SetWindowIcon(app.window, icon);
@@ -703,48 +762,59 @@ int main(int argc, char **argv)
     ldp_init(&app.ldp, disc_fps,
              start_frame >= 0 ? start_frame : app.framefile.clips[0].start_frame);
     if (app.game) {
+        Machine *m = &app.machine;
+        bool cinematronics = m->kind == MACHINE_CINEMATRONICS;
         // The LD-V1000 takes over the player model; the board talks to it.
-        ldv1000_init(&app.player, &app.ldp, CINE_CPU_HZ);
-        cine_reset(app.board, cine_ldv1000_link(&app.player));
+        ldv1000_init(&app.player, &app.ldp, machine_cpu_hz(m));
+        machine_reset(m, &app.player);
         // DIP switch settings, as an operator would set them in the cabinet.
         // First any banks given whole, then the named options.
-        if (dsw1 >= 0) app.board->dsw1 = (uint8_t)dsw1;
-        if (dsw2 >= 0) app.board->dsw2 = (uint8_t)dsw2;
+        if (dsw1 >= 0) *machine_dsw(m, 1) = (uint8_t)dsw1;
+        if (dsw2 >= 0) *machine_dsw(m, 2) = (uint8_t)dsw2;
         // (Each ROM set knows which switch each named option is.)
-        if (attract_sound) cine_set(app.board, CINE_QUIET_ATTRACT, false);
-        if (unlimited_lives) cine_set(app.board, CINE_UNLIMITED_LIVES, true);
-        if (free_play) cine_set(app.board, CINE_FREE_PLAY, true);
-        printf("DIP switches: DSW1 %02X, DSW2 %02X\n", app.board->dsw1, app.board->dsw2);
+        if (attract_sound) machine_set(m, MACHINE_QUIET_ATTRACT, false);
+        if (unlimited_lives) machine_set(m, MACHINE_UNLIMITED_LIVES, true);
+        if (free_play) machine_set(m, MACHINE_FREE_PLAY, true);
+        printf("DIP switches: DSW1 %02X, DSW2 %02X\n", *machine_dsw(m, 1), *machine_dsw(m, 2));
         if (want_fast_boot) {
             fast_boot(&app);
-        } else {
+        } else if (cinematronics) {
             printf("%s is starting. Like the real machine, it waits about 20 s for the\n"
                    "disc to spin up; the attract mode starts after about 35 s. (Use\n"
-                   "--fast-boot to skip the wait.)\n", cine_game_name(app.board->game));
+                   "--fast-boot to skip the wait.)\n", machine_game_name(m));
+        } else {
+            printf("%s is starting. (Use --fast-boot to start straight in the attract\n"
+                   "mode.)\n", machine_game_name(m));
         }
-        if (cine_get(app.board, CINE_FREE_PLAY))
+        if (machine_get(m, MACHINE_FREE_PLAY))
             printf("With the game window active, press 1 to start (free play).\n");
-        else if (dsw1 >= 0)  // the coinage may not be the default
+        else if (dsw1 >= 0 || dsw2 >= 0)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");
-        else
+        else if (cinematronics)
             printf("With the game window active, press 5 twice (two coins make one credit),\n"
                    "then 1 to start.\n");
-        if (app.board->game == CINE_SPACE_ACE)
+        else
+            printf("With the game window active, press 5 to insert a coin, then 1 to start.\n");
+        if (cinematronics && m->cine->game == CINE_SPACE_ACE)
             printf("Then choose a skill level: F1 Cadet, F2 Captain or F3 Ace.\n");
-        cine_autoplay_init(&app.autoplay, true);
-        app.autoplaying = autoplay;
-        if (autoplay) printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
+        if (cinematronics) {
+            cine_autoplay_init(&app.autoplay, true);
+            app.autoplaying = autoplay;
+            if (autoplay) printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
+        } else if (autoplay) {
+            printf("Autoplay only knows Dragon's Lair and Space Ace, so it stays off.\n");
+        }
         fflush(stdout);
 
         // The board's sound chip gets its own audio stream; SDL mixes it with
         // the laserdisc's. Start it now, after any fast boot, so the beeps
         // from the skipped start-up don't all play at once.
         if (app.audio) {
-            SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, CINE_SAMPLE_RATE};
+            SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, machine_sample_rate(m)};
             app.chip_sound = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
             if (app.chip_sound) {
                 SDL_ResumeAudioStreamDevice(app.chip_sound);
-                ay8910_set_rendering(&app.board->ay, true, app.board->cycles);
+                machine_start_sound(m);
             }
         }
     }
@@ -776,7 +846,7 @@ int main(int argc, char **argv)
             // when the board doesn't run, the disc stands still too.
             if (!app.paused) {
                 read_game_inputs(&app);
-                run_board(&app, (uint64_t)(elapsed * CINE_CPU_HZ));
+                run_board(&app, (uint64_t)(elapsed * machine_cpu_hz(&app.machine)));
                 if (app.chip_sound) play_chip_sound(&app);
             }
         } else {
@@ -785,10 +855,11 @@ int main(int argc, char **argv)
         draw(&app);
 
         // Sound plays only while the disc plays at normal speed. In game
-        // mode the game can switch the disc's two audio channels on and off.
+        // mode the game can switch the disc's two audio channels on and off,
+        // or play the disc silently (see ldv1000_audio_on).
         if (app.audio) {
-            bool channel1 = app.game ? app.player.audio[0] : true;
-            bool channel2 = app.game ? app.player.audio[1] : true;
+            bool channel1 = app.game ? ldv1000_audio_on(&app.player, 0) : true;
+            bool channel2 = app.game ? ldv1000_audio_on(&app.player, 1) : true;
             disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING && !app.paused,
                               app.ldp.frame, channel1, channel2);
         }
@@ -802,6 +873,7 @@ int main(int argc, char **argv)
     disc_audio_close(app.audio);
     disc_video_close(app.video);
     SDL_DestroyTexture(app.texture);
+    SDL_DestroyTexture(app.overlay);
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
@@ -809,7 +881,8 @@ int main(int argc, char **argv)
     if (app.game) {
         finish_autoplay_thread(&app, true, false);
         cine_autoplay_free(&app.autoplay);
+        machine_free(&app.machine);
     }
-    free(app.board);
+    free(app.overlay_pixels);
     return 0;
 }

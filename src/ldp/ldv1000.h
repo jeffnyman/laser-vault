@@ -39,6 +39,7 @@ typedef struct {
     uint8_t status_before_stop;
     LdpState previous_state;
     bool audio[2];        // audio channel enables (AUDIO1, AUDIO2)
+    bool muted;           // playing at a set speed, started from a standstill: no sound
     int reply_frame;      // GET FRAME NUMBER: the frame being reported
     int64_t reply_field;  // and the field its first digit is in, or -1
 } Ldv1000;
@@ -56,6 +57,11 @@ uint8_t ldv1000_read_status(Ldv1000 *ld, uint64_t now);
 void ldv1000_write(Ldv1000 *ld, uint64_t now, uint8_t byte);
 bool ldv1000_status_strobe(Ldv1000 *ld, uint64_t now);
 bool ldv1000_command_strobe(Ldv1000 *ld, uint64_t now);
+
+// Can audio channel 0 or 1 be heard? (When the disc is playing at normal
+// speed: the game can switch each channel off, and some ways of playing are
+// silent.)
+bool ldv1000_audio_on(const Ldv1000 *ld, int channel);
 
 // Name of a command byte, for logging ("SEARCH", "7", ...), or NULL.
 const char *ldv1000_command_name(uint8_t byte);

@@ -1,5 +1,5 @@
 #include "games/cinematronics/board.h"
-#include "util/zip.h"
+#include "util/roms.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,35 +165,14 @@ static const struct {
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
 
-static bool ends_with_zip(const char *path)
+// Is there any set this board knows at path, runnable or not?
+bool cine_recognizes(const char *path)
 {
-    size_t n = strlen(path);
-    return n >= 4 && (strcmp(path + n - 4, ".zip") == 0 || strcmp(path + n - 4, ".ZIP") == 0);
-}
-
-// Read one ROM chip, from a zip or from a file in a folder.
-static bool load_chip(const char *path, const char *name, uint8_t **data, size_t *size)
-{
-    uint32_t zip_crc;
-    if (ends_with_zip(path)) return zip_read_file(path, name, data, size, &zip_crc);
-
-    char file[1024];
-    snprintf(file, sizeof file, "%s/%s", path, name);
-    FILE *f = fopen(file, "rb");
-    if (!f) return false;
-    *data = malloc(ROM_CHIP_SIZE);
-    *size = fread(*data, 1, ROM_CHIP_SIZE, f);
-    fclose(f);
-    return true;
-}
-
-static bool has_chip(const char *path, const char *name)
-{
-    uint8_t *data = NULL;
-    size_t size;
-    if (!load_chip(path, name, &data, &size)) return false;
-    free(data);
-    return true;
+    for (size_t i = 0; i < COUNT(rom_sets); i++)
+        if (roms_has(path, rom_sets[i].chips[0].name)) return true;
+    for (size_t i = 0; i < COUNT(other_sets); i++)
+        if (roms_has(path, other_sets[i].chip)) return true;
+    return false;
 }
 
 bool cine_load_roms(CineBoard *board, const char *path)
@@ -207,10 +186,10 @@ bool cine_load_roms(CineBoard *board, const char *path)
     // Which set is it? Look for each set's first chip.
     const RomSet *set = NULL;
     for (size_t i = 0; i < COUNT(rom_sets) && !set; i++)
-        if (has_chip(path, rom_sets[i].chips[0].name)) set = &rom_sets[i];
+        if (roms_has(path, rom_sets[i].chips[0].name)) set = &rom_sets[i];
     if (!set) {
         for (size_t i = 0; i < COUNT(other_sets); i++) {
-            if (has_chip(path, other_sets[i].chip)) {
+            if (roms_has(path, other_sets[i].chip)) {
                 fprintf(stderr, "ROMs: %s holds %s, but %s.\n",
                         path, other_sets[i].title, other_sets[i].reason);
                 return false;
@@ -227,7 +206,7 @@ bool cine_load_roms(CineBoard *board, const char *path)
     for (const RomChip *chip = set->chips; chip->name; chip++) {
         uint8_t *data = NULL;
         size_t size = 0;
-        if (!load_chip(path, chip->name, &data, &size)) {
+        if (!roms_read(path, chip->name, &data, &size)) {
             fprintf(stderr, "ROMs: %s looks like %s, but %s is missing\n", path, set->title, chip->name);
             return false;
         }
