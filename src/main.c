@@ -4,10 +4,11 @@
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
 //                                 [--unlimited-lives] [--free-play]
 //                                 [--dsw1 HEX] [--dsw2 HEX]]
-//                    [--frame N] [--disc-fps F] [--icon FILE.ico]
+//                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //
 // Each game's window icon is built in (icons/); --icon uses a
-// Windows .ico file instead.
+// Windows .ico file instead. F11 or Alt+Enter switches fullscreen on and
+// off in either mode; --fullscreen starts that way.
 //
 // With --roms (lair.zip or a folder of ROM files), it runs Dragon's Lair:
 // the game's CPU drives an LD-V1000 laserdisc player, and the keyboard is
@@ -29,6 +30,9 @@
 //   P / Pause           pause / resume the game
 //   D                   turn combing repair off / on (see video/decomb.h)
 //   Escape              quit
+//
+// Game controllers work too: the d-pad or left stick is the joystick, any
+// face button the sword, Back (Select) inserts a coin, Start starts.
 //
 // Without --roms, you're the game: drive the laserdisc player yourself.
 //
@@ -80,6 +84,8 @@ typedef struct {
     Dlair *board;
     Ldv1000 player;
 
+    SDL_Gamepad *gamepads[8];  // game mode: controllers plugged in (NULL = free slot)
+
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *texture;  // created to match the video's size
@@ -104,7 +110,7 @@ static void usage(void)
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
                     "                   [--free-play] [--dsw1 HEX] [--dsw2 HEX]\n"
-                    "                   [--frame N] [--disc-fps F] [--icon FILE.ico]\n");
+                    "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n");
 }
 
 static void update_title(App *app)
@@ -216,9 +222,20 @@ static void set_layout(App *app)
     // canvas stretches it to the right shape; letterboxing keeps the
     // proportions when the window is resized.
     SDL_SetRenderLogicalPresentation(app->renderer, width, VIDEO_H, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    // Fullscreen, the letterboxing does it all. (The main loop lays out the
+    // window again on leaving fullscreen.)
+    if (SDL_GetWindowFlags(app->window) & SDL_WINDOW_FULLSCREEN) return;
     int w, h;
     SDL_GetWindowSize(app->window, &w, &h);
     SDL_SetWindowSize(app->window, h * width / VIDEO_H, h);
+}
+
+static void toggle_fullscreen(App *app)
+{
+    bool full = !(SDL_GetWindowFlags(app->window) & SDL_WINDOW_FULLSCREEN);
+    SDL_SetWindowFullscreen(app->window, full);
+    if (full) SDL_HideCursor();
+    else SDL_ShowCursor();
 }
 
 // Search relative to where the player is heading, so pressing Up twice
@@ -230,7 +247,52 @@ static void search_by(App *app, int delta)
     ldp_search(&app->ldp, from + delta);
 }
 
-// The control panel, read from the keyboard every pass of the main loop.
+// Game controllers come and go while the program runs. (Those already
+// plugged in at start-up arrive as "added" events too.)
+static void gamepad_added(App *app, SDL_JoystickID id)
+{
+    for (int i = 0; i < (int)SDL_arraysize(app->gamepads); i++) {
+        if (!app->gamepads[i]) {
+            app->gamepads[i] = SDL_OpenGamepad(id);
+            if (app->gamepads[i]) printf("Gamepad connected: %s\n", SDL_GetGamepadName(app->gamepads[i]));
+            return;
+        }
+    }
+}
+
+static void gamepad_removed(App *app, SDL_JoystickID id)
+{
+    for (int i = 0; i < (int)SDL_arraysize(app->gamepads); i++) {
+        if (app->gamepads[i] && SDL_GetGamepadID(app->gamepads[i]) == id) {
+            printf("Gamepad disconnected: %s\n", SDL_GetGamepadName(app->gamepads[i]));
+            SDL_CloseGamepad(app->gamepads[i]);
+            app->gamepads[i] = NULL;
+        }
+    }
+}
+
+// Add a controller to the control panel: the d-pad or left stick is the
+// joystick, any face button the sword, Back (Select) inserts a coin and
+// Start starts a one-player game.
+static void read_gamepad(SDL_Gamepad *pad, DlairInputs *in)
+{
+    const int tilt = 16384;  // the stick counts as pushed half way out
+    int x = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX);
+    int y = SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY);
+    in->up = in->up || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP) || y < -tilt;
+    in->down = in->down || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > tilt;
+    in->left = in->left || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -tilt;
+    in->right = in->right || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > tilt;
+    in->sword = in->sword || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH) ||
+                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST) ||
+                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_WEST) ||
+                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
+    in->coin1 = in->coin1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK);
+    in->start1 = in->start1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
+}
+
+// The control panel, read from the keyboard and any controllers every pass
+// of the main loop.
 static void read_game_inputs(App *app)
 {
     // Number keys work on the top row or the numeric keypad.
@@ -246,6 +308,10 @@ static void read_game_inputs(App *app)
     in->coin2 = key[SDL_SCANCODE_6] || key[SDL_SCANCODE_KP_6];
     in->start1 = key[SDL_SCANCODE_1] || key[SDL_SCANCODE_KP_1];
     in->start2 = key[SDL_SCANCODE_2] || key[SDL_SCANCODE_KP_2];
+    // (A pad just unplugged reads its stick as pushed all the way up until
+    // the event saying it's gone arrives, so check it's still there.)
+    for (int i = 0; i < (int)SDL_arraysize(app->gamepads); i++)
+        if (app->gamepads[i] && SDL_GamepadConnected(app->gamepads[i])) read_gamepad(app->gamepads[i], in);
 
     // Say so on the console when a coin or start button goes down, so it's
     // easy to tell whether the keyboard is reaching the game.
@@ -295,8 +361,12 @@ static void toggle_decomb(App *app)
 }
 
 // Returns false when the app should quit.
-static bool handle_key(App *app, SDL_Keycode key)
+static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
 {
+    if (key == SDLK_F11 || (key == SDLK_RETURN && (mod & SDL_KMOD_ALT))) {
+        toggle_fullscreen(app);
+        return true;
+    }
     if (app->game) {  // the rest of the keyboard is the control panel
         if (key == SDLK_ESCAPE) return false;
         if (key == SDLK_D) toggle_decomb(app);
@@ -371,6 +441,7 @@ int main(int argc, char **argv)
     bool free_play = false;
     int dsw1 = -1, dsw2 = -1;  // DIP switch banks, -1 = the ROM set's defaults
     bool show_scores = false;
+    bool fullscreen = false;
     const char *icon_path = NULL;
     int start_frame = -1;
     double disc_fps = DEFAULT_DISC_FPS;
@@ -384,6 +455,8 @@ int main(int argc, char **argv)
             icon_path = argv[++i];
         } else if (strcmp(argv[i], "--scores") == 0) {
             show_scores = true;
+        } else if (strcmp(argv[i], "--fullscreen") == 0) {
+            fullscreen = true;
         } else if (strcmp(argv[i], "--attract-sound") == 0) {
             attract_sound = true;
         } else if (strcmp(argv[i], "--unlimited-lives") == 0) {
@@ -442,6 +515,10 @@ int main(int argc, char **argv)
     }
     app.show_scores = show_scores;
     set_layout(&app);
+    if (fullscreen) toggle_fullscreen(&app);
+    // Controllers announce themselves through the event loop once this is up.
+    if (app.game && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+        fprintf(stderr, "No gamepads: %s\n", SDL_GetError());
 
     // The window icon: the game's own (built into the program), unless
     // --icon names another.
@@ -514,7 +591,10 @@ int main(int argc, char **argv)
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) running = false;
-            else if (event.type == SDL_EVENT_KEY_DOWN) running = handle_key(&app, event.key.key);
+            else if (event.type == SDL_EVENT_KEY_DOWN) running = handle_key(&app, event.key.key, event.key.mod);
+            else if (event.type == SDL_EVENT_WINDOW_LEAVE_FULLSCREEN) set_layout(&app);
+            else if (event.type == SDL_EVENT_GAMEPAD_ADDED && app.game) gamepad_added(&app, event.gdevice.which);
+            else if (event.type == SDL_EVENT_GAMEPAD_REMOVED) gamepad_removed(&app, event.gdevice.which);
         }
 
         Uint64 now_ns = SDL_GetTicksNS();
@@ -551,6 +631,8 @@ int main(int argc, char **argv)
         if (!vsync) SDL_Delay(5);
     }
 
+    for (int i = 0; i < (int)SDL_arraysize(app.gamepads); i++)
+        if (app.gamepads[i]) SDL_CloseGamepad(app.gamepads[i]);
     SDL_DestroyAudioStream(app.chip_sound);
     disc_audio_close(app.audio);
     disc_video_close(app.video);

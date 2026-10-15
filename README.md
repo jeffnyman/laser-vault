@@ -172,10 +172,28 @@ flashing, and move or use the sword at the right moment.
 | P / Pause             | pause / resume                            |
 | S                     | show / hide the score displays            |
 | D                     | turn combing repair off / on              |
+| F11 / Alt+Enter       | fullscreen on / off                       |
 | Escape                | quit                                      |
 
 The number keys work on the top row or the numeric keypad. The console
 prints a line for each coin and start press.
+
+Game controllers work too, plugged in before or during play:
+
+| Controller            | Action                                    |
+|-----------------------|-------------------------------------------|
+| D-pad or left stick   | joystick                                  |
+| any face button       | sword                                     |
+| Back (Select)         | insert a coin                             |
+| Start                 | start (1 player)                          |
+
+That covers Xbox, PlayStation and Switch pads, and arcade sticks that
+present themselves as one; the console names each controller as it
+connects. Arcade-stick encoders that act as a keyboard (such as the I-PAC)
+work out of the box, since the keys above follow MAME's defaults. If SDL
+doesn't recognize your stick as a controller, you can describe it to SDL
+with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
+[gamecontrollerdb](https://github.com/mdqinc/SDL_GameControllerDB)).
 
 ### Options
 
@@ -189,6 +207,7 @@ prints a line for each coin and start press.
 | `--unlimited-lives`   | Dirk never loses a life, so you can see the whole game         |
 | `--free-play`         | no coins needed: press 1 to start                              |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches)) |
+| `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--frame N`           | without `--roms`: the frame to start on                        |
 | `--disc-fps F`        | rate the disc's frame numbers count at (default 23.976, right for Dragon's Lair; see `src/video/disc_video.h`) |
@@ -301,6 +320,7 @@ the disc. Add `--frame N` to start somewhere other than the first frame.
 | Home / End            | search to the first / last clip           |
 | D                     | turn combing repair off / on              |
 | digits, then Enter    | search to that frame number               |
+| F11 / Alt+Enter       | fullscreen on / off                       |
 | Escape                | cancel typing, or quit                    |
 
 The player starts paused on the first frame (or `--frame`). Like the
