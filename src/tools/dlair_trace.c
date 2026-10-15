@@ -11,8 +11,12 @@
 // --press holds a button at the given time, for 0.2 s or the given length:
 // --press coin1@40 or --press coin1@40:0.05. Buttons: up down left right
 // sword start1 start2 coin1 coin2.
+//
+// --autoplay lets the program play (see games/dlair/dlair_autoplay.h): give
+// it coin and start presses, and it prints each move it makes.
 
 #include "games/dlair/dlair.h"
+#include "games/dlair/dlair_autoplay.h"
 #include "ldp/ldv1000.h"
 
 #include <stdio.h>
@@ -77,8 +81,11 @@ int main(int argc, char **argv)
     Press presses[MAX_PRESSES];
     int press_count = 0;
     bool bad_args = false;
+    bool autoplay = false;
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
+        if (strcmp(argv[i], "--autoplay") == 0) {
+            autoplay = true;
+        } else if (strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
             seconds = atof(argv[++i]);
         } else if (strcmp(argv[i], "--dsw1") == 0 && i + 1 < argc) {
             dsw1 = (int)strtol(argv[++i], NULL, 16);
@@ -100,7 +107,7 @@ int main(int argc, char **argv)
         }
     }
     if (bad_args || !roms || seconds <= 0) {
-        fprintf(stderr, "usage: dlair-trace ROMS [--seconds N] [--press BUTTON@SECONDS ...]\n");
+        fprintf(stderr, "usage: dlair-trace ROMS [--seconds N] [--press BUTTON@SECONDS ...] [--autoplay]\n");
         return 1;
     }
 
@@ -112,6 +119,9 @@ int main(int argc, char **argv)
     dlair_reset(&board, link);
     if (dsw1 >= 0) board.dsw1 = (uint8_t)dsw1;
     if (dsw2 >= 0) board.dsw2 = (uint8_t)dsw2;
+
+    DlairAutoplay player_bot;
+    dlair_autoplay_init(&player_bot, true);
 
     // Run in slices of 1 ms, reporting changes between them.
     uint8_t shown[16];
@@ -125,6 +135,7 @@ int main(int argc, char **argv)
             double t = seconds_now() - presses[i].at;
             if (t >= 0 && t < presses[i].length) *presses[i].button = true;
         }
+        if (autoplay) dlair_autoplay_update(&player_bot, &board, &ldp, &player);
         dlair_run(&board, DLAIR_CPU_HZ / 1000);
         ldv1000_update(&player, board.cycles);
         if (ldp.state != shown_state) {
@@ -140,5 +151,7 @@ int main(int argc, char **argv)
 
     printf("Ran %.1f s of game time; player %s at frame %d\n",
            seconds, ldp_state_name(ldp.state), ldp.frame);
+    if (autoplay) printf("Autoplay made %d moves\n", player_bot.moves_made);
+    dlair_autoplay_free(&player_bot);
     return 0;
 }

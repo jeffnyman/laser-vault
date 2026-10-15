@@ -170,6 +170,7 @@ flashing, and move or use the sword at the right moment.
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | P / Pause             | pause / resume                            |
+| A                     | autoplay on / off (see below)             |
 | S                     | show / hide the score displays            |
 | D                     | turn combing repair off / on              |
 | F11 / Alt+Enter       | fullscreen on / off                       |
@@ -206,6 +207,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
 | `--unlimited-lives`   | Dirk never loses a life, so you can see the whole game         |
 | `--free-play`         | no coins needed: press 1 to start                              |
+| `--autoplay`          | the program plays the game for you (also the A key)            |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches)) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
@@ -239,6 +241,22 @@ about every five minutes. `--attract-sound` flips that switch.
 **Unlimited lives.** `--unlimited-lives` turns on the game's own "Unlimited
 Dirks" DIP switch, meant for operators: Dirk still dies when you get a move
 wrong, but never loses a life.
+
+**Autoplay.** With `--autoplay`, or after pressing A, the program plays the
+joystick and sword itself; you still insert coins and press start. It
+plays the whole game, from the first room to rescuing Daphne, without losing
+a life, with the original ROMs and both DLE sets. Press A at any time to
+take over, and again to hand back. The console prints each move it makes.
+
+It works by reading the game's mind. While a scene plays, the game keeps a
+list in RAM of the inputs it's watching for, each with its time windows and
+what happens if you press it in each one. Nothing in the list says which
+outcome is good, so whenever a new set of moves opens, the program tries
+each on a copy of the whole machine, runs the copy a few seconds ahead
+(hundreds of times faster than real time), and makes the move after which
+Dirk doesn't lose a life. `src/games/dlair/dlair_autoplay.c` describes the
+list. Judging a move takes up to about 50 ms, so the picture can hitch for a
+frame as Dirk makes it.
 
 **Window icon.** Each game has its own icon, built into the program from
 `icons/`.
@@ -368,8 +386,16 @@ frame 1424.
 | `--seconds N`              | how much game time to run (default 60)                    |
 | `--press BUTTON@T[:LEN]`   | hold a button at T seconds, for LEN seconds (default 0.2) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the DIP switches (defaults `20` and `79`)             |
+| `--autoplay`               | let the program play, printing each move it makes         |
 
 Buttons: `up down left right sword start1 start2 coin1 coin2`.
+
+With `--autoplay`, a whole game takes seconds. This plays through to the
+rescue (about 11 minutes of game time) in under 10 seconds:
+
+```
+dlair-trace path/to/lair.zip --seconds 700 --press coin1@40 --press coin1@41 --press start1@43 --autoplay
+```
 
 ## Testing the Z80
 
@@ -394,6 +420,7 @@ and takes a minute or two.
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/games/dlair/dlair.c`: the Dragon's Lair board (memory map, inputs, outputs, interrupts).
+- `src/games/dlair/dlair_autoplay.c`: autoplay (the game's list of moves, and looking ahead).
 - `src/util/zip.c`: reading ROMs out of zip files.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.

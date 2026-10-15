@@ -3,7 +3,7 @@
 // Usage: laser-vault FRAMEFILE [--video-dir DIR]
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
 //                                 [--unlimited-lives] [--free-play]
-//                                 [--dsw1 HEX] [--dsw2 HEX]]
+//                                 [--dsw1 HEX] [--dsw2 HEX] [--autoplay]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //
 // Each game's window icon is built in (icons/); --icon uses a
@@ -21,6 +21,8 @@
 // a life. --free-play needs no coins. --dsw1 and --dsw2 set the game's DIP
 // switches directly (each bank as a hex byte, replacing the ROM set's
 // defaults); the options above then change their own switches on top.
+// --autoplay lets the program play the joystick and sword (see
+// games/dlair/dlair_autoplay.h); A switches it on and off during a game.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        sword button
@@ -28,6 +30,7 @@
 //   1 / 2               start (1 / 2 players)
 //   S                   show / hide the score displays
 //   P / Pause           pause / resume the game
+//   A                   autoplay on / off
 //   D                   turn combing repair off / on (see video/decomb.h)
 //   Escape              quit
 //
@@ -48,6 +51,7 @@
 
 #include "audio/disc_audio.h"
 #include "games/dlair/dlair.h"
+#include "games/dlair/dlair_autoplay.h"
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
 #include "ui/bezel.h"
@@ -81,6 +85,8 @@ typedef struct {
     bool game;
     bool show_scores;  // the score display panel beside the picture
     bool paused;       // game mode: everything frozen
+    bool autoplaying;  // game mode: the program plays the joystick and sword
+    DlairAutoplay autoplay;
     Dlair *board;
     Ldv1000 player;
 
@@ -109,7 +115,7 @@ static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
-                    "                   [--free-play] [--dsw1 HEX] [--dsw2 HEX]\n"
+                    "                   [--free-play] [--dsw1 HEX] [--dsw2 HEX] [--autoplay]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n");
 }
 
@@ -124,9 +130,10 @@ static void update_title(App *app)
         char digits[17];
         for (int i = 0; i < 16; i++) digits[i] = glyphs[app->board->digits[i]];
         digits[16] = '\0';
-        snprintf(title, sizeof title, "Dragon's Lair - [%.8s] [%.8s] - %s, frame %d%s%s",
+        snprintf(title, sizeof title, "Dragon's Lair - [%.8s] [%.8s] - %s, frame %d%s%s%s",
                  digits, digits + 8, ldp_state_name(ldp->state), ldp->frame,
                  app->paused ? "  [paused]" : "",
+                 app->autoplaying ? "  [autoplay]" : "",
                  disc_video_decomb(app->video) ? "" : "  [combing repair off]");
     } else if (app->typed[0]) {
         snprintf(title, sizeof title, "laser-vault - search to frame: %s_", app->typed);
@@ -381,6 +388,12 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
             // right place on resume.)
             if (app->paused && app->chip_sound) SDL_ClearAudioStream(app->chip_sound);
         }
+        if (key == SDLK_A) {
+            app->autoplaying = !app->autoplaying;
+            if (app->autoplaying) dlair_autoplay_resume(&app->autoplay);
+            printf("Autoplay %s\n", app->autoplaying ? "on" : "off");
+            fflush(stdout);
+        }
         return true;
     }
 
@@ -439,6 +452,7 @@ int main(int argc, char **argv)
     bool attract_sound = false;
     bool unlimited_lives = false;
     bool free_play = false;
+    bool autoplay = false;
     int dsw1 = -1, dsw2 = -1;  // DIP switch banks, -1 = the ROM set's defaults
     bool show_scores = false;
     bool fullscreen = false;
@@ -461,6 +475,8 @@ int main(int argc, char **argv)
             attract_sound = true;
         } else if (strcmp(argv[i], "--unlimited-lives") == 0) {
             unlimited_lives = true;
+        } else if (strcmp(argv[i], "--autoplay") == 0) {
+            autoplay = true;
         } else if (strcmp(argv[i], "--free-play") == 0) {
             free_play = true;
         } else if (strcmp(argv[i], "--dsw1") == 0 && i + 1 < argc) {
@@ -568,6 +584,9 @@ int main(int argc, char **argv)
         else
             printf("With the game window active, press 5 twice (two coins make one credit),\n"
                    "then 1 to start.\n");
+        dlair_autoplay_init(&app.autoplay, true);
+        app.autoplaying = autoplay;
+        if (autoplay) printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
         fflush(stdout);
 
         // The board's sound chip gets its own audio stream; SDL mixes it with
@@ -610,6 +629,7 @@ int main(int argc, char **argv)
             // when the board doesn't run, the disc stands still too.
             if (!app.paused) {
                 read_game_inputs(&app);
+                if (app.autoplaying) dlair_autoplay_update(&app.autoplay, app.board, &app.ldp, &app.player);
                 dlair_run(app.board, (uint64_t)(elapsed * DLAIR_CPU_HZ));
                 ldv1000_update(&app.player, app.board->cycles);
                 if (app.chip_sound) play_chip_sound(&app);
@@ -641,6 +661,7 @@ int main(int argc, char **argv)
     SDL_DestroyWindow(app.window);
     SDL_Quit();
     framefile_free(&app.framefile);
+    if (app.game) dlair_autoplay_free(&app.autoplay);
     free(app.board);
     return 0;
 }
