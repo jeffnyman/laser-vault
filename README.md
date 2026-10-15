@@ -255,12 +255,18 @@ to hand back. The console prints each move it makes.
 It works by reading the game's mind. While a scene plays, the game keeps a
 list in RAM of the inputs it's watching for, each with its time windows and
 what happens if you press it in each one. Nothing in the list says which
-outcome is good, so whenever a new set of moves opens, the program tries
-each on a copy of the whole machine, runs the copy a few seconds ahead
-(hundreds of times faster than real time), and makes the move after which
-the hero doesn't lose a life. `src/games/cinematronics/autoplay.c`
-describes the list. Judging a move takes up to about 50 ms, so the picture
-can hitch for a frame as a move is made.
+outcome is good, so the program tries each move on a copy of the whole
+machine, runs the copy a few seconds ahead (hundreds of times faster than
+real time), and makes the move after which the hero doesn't lose a life,
+and can survive the move after that. `src/games/cinematronics/autoplay.c`
+describes the list.
+
+The planning runs on its own thread, a few moves ahead of the game: the
+copy carries on from each planned move, so every move is decided long
+before it's due, and the picture never waits. Each move records what the
+game should look like at the moment it's made; if the game has strayed
+from the plan (you pressed something too, say), the plans are thrown away
+and planning starts again from where the game is.
 
 **Window icon.** Each game has its own icon, built into the program from
 `icons/`.

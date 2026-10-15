@@ -89,6 +89,9 @@ typedef struct {
     bool paused;       // game mode: everything frozen
     bool autoplaying;  // game mode: the program plays the joystick and sword
     CineAutoplay autoplay;
+    SDL_Thread *autoplay_thread;    // planning the next move, or NULL
+    CineAutoplayJob *autoplay_job;  // what it's planning
+    SDL_AtomicInt autoplay_done;    // set by the thread when the plan is ready
     CineBoard *board;
     Ldv1000 player;
 
@@ -316,6 +319,56 @@ static void read_gamepad(SDL_Gamepad *pad, CineInputs *in)
 
 // The control panel, read from the keyboard and any controllers every pass
 // of the main loop.
+// Autoplay plans each move on its own thread, so the picture never waits
+// for it (see games/cinematronics/autoplay.h).
+static int SDLCALL autoplay_thread(void *data)
+{
+    App *app = data;
+    cine_autoplay_think(app->autoplay_job);
+    SDL_SetAtomicInt(&app->autoplay_done, 1);
+    return 0;
+}
+
+// Collect the thread's plan, if it's ready (or wait for it). The plan is
+// used only if use is true: not when autoplay has just been switched off.
+static void finish_autoplay_thread(App *app, bool wait, bool use)
+{
+    if (!app->autoplay_thread) return;
+    if (!wait && !SDL_GetAtomicInt(&app->autoplay_done)) return;
+    SDL_WaitThread(app->autoplay_thread, NULL);
+    app->autoplay_thread = NULL;
+    SDL_SetAtomicInt(&app->autoplay_done, 0);
+    if (use) cine_autoplay_answer(&app->autoplay, app->autoplay_job);
+}
+
+// Run the board for the given number of cycles. With autoplay on, stop at
+// each of its presses and releases, so every move lands on the cycle it was
+// planned for, and start planning whenever the game writes new moves.
+static void run_board(App *app, uint64_t cycles)
+{
+    uint64_t end = app->board->cycles + cycles;
+    while (app->board->cycles < end) {
+        uint64_t stop = end;
+        if (app->autoplaying) {
+            finish_autoplay_thread(app, false, true);
+            CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, app->board, &app->ldp, &app->player);
+            if (job) {
+                app->autoplay_job = job;
+                app->autoplay_thread = SDL_CreateThread(autoplay_thread, "autoplay", app);
+                if (!app->autoplay_thread) {  // no threads: plan here, and wait
+                    cine_autoplay_think(job);
+                    cine_autoplay_answer(&app->autoplay, job);
+                    continue;
+                }
+            }
+            uint64_t next = cine_autoplay_next_event(&app->autoplay);
+            if (next > app->board->cycles && next < stop) stop = next;
+        }
+        cine_run(app->board, stop - app->board->cycles);
+        ldv1000_update(&app->player, app->board->cycles);
+    }
+}
+
 static void read_game_inputs(App *app)
 {
     // Number keys work on the top row or the numeric keypad.
@@ -414,6 +467,8 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
         }
         if (key == SDLK_A) {
             app->autoplaying = !app->autoplaying;
+            // A plan in the works is for the moment autoplay stopped; drop it.
+            finish_autoplay_thread(app, true, false);
             if (app->autoplaying) cine_autoplay_resume(&app->autoplay);
             printf("Autoplay %s\n", app->autoplaying ? "on" : "off");
             fflush(stdout);
@@ -657,9 +712,7 @@ int main(int argc, char **argv)
             // when the board doesn't run, the disc stands still too.
             if (!app.paused) {
                 read_game_inputs(&app);
-                if (app.autoplaying) cine_autoplay_update(&app.autoplay, app.board, &app.ldp, &app.player);
-                cine_run(app.board, (uint64_t)(elapsed * CINE_CPU_HZ));
-                ldv1000_update(&app.player, app.board->cycles);
+                run_board(&app, (uint64_t)(elapsed * CINE_CPU_HZ));
                 if (app.chip_sound) play_chip_sound(&app);
             }
         } else {
@@ -689,7 +742,10 @@ int main(int argc, char **argv)
     SDL_DestroyWindow(app.window);
     SDL_Quit();
     framefile_free(&app.framefile);
-    if (app.game) cine_autoplay_free(&app.autoplay);
+    if (app.game) {
+        finish_autoplay_thread(&app, true, false);
+        cine_autoplay_free(&app.autoplay);
+    }
     free(app.board);
     return 0;
 }

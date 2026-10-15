@@ -138,8 +138,15 @@ int main(int argc, char **argv)
             double t = seconds_now() - presses[i].at;
             if (t >= 0 && t < presses[i].length) *presses[i].button = true;
         }
-        if (autoplay) cine_autoplay_update(&player_bot, &board, &ldp, &player);
-        cine_run(&board, CINE_CPU_HZ / 1000);
+        // A slice ends early at autoplay's next press or release, so each
+        // move lands on the cycle it was judged for.
+        uint64_t slice = CINE_CPU_HZ / 1000;
+        if (autoplay) {
+            cine_autoplay_play(&player_bot, &board, &ldp, &player);
+            uint64_t next = cine_autoplay_next_event(&player_bot);
+            if (next > board.cycles && next - board.cycles < slice) slice = next - board.cycles;
+        }
+        cine_run(&board, slice);
         ldv1000_update(&player, board.cycles);
         if (ldp.state != shown_state) {
             shown_state = ldp.state;
@@ -154,7 +161,7 @@ int main(int argc, char **argv)
 
     printf("Ran %.1f s of game time; player %s at frame %d\n",
            seconds, ldp_state_name(ldp.state), ldp.frame);
-    if (autoplay) printf("Autoplay made %d moves\n", player_bot.moves_made);
+    if (autoplay) printf("Autoplay made %d moves (%d pressed late)\n", player_bot.moves_made, player_bot.late_presses);
     cine_autoplay_free(&player_bot);
     return 0;
 }
