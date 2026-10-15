@@ -10,13 +10,20 @@ laserdisc's soundtrack and the board's own sound chip. The code is meant to
 be read: each part explains how the real hardware works.
 
 <p align="center">
-  <a href="assets/laser-vault-dl-title.png"><img src="assets/laser-vault-dl-title.png" width="32%" alt="Dragon's Lair title screen, frame 414"></a>
-  <a href="assets/laser-vault-dl-dirk.png"><img src="assets/laser-vault-dl-dirk.png" width="32%" alt="Dirk the Daring, frame 2334"></a>
-  <a href="assets/laser-vault-ram-test.png"><img src="assets/laser-vault-ram-test.png" width="32%" alt="Diagnostics slate, frame 150"></a>
+  <a href="assets/dl-title-1320.png"><img src="assets/dl-title-1320.png" width="24%" alt="Dragon's Lair title screen, frame 1320"></a>
+  <a href="assets/dl-diagnostics-150.png"><img src="assets/dl-diagnostics-150.png" width="24%" alt="Dragon's Lair diagnostics slate, frame 150"></a>
+  <a href="assets/sa-title-160.png"><img src="assets/sa-title-160.png" width="24%" alt="Space Ace title screen, frame 160"></a>
+  <a href="assets/sa-diagnostics-1.png"><img src="assets/sa-diagnostics-1.png" width="24%" alt="Space Ace diagnostics slate, frame 1"></a>
 </p>
 
 <p align="center">
-  <a href="assets/dl-530-715.gif"><img src="assets/dl-530-715.gif" width="480" height="360" alt="Dragon's Lair intro, frames 530 to 715"></a>
+  <a href="assets/dl-1560-1820.gif"><img src="assets/dl-1560-1820.gif" width="49%" alt="Dragon's Lair: Dirk on the drawbridge, frames 1560 to 1820"></a>
+  <a href="assets/sa-1162-1420.gif"><img src="assets/sa-1162-1420.gif" width="49%" alt="Space Ace: Dexter and Kimmy under Borf's ship, frames 1162 to 1420"></a>
+</p>
+
+<p align="center">
+  <a href="assets/dl-play-1.png"><img src="assets/dl-play-1.png" width="49%" alt="Playing Dragon's Lair, with the score displays beside the picture"></a>
+  <a href="assets/sa-play-1.png"><img src="assets/sa-play-1.png" width="49%" alt="Playing Space Ace at Captain level, with the score displays and skill lamps"></a>
 </p>
 
 ## Setting up a development environment
@@ -408,12 +415,14 @@ target frame; press Space to play from there.
 These are built alongside `laser-vault`.
 
 `disc-gif` turns a range of disc frames into an animated GIF, or a single
-frame into a PNG, using the same video code as the emulator. The GIF at the
-top of this page was made with it, from frames 530 to 715 with `--noise 32`.
+frame into a PNG, using the same video code as the emulator. The title
+screens, diagnostics slates and GIFs at the top of this page were made with
+it (the GIFs with `--noise 32`); the two pictures with the score displays
+are screenshots taken in `laser-vault` (see below).
 
 ```
-disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 530 --to 715 -o intro.gif
-disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 1600 -o drawbridge.png
+disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 1560 --to 1820 --noise 32 -o drawbridge.gif
+disc-gif path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --from 1320 -o title.png
 ```
 
 | Option        | Default | Meaning                                                    |
