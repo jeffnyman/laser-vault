@@ -4,19 +4,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <zlib.h>
 
 // The timer interrupt: a 16 MHz crystal divided down by 8 * 16^4, about
 // 30.5 times a second. In CPU cycles (16 MHz / 4) that's exactly 131,072.
 #define IRQ_PERIOD 131072
 
-// DIP switch defaults (as in MAME): 5 lives, LD-V1000 player selected.
-#define DEFAULT_DSW1 0x20
-#define DEFAULT_DSW2 0x79
-
 // ---------------------------------------------------------------------------
 // ROMs
 // ---------------------------------------------------------------------------
+//
+// Dragon's Lair went through several revisions, and fans later made their
+// own. Each set names its chips differently, so the files we find tell us
+// which set we have, and each chip's CRC-32 tells us whether it's a good
+// copy. (Names and checksums from MAME's dlair.cpp and the DLE readmes.)
+
+#define ROM_CHIP_SIZE 0x2000
 
 typedef struct {
     const char *name;
@@ -24,14 +28,87 @@ typedef struct {
     uint32_t crc;  // CRC-32 of a known-good dump
 } RomChip;
 
-static const RomChip rev_f2[] = {
-    {"dl_f2_u1.bin", 0x0000, 0xF5EA3B9D},
-    {"dl_f2_u2.bin", 0x2000, 0xDCC1DFF2},
-    {"dl_f2_u3.bin", 0x4000, 0xAB514E5B},
-    {"dl_f2_u4.bin", 0x6000, 0xF5EC23D2},
+typedef struct {
+    const char *title;
+    bool tested;         // known to work with laser-vault
+    uint8_t dsw1, dsw2;  // the DIP switches, as the factory (or the authors) set them
+    RomChip chips[6];    // up to 5, then an empty entry
+} RomSet;
+
+// The sets this board can run, in order of preference (one zip may hold
+// several): the US revisions made for the LD-V1000, then the fans'
+// "Dragon's Lair Enhancement" sets, which began as rev F.
+//
+// The DIP switches start as in MAME: 2 coins a credit, 5 lives, sound in
+// every 8th attract cycle, LD-V1000 player. The DLE sets give two switches
+// new meanings. B:8 must be off (bit set) for the enhanced game in 1.1, and
+// for the standard game in 2.0 (on, it plays prototype scenes found only on
+// a disc pressed in 2002). In 2.0, B:5 on (bit clear) keeps the narrator in
+// the attract mode, as in the original game.
+static const RomSet rom_sets[] = {
+    {"Dragon's Lair (US Rev. F2)", true, 0x20, 0x79, {
+        {"dl_f2_u1.bin", 0x0000, 0xF5EA3B9D},
+        {"dl_f2_u2.bin", 0x2000, 0xDCC1DFF2},
+        {"dl_f2_u3.bin", 0x4000, 0xAB514E5B},
+        {"dl_f2_u4.bin", 0x6000, 0xF5EC23D2},
+    }},
+    {"Dragon's Lair (US Rev. F)", false, 0x20, 0x79, {
+        {"dl_f_u1.bin", 0x0000, 0x06FC6941},
+        {"dl_f_u2.bin", 0x2000, 0xDCC1DFF2},
+        {"dl_f_u3.bin", 0x4000, 0xAB514E5B},
+        {"dl_f_u4.bin", 0x6000, 0xA817324E},
+    }},
+    {"Dragon's Lair (US Rev. E)", false, 0x20, 0x79, {
+        {"dl_e_u1.bin", 0x0000, 0x02980426},
+        {"dl_e_u2.bin", 0x2000, 0x979D4C97},
+        {"dl_e_u3.bin", 0x4000, 0x897BF075},
+        {"dl_e_u4.bin", 0x6000, 0x4EBFFBA5},
+    }},
+    {"Dragon's Lair (US Rev. D)", false, 0x20, 0x79, {
+        {"dl_d_u1.bin", 0x0000, 0x0B5AB120},
+        {"dl_d_u2.bin", 0x2000, 0x93EBFFFB},
+        {"dl_d_u3.bin", 0x4000, 0x22E6591F},
+        {"dl_d_u4.bin", 0x6000, 0x5F7212CB},
+        {"dl_d_u5.bin", 0x8000, 0x2B469C89},
+    }},
+    {"Dragon's Lair Enhancement 2.0", true, 0x20, 0xE9, {
+        {"dle20_u1.bin", 0x0000, 0x0ACA15B4},
+        {"dle20_u2.bin", 0x2000, 0x1CEA7622},
+        {"dle20_u3.bin", 0x4000, 0x21A7E7CA},
+        {"dle20_u4.bin", 0x6000, 0x4AE26073},
+    }},
+    {"Dragon's Lair Enhancement 1.1", true, 0x20, 0xF9, {
+        {"dle11u1l.bin", 0x0000, 0x9E65B33D},
+        {"dle11u2l.bin", 0x2000, 0xF16FA36F},
+        {"dle11u3l.bin", 0x4000, 0xB8D07A16},
+        {"dle11u4l.bin", 0x6000, 0x20FC79B7},
+    }},
 };
 
-#define ROM_CHIP_SIZE 0x2000
+// Sets this board can't run. One chip is enough to recognize each, so we
+// can say why instead of just "not found".
+#define NEEDS_PR7820 "it was made for the Pioneer PR-7820 laserdisc player, and laser-vault only emulates the LD-V1000 (used from rev D on)"
+#define EUROPEAN "it runs on the European board, which is different hardware"
+#define SPACE_ACE "laser-vault doesn't play Space Ace yet"
+
+static const struct {
+    const char *chip, *title, *reason;
+} other_sets[] = {
+    {"dl_c_u1.bin", "Dragon's Lair (US Rev. C)", NEEDS_PR7820},
+    {"dl_b_u1.bin", "Dragon's Lair (US Rev. B)", NEEDS_PR7820},
+    {"dl_a_u1.bin", "Dragon's Lair (US Rev. A)", NEEDS_PR7820},
+    {"dlu1.bin", "Dragon's Lair (US Beta 2)", NEEDS_PR7820},
+    {"dl_n1_u1.bin", "Dragon's Lair (US Beta 1)", NEEDS_PR7820},
+    {"elu45.bin", "Dragon's Lair (European)", EUROPEAN},
+    {"elu45_d2.bin", "Dragon's Lair (European, alternate)", EUROPEAN},
+    {"dlita45.bin", "Dragon's Lair (Italian)", EUROPEAN},
+    {"sa_a3_u1.bin", "Space Ace (US Rev. A3)", SPACE_ACE},
+    {"sa_a2_u1.bin", "Space Ace (US Rev. A2)", SPACE_ACE},
+    {"sa_a_u1.bin", "Space Ace (US Rev. A)", SPACE_ACE},
+    {"sa_u45a.bin", "Space Ace (European)", SPACE_ACE},
+};
+
+#define COUNT(a) (sizeof (a) / sizeof (a)[0])
 
 static bool ends_with_zip(const char *path)
 {
@@ -55,15 +132,47 @@ static bool load_chip(const char *path, const char *name, uint8_t **data, size_t
     return true;
 }
 
+static bool has_chip(const char *path, const char *name)
+{
+    uint8_t *data = NULL;
+    size_t size;
+    if (!load_chip(path, name, &data, &size)) return false;
+    free(data);
+    return true;
+}
+
 bool dlair_load_roms(Dlair *board, const char *path)
 {
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        fprintf(stderr, "dlair: cannot find %s\n", path);
+        return false;
+    }
+
+    // Which set is it? Look for each set's first chip.
+    const RomSet *set = NULL;
+    for (size_t i = 0; i < COUNT(rom_sets) && !set; i++)
+        if (has_chip(path, rom_sets[i].chips[0].name)) set = &rom_sets[i];
+    if (!set) {
+        for (size_t i = 0; i < COUNT(other_sets); i++) {
+            if (has_chip(path, other_sets[i].chip)) {
+                fprintf(stderr, "dlair: %s holds %s, but %s.\n",
+                        path, other_sets[i].title, other_sets[i].reason);
+                return false;
+            }
+        }
+        fprintf(stderr, "dlair: found no Dragon's Lair ROMs in %s. laser-vault plays rev F2\n"
+                        "(lair.zip, or dl_f2_u1.bin to dl_f2_u4.bin in a folder), and also revs D,\n"
+                        "E and F and the Dragon's Lair Enhancement 1.1 and 2.0 sets.\n", path);
+        return false;
+    }
+
     memset(board->rom, 0xFF, sizeof board->rom);  // empty sockets read as FF
-    for (size_t i = 0; i < sizeof rev_f2 / sizeof rev_f2[0]; i++) {
-        const RomChip *chip = &rev_f2[i];
+    for (const RomChip *chip = set->chips; chip->name; chip++) {
         uint8_t *data = NULL;
         size_t size = 0;
         if (!load_chip(path, chip->name, &data, &size)) {
-            fprintf(stderr, "dlair: cannot find %s in %s\n", chip->name, path);
+            fprintf(stderr, "dlair: %s looks like %s, but %s is missing\n", path, set->title, chip->name);
             return false;
         }
         if (size != ROM_CHIP_SIZE) {
@@ -71,14 +180,18 @@ bool dlair_load_roms(Dlair *board, const char *path)
             free(data);
             return false;
         }
-        // A wrong checksum usually means a bad dump or a different revision.
-        // Warn, but carry on: it might still run.
+        // A wrong checksum means a bad copy or a modified chip. Warn, but
+        // carry on: it might still run.
         uint32_t crc = (uint32_t)crc32(0, data, (uInt)size);
         if (crc != chip->crc)
-            fprintf(stderr, "dlair: warning: %s has CRC %08X, expected %08X\n", chip->name, crc, chip->crc);
+            fprintf(stderr, "dlair: warning: %s has CRC %08X, expected %08X (a bad copy or a\n"
+                            "modified chip?); trying it anyway\n", chip->name, crc, chip->crc);
         memcpy(board->rom + chip->addr, data, size);
         free(data);
     }
+    printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
+    board->dsw1 = set->dsw1;
+    board->dsw2 = set->dsw2;
     return true;
 }
 
@@ -201,8 +314,6 @@ DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player)
 void dlair_reset(Dlair *b, DlairLaserdisc laserdisc)
 {
     b->laserdisc = laserdisc;
-    b->dsw1 = DEFAULT_DSW1;
-    b->dsw2 = DEFAULT_DSW2;
     memset(&b->inputs, 0, sizeof b->inputs);
     memset(b->ram, 0, sizeof b->ram);
     ay8910_free(&b->ay);

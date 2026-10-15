@@ -1,7 +1,7 @@
 // dlair.h - the Dragon's Lair game board (US version, Pioneer LD-V1000).
 //
-// The board is small: a Z80 CPU at 4 MHz, 40 KB of ROM space (the rev F2
-// game uses 32 KB), 2 KB of RAM, an AY-3-8910 sound chip (which also reads
+// The board is small: a Z80 CPU at 4 MHz, 40 KB of ROM space (most sets
+// use 32 KB), 2 KB of RAM, an AY-3-8910 sound chip (which also reads
 // the DIP switches), the joystick and buttons, a 16-digit score display, and
 // an 8-bit parallel link to the laserdisc player. A timer interrupts the CPU
 // about 30.5 times a second.
@@ -77,14 +77,16 @@ typedef struct {
     uint64_t next_irq;
 } Dlair;
 
-// Load the rev F2 ROMs from a zip file or a folder of .bin files.
-// Returns false (after printing why) if a ROM is missing.
+// Load the ROMs from a zip file or a folder of .bin files. This works out
+// which set they are (rev F2, another revision, or a fan-made set), checks
+// each chip's checksum, and sets the DIP switches as that set expects.
+// Returns false (after printing why) if it finds no set it can run.
 bool dlair_load_roms(Dlair *board, const char *path);
 
 // A laserdisc link to an LD-V1000 model, the player this board was built for.
 DlairLaserdisc dlair_ldv1000_link(Ldv1000 *player);
 
-// Power on: reset the CPU and set the DIP switches to their defaults.
+// Power on: reset the CPU. (The DIP switches stay as they are.)
 void dlair_reset(Dlair *board, DlairLaserdisc laserdisc);
 
 // Run the board for (at least) the given number of CPU cycles.

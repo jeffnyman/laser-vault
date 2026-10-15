@@ -150,7 +150,12 @@ You need your own copy of the game:
   [7-Zip](https://www.7-zip.org/) or `unrar`; for split archives, point the
   tool at the first part. There's no need to run a self-extracting `.exe`.
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
-  `dl_f2_u1.bin` to `dl_f2_u4.bin`.
+  `dl_f2_u1.bin` to `dl_f2_u4.bin`. The fan-made Dragon's Lair Enhancement
+  sets (DLE 1.1 and 2.0) work too, and revs D, E and F should, though
+  they're untested. The program tells you which set it found, warns if a
+  chip doesn't match the known dump, and explains why it can't run the
+  sets it can't (the early PR-7820 revisions, the European board, Space
+  Ace).
 
 Then:
 
