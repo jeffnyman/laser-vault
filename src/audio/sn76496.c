@@ -3,8 +3,10 @@
 #include <math.h>
 #include <stdlib.h>
 
-// How loud the chip is compared with the laserdisc soundtrack.
-#define CHIP_GAIN 0.5f
+// How loud the chip is compared with the laserdisc soundtrack. Super Don
+// Quix-ote beeps on one channel at a time, not at full volume, so this is
+// set for that (all four channels at full volume would clip).
+#define CHIP_GAIN 2.0f
 
 // The noise generator is a 17-bit shift register. Each step it shifts
 // right; the bit coming in at the top is bit 2 of the old value, xor'ed
