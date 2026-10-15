@@ -2,7 +2,8 @@
 //
 // Usage: laser-vault FRAMEFILE [--video-dir DIR]
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
-//                                 [--unlimited-lives]]
+//                                 [--unlimited-lives] [--free-play]
+//                                 [--dsw1 HEX] [--dsw2 HEX]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico]
 //
 // Each game's window icon is built in (icons/); --icon uses a
@@ -16,7 +17,9 @@
 // every few cycles). --scores shows the score displays, which on the real
 // cabinet are in the bezel, beside the picture. --unlimited-lives turns on
 // the game's own "Unlimited Dirks" setting: Dirk still dies, but never loses
-// a life.
+// a life. --free-play needs no coins. --dsw1 and --dsw2 set the game's DIP
+// switches directly (each bank as a hex byte, replacing the ROM set's
+// defaults); the options above then change their own switches on top.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        sword button
@@ -87,10 +90,20 @@ typedef struct {
     char title[256];    // current window title
 } App;
 
+// A DIP switch bank, written as a hex byte ("79", "0x79"). Returns -2 if
+// it isn't one.
+static int parse_hex_byte(const char *s)
+{
+    char *end;
+    long v = strtol(s, &end, 16);
+    return (*s && *end == '\0' && v >= 0 && v <= 0xFF) ? (int)v : -2;
+}
+
 static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
+                    "                   [--free-play] [--dsw1 HEX] [--dsw2 HEX]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico]\n");
 }
 
@@ -355,6 +368,8 @@ int main(int argc, char **argv)
     bool want_fast_boot = false;
     bool attract_sound = false;
     bool unlimited_lives = false;
+    bool free_play = false;
+    int dsw1 = -1, dsw2 = -1;  // DIP switch banks, -1 = the ROM set's defaults
     bool show_scores = false;
     const char *icon_path = NULL;
     int start_frame = -1;
@@ -373,6 +388,12 @@ int main(int argc, char **argv)
             attract_sound = true;
         } else if (strcmp(argv[i], "--unlimited-lives") == 0) {
             unlimited_lives = true;
+        } else if (strcmp(argv[i], "--free-play") == 0) {
+            free_play = true;
+        } else if (strcmp(argv[i], "--dsw1") == 0 && i + 1 < argc) {
+            dsw1 = parse_hex_byte(argv[++i]);
+        } else if (strcmp(argv[i], "--dsw2") == 0 && i + 1 < argc) {
+            dsw2 = parse_hex_byte(argv[++i]);
         } else if (strcmp(argv[i], "--fast-boot") == 0) {
             want_fast_boot = true;
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
@@ -392,7 +413,7 @@ int main(int argc, char **argv)
         usage();
         return 1;
     }
-    if (disc_fps <= 0) {
+    if (disc_fps <= 0 || dsw1 == -2 || dsw2 == -2) {
         usage();
         return 1;
     }
@@ -449,8 +470,13 @@ int main(int argc, char **argv)
         ldv1000_init(&app.player, &app.ldp, DLAIR_CPU_HZ);
         dlair_reset(app.board, dlair_ldv1000_link(&app.player));
         // DIP switch settings, as an operator would set them in the cabinet.
+        // First any banks given whole, then the named options.
+        if (dsw1 >= 0) app.board->dsw1 = (uint8_t)dsw1;
+        if (dsw2 >= 0) app.board->dsw2 = (uint8_t)dsw2;
         if (attract_sound) app.board->dsw2 &= ~DLAIR_DSW2_QUIET_ATTRACT;
         if (unlimited_lives) app.board->dsw2 |= DLAIR_DSW2_UNLIMITED_LIVES;
+        if (free_play) app.board->dsw1 |= DLAIR_DSW1_FREE_PLAY;
+        printf("DIP switches: DSW1 %02X, DSW2 %02X\n", app.board->dsw1, app.board->dsw2);
         if (want_fast_boot) {
             fast_boot(&app);
         } else {
@@ -458,8 +484,13 @@ int main(int argc, char **argv)
                    "the disc to spin up; the attract mode starts after about 35 s. (Use\n"
                    "--fast-boot to skip the wait.)\n");
         }
-        printf("With the game window active, press 5 twice (two coins make one credit),\n"
-               "then 1 to start.\n");
+        if (app.board->dsw1 & DLAIR_DSW1_FREE_PLAY)
+            printf("With the game window active, press 1 to start (free play).\n");
+        else if (dsw1 >= 0)  // the coinage may not be the default
+            printf("With the game window active, press 5 to insert coins, then 1 to start.\n");
+        else
+            printf("With the game window active, press 5 twice (two coins make one credit),\n"
+                   "then 1 to start.\n");
         fflush(stdout);
 
         // The board's sound chip gets its own audio stream; SDL mixes it with

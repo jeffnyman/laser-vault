@@ -31,6 +31,15 @@
 #define DLAIR_SOUND_CHIP_HZ 2000000  // the AY-3-8910 runs at 16 MHz / 8
 #define DLAIR_SAMPLE_RATE 44100      // rate of the sound chip's output samples
 
+// The DIP switches: two banks of eight, DSW1 (A:1-8) and DSW2 (B:1-8), bit 0
+// first. What each switch does depends on the ROM set; the three below mean
+// the same in rev F2 and the DLE sets. (The DLE readmes give the physical
+// switch positions instead, numbered 0-7: a bit set is a switch OFF.)
+
+// DIP switch A:5, "2 Credits/Free play". On, the game always has two
+// credits, so start works without coins. Off by default.
+#define DLAIR_DSW1_FREE_PLAY 0x10
+
 // DIP switch B:1, "Sound Every 8 Attracts". On (the default) keeps the
 // attract mode quiet: the game switches the disc's sound off and only lets
 // it through every few attract cycles. Off: the attract mode always has sound.

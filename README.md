@@ -160,7 +160,7 @@ laser-vault path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --roms 
 ```
 
 Press 5 twice to insert two coins (the factory setting is two coins per
-credit), then 1 to start. Watch the animation for danger or for something
+credit), then 1 to start (or add `--free-play` and skip the coins). Watch the animation for danger or for something
 flashing, and move or use the sword at the right moment.
 
 | Key                   | Action                                    |
@@ -187,6 +187,8 @@ prints a line for each coin and start press.
 | `--scores`            | show the score displays beside the picture (also the S key)    |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
 | `--unlimited-lives`   | Dirk never loses a life, so you can see the whole game         |
+| `--free-play`         | no coins needed: press 1 to start                              |
+| `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches)) |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--frame N`           | without `--roms`: the frame to start on                        |
 | `--disc-fps F`        | rate the disc's frame numbers count at (default 23.976, right for Dragon's Lair; see `src/video/disc_video.h`) |
@@ -253,6 +255,35 @@ what the DIP switches do in that set. The program tells you if a chip
 doesn't match the known copy, and explains why it can't run the sets it
 doesn't support: the early revisions made for the Pioneer PR-7820 player,
 the European board, and Space Ace.
+
+### DIP switches
+
+The game board has two banks of eight DIP switches, DSW1 and DSW2, that
+the operator sets inside the cabinet: pricing, lives, difficulty and so on.
+Each ROM set starts with its usual settings (rev F2: DSW1 `20`, DSW2 `79`;
+DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`), and the console shows the
+settings in use when the game starts.
+
+`--dsw1 HEX` and `--dsw2 HEX` replace a whole bank. `--free-play`,
+`--attract-sound` and `--unlimited-lives` then change their own switches on
+top, so you can combine them. In rev F2, the bits mean (from MAME's
+`dlair.cpp`):
+
+| Bit    | DSW1                                   | DSW2                                          |
+|--------|----------------------------------------|-----------------------------------------------|
+| `01`   | coins per credit: clear 2, set 3       | sound every 8 attracts (`--attract-sound` clears it) |
+| `02`   | unused                                 | demo sounds: set turns them off               |
+| `04`   | difficulty mode                        | unlimited Dirks (`--unlimited-lives`)         |
+| `08`   | engineering mode                       | laserdisc player: set = LD-V1000 (leave it set) |
+| `10`   | two credits always (`--free-play`)     | difficulty (with `80`)                        |
+| `20`   | lives: clear 3, set 5                  | pay-as-you-go options (with `40`)             |
+| `40`   | pay as you go                          | pay-as-you-go options (with `20`)             |
+| `80`   | diagnostics                            | difficulty (with `10`)                        |
+
+So `--dsw1 00` gives 3 lives. The DLE sets change what several switches do;
+their readmes have the charts. They number the switches 0 to 7 and give
+physical positions, where OFF means the bit is set. The three named options
+mean the same in every set laser-vault runs.
 
 ### Driving the laserdisc player yourself
 
