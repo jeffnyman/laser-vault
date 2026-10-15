@@ -150,12 +150,8 @@ You need your own copy of the game:
   [7-Zip](https://www.7-zip.org/) or `unrar`; for split archives, point the
   tool at the first part. There's no need to run a self-extracting `.exe`.
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
-  `dl_f2_u1.bin` to `dl_f2_u4.bin`. The fan-made Dragon's Lair Enhancement
-  sets (DLE 1.1 and 2.0) work too, and revs D, E and F should, though
-  they're untested. The program tells you which set it found, warns if a
-  chip doesn't match the known dump, and explains why it can't run the
-  sets it can't (the early PR-7820 revisions, the European board, Space
-  Ace).
+  `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
+  [Other ROM sets](#other-rom-sets).
 
 Then:
 
@@ -225,6 +221,38 @@ wrong, but never loses a life.
 
 **Window icon.** Each game has its own icon, built into the program from
 `icons/`.
+
+### Other ROM sets
+
+Give `--roms` a different set and the program works out which one it is,
+says so on the console, and sets the DIP switches the way that set expects.
+
+- **`lair.zip`, rev F2:** the arcade original, Cinematronics' last US
+  revision. It's what laser-vault was built and tested against. Like the
+  arcade machine, it leaves some of the disc unused: for instance, a game
+  starts with the castle and then cuts to Dirk running past the portcullis,
+  skipping the drawbridge.
+- **`dle11.zip`, Dragon's Lair Enhancement 1.1** (Dave Hallock, 2000): the
+  same game, built from rev F, with the cuts undone. Every scene and death
+  scene on the disc (with a few small exceptions) is now used, scenes play
+  to their end, there are some new choices, and errors in the original game
+  data are fixed. The set whose files end in `l` is the one tuned for the
+  LD-V1000.
+- **`dle20.zip`, Dragon's Lair Enhancement 2.0** (Dave Hallock and Jeff
+  Kulczycki, 2002): a bigger rework, meant to play the way the animators
+  designed the game. It starts at the drawbridge, groups the scenes into
+  sections (castle, caverns, the lair), brings back a scene you died on at
+  the end of its section, and scores differently. Its prototype mode needs
+  the scenes on a Limited Edition disc pressed in 2002, so laser-vault sets
+  it to the standard game.
+- **Revs D, E and F:** earlier US revisions for the LD-V1000. They should
+  work, but haven't been tested.
+
+Each DLE zip includes its authors' readme, which describes every change and
+what the DIP switches do in that set. The program tells you if a chip
+doesn't match the known copy, and explains why it can't run the sets it
+doesn't support: the early revisions made for the Pioneer PR-7820 player,
+the European board, and Space Ace.
 
 ### Driving the laserdisc player yourself
 
