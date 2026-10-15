@@ -502,13 +502,19 @@ static void read_game_inputs(App *app)
 
     machine_set_controls(&app->machine, in);
 
-    // Say so on the console when a coin, start or skill button goes down, so
+    // Say so on the console when a button goes down or the stick moves, so
     // it's easy to tell whether the keyboard is reaching the game.
     double t = (double)machine_cycles(&app->machine) / machine_cpu_hz(&app->machine);
     if (in->coin1 && !before.coin1) printf("%6.1f s  coin inserted (slot 1)\n", t);
     if (in->coin2 && !before.coin2) printf("%6.1f s  coin inserted (slot 2)\n", t);
     if (in->start1 && !before.start1) printf("%6.1f s  start (1 player)\n", t);
     if (in->start2 && !before.start2) printf("%6.1f s  start (2 players)\n", t);
+    if (in->up && !before.up) printf("%6.1f s  stick: up\n", t);
+    if (in->down && !before.down) printf("%6.1f s  stick: down\n", t);
+    if (in->left && !before.left) printf("%6.1f s  stick: left\n", t);
+    if (in->right && !before.right) printf("%6.1f s  stick: right\n", t);
+    if (in->button && !before.button)
+        printf("%6.1f s  %s\n", t, app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button");
     if (app->machine.kind == MACHINE_CINEMATRONICS && app->machine.cine->game == CINE_SPACE_ACE) {
         static const char *skills[3] = {"Cadet", "Captain", "Ace"};
         for (int i = 0; i < 3; i++)

@@ -19,6 +19,8 @@ enum {
     CMD_GET_FRAME = 0xC2,
     CMD_FORWARD_X0 = 0xA0,  // A0-A7: play forward at a set speed (0, 1/4, 1/2, 1, 2, 3, 4, 5)
     CMD_FORWARD_X5 = 0xA7,
+    CMD_SKIP_10 = 0xB1,  // B1-BA: skip forward 10, 20, ... 100 frames
+    CMD_SKIP_100 = 0xBA,
 };
 
 // After GET FRAME NUMBER, the status byte carries the frame number's five
@@ -186,6 +188,12 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
             ldp_play(ldp);
             ld->autostop_frame = -1;
             ld->status = STATUS_PLAY;
+        } else if (byte >= CMD_SKIP_10 && byte <= CMD_SKIP_100) {
+            // Jump ahead and carry on as before. The player can move the
+            // laser this far during one vertical blank, so the picture
+            // doesn't break up. (Super Don Quix-ote skips the capture scene
+            // that follows each arrow when you answer it in time.)
+            ldp->frame += 10 * (byte - CMD_SKIP_10 + 1);
         }
         // CLEAR, display and other commands: nothing to do
         break;
@@ -318,6 +326,16 @@ const char *ldv1000_command_name(uint8_t byte)
     case 0xA5: return "FORWARD x3";
     case 0xA6: return "FORWARD x4";
     case 0xA7: return "FORWARD x5";
+    case 0xB1: return "SKIP 10";
+    case 0xB2: return "SKIP 20";
+    case 0xB3: return "SKIP 30";
+    case 0xB4: return "SKIP 40";
+    case 0xB5: return "SKIP 50";
+    case 0xB6: return "SKIP 60";
+    case 0xB7: return "SKIP 70";
+    case 0xB8: return "SKIP 80";
+    case 0xB9: return "SKIP 90";
+    case 0xBA: return "SKIP 100";
     default: return NULL;
     }
 }
