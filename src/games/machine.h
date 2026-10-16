@@ -8,6 +8,7 @@
 //
 //     Cinematronics (games/cinematronics)  Dragon's Lair, Space Ace
 //     Universal System 1 (games/universal) Super Don Quix-ote
+//     Funai (games/funai)                  Esh's Aurunmilla
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -16,6 +17,7 @@
 #define LV_MACHINE_H
 
 #include "games/cinematronics/board.h"
+#include "games/funai/board.h"
 #include "games/universal/board.h"
 #include "ldp/ldv1000.h"
 
@@ -25,18 +27,21 @@
 typedef enum {
     MACHINE_CINEMATRONICS,
     MACHINE_UNIVERSAL,
+    MACHINE_FUNAI,
 } MachineKind;
 
 typedef struct {
     MachineKind kind;
     CineBoard *cine;  // when kind is MACHINE_CINEMATRONICS
     UniBoard *uni;    // when kind is MACHINE_UNIVERSAL
+    FunaiBoard *funai;  // when kind is MACHINE_FUNAI
 } Machine;
 
-// The control panel: true means pressed. Games use what they have; Space Ace
-// alone has the three skill buttons.
+// The control panel: true means pressed. Games use what they have: Esh's
+// Aurunmilla alone has a second button (the others take either as their
+// one button), Space Ace alone the three skill buttons.
 typedef struct {
-    bool up, down, left, right, button;
+    bool up, down, left, right, button, button2;
     bool start1, start2, coin1, coin2;
     bool skill[3];  // Space Ace: Cadet, Captain, Ace
 } Controls;
@@ -69,7 +74,8 @@ void machine_reset(Machine *m, Ldv1000 *player);
 void machine_run(Machine *m, uint64_t cycles);
 void machine_set_controls(Machine *m, const Controls *c);
 
-// The DIP switch banks (1 or 2).
+// The DIP switch banks (1 or 2), or NULL for a board without them (Esh's
+// Aurunmilla keeps its settings in battery-backed memory).
 uint8_t *machine_dsw(Machine *m, int bank);
 void machine_set(Machine *m, MachineSetting setting, bool on);
 bool machine_get(const Machine *m, MachineSetting setting);

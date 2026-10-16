@@ -413,10 +413,12 @@ static void read_gamepad(SDL_Gamepad *pad, Controls *in)
     in->down = in->down || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > tilt;
     in->left = in->left || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -tilt;
     in->right = in->right || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > tilt;
+    // Bottom and left face buttons are the first button, right and top the
+    // second; a game with one button takes either.
     in->button = in->button || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH) ||
-                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST) ||
-                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_WEST) ||
-                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
+                SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_WEST);
+    in->button2 = in->button2 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST) ||
+                 SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
     in->coin1 = in->coin1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK);
     in->start1 = in->start1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
     in->skill[0] = in->skill[0] || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
@@ -488,6 +490,7 @@ static void read_game_inputs(App *app)
     in->left = key[SDL_SCANCODE_LEFT];
     in->right = key[SDL_SCANCODE_RIGHT];
     in->button = key[SDL_SCANCODE_SPACE] || key[SDL_SCANCODE_LCTRL] || key[SDL_SCANCODE_RCTRL];
+    in->button2 = key[SDL_SCANCODE_LSHIFT] || key[SDL_SCANCODE_RSHIFT];
     in->coin1 = key[SDL_SCANCODE_5] || key[SDL_SCANCODE_KP_5];
     in->coin2 = key[SDL_SCANCODE_6] || key[SDL_SCANCODE_KP_6];
     in->start1 = key[SDL_SCANCODE_1] || key[SDL_SCANCODE_KP_1];
@@ -513,8 +516,13 @@ static void read_game_inputs(App *app)
     if (in->down && !before.down) printf("%6.1f s  stick: down\n", t);
     if (in->left && !before.left) printf("%6.1f s  stick: left\n", t);
     if (in->right && !before.right) printf("%6.1f s  stick: right\n", t);
-    if (in->button && !before.button)
-        printf("%6.1f s  %s\n", t, app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button");
+    const char *button = app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button";
+    if (app->machine.kind == MACHINE_FUNAI) {
+        if (in->button && !before.button) printf("%6.1f s  button 1\n", t);
+        if (in->button2 && !before.button2) printf("%6.1f s  button 2\n", t);
+    } else if ((in->button || in->button2) && !(before.button || before.button2)) {
+        printf("%6.1f s  %s\n", t, button);
+    }
     if (app->machine.kind == MACHINE_CINEMATRONICS && app->machine.cine->game == CINE_SPACE_ACE) {
         static const char *skills[3] = {"Cadet", "Captain", "Ace"};
         for (int i = 0; i < 3; i++)
@@ -775,13 +783,19 @@ int main(int argc, char **argv)
         machine_reset(m, &app.player);
         // DIP switch settings, as an operator would set them in the cabinet.
         // First any banks given whole, then the named options.
-        if (dsw1 >= 0) *machine_dsw(m, 1) = (uint8_t)dsw1;
-        if (dsw2 >= 0) *machine_dsw(m, 2) = (uint8_t)dsw2;
-        // (Each ROM set knows which switch each named option is.)
-        if (attract_sound) machine_set(m, MACHINE_QUIET_ATTRACT, false);
-        if (unlimited_lives) machine_set(m, MACHINE_UNLIMITED_LIVES, true);
-        if (free_play) machine_set(m, MACHINE_FREE_PLAY, true);
-        printf("DIP switches: DSW1 %02X, DSW2 %02X\n", *machine_dsw(m, 1), *machine_dsw(m, 2));
+        if (machine_dsw(m, 1)) {
+            if (dsw1 >= 0) *machine_dsw(m, 1) = (uint8_t)dsw1;
+            if (dsw2 >= 0) *machine_dsw(m, 2) = (uint8_t)dsw2;
+            // (Each ROM set knows which switch each named option is.)
+            if (attract_sound) machine_set(m, MACHINE_QUIET_ATTRACT, false);
+            if (unlimited_lives) machine_set(m, MACHINE_UNLIMITED_LIVES, true);
+            if (free_play) machine_set(m, MACHINE_FREE_PLAY, true);
+            printf("DIP switches: DSW1 %02X, DSW2 %02X\n", *machine_dsw(m, 1), *machine_dsw(m, 2));
+        } else if (dsw1 >= 0 || dsw2 >= 0 || attract_sound || unlimited_lives || free_play) {
+            printf("%s has no DIP switches (it keeps its settings in memory), so\n"
+                   "--dsw1, --dsw2, --free-play, --unlimited-lives and --attract-sound do nothing.\n",
+                   machine_game_name(m));
+        }
         if (want_fast_boot) {
             fast_boot(&app);
         } else if (cinematronics) {

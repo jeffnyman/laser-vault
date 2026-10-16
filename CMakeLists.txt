@@ -72,7 +72,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -120,13 +120,19 @@ if(NOT WIN32)
     target_link_libraries(lv_universal PUBLIC m)  # powf
 endif()
 
+# Funai's laserdisc board, which runs Esh's Aurunmilla.
+add_library(lv_funai STATIC
+    src/games/funai/board.c
+)
+target_link_libraries(lv_funai PUBLIC lv_cpu lv_ldp lv_roms)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_cine lv_universal lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_cine lv_universal lv_funai lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

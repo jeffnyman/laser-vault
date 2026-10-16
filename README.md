@@ -1,8 +1,8 @@
 # LaserVault
 
 A small, readable laserdisc arcade game emulator, written from scratch in C11
-with SDL3 and FFmpeg. It plays *Dragon's Lair*, *Space Ace* and *Super Don
-Quix-ote*.
+with SDL3 and FFmpeg. It plays *Dragon's Lair*, *Space Ace*, *Super Don
+Quix-ote* and *Esh's Aurunmilla*.
 
 The original game code runs on an emulated Z80 CPU and drives an emulated
 Pioneer LD-V1000 laserdisc player, just as on the arcade board: the attract
@@ -160,7 +160,8 @@ You need your own copy of the game:
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
   [Other ROM sets](#other-rom-sets). For the other games, see
-  [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote).
+  [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote) and
+  [Esh's Aurunmilla](#eshs-aurunmilla).
 
 Then:
 
@@ -176,6 +177,7 @@ flashing, and move or use the sword at the right moment.
 |-----------------------|-------------------------------------------|
 | Arrow keys            | joystick                                  |
 | Space / Ctrl          | sword (the action button)                 |
+| Shift                 | Esh's Aurunmilla: button 2 (other games: the action button) |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
@@ -188,14 +190,15 @@ flashing, and move or use the sword at the right moment.
 | Escape                | quit                                      |
 
 The number keys work on the top row or the numeric keypad. The console
-prints a line for each coin, start and skill-level press.
+prints a line for each coin, start, button and skill-level press, and each
+move of the stick.
 
 Game controllers work too, plugged in before or during play:
 
 | Controller            | Action                                    |
 |-----------------------|-------------------------------------------|
 | D-pad or left stick   | joystick                                  |
-| any face button       | sword (the action button)                 |
+| any face button       | sword (the action button); in Esh's Aurunmilla, bottom and left are button 1, right and top button 2 |
 | Back (Select)         | insert a coin                             |
 | Start                 | start (1 player)                          |
 | left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace |
@@ -213,7 +216,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
@@ -224,7 +227,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--frame N`           | without `--roms`: the frame to start on                        |
-| `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for Super Don Quix-ote; 23.976 without `--roms`; see `src/video/disc_video.h`) |
+| `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for Super Don Quix-ote and Esh's Aurunmilla; 23.976 without `--roms`; see `src/video/disc_video.h`) |
 
 ### What to expect
 
@@ -344,6 +347,7 @@ and give physical positions, where OFF means the bit is set. The original
 Space Ace and Super Don Quix-ote have layouts of their own (see
 [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote)). In
 every set, the three named options flip whichever switches that set uses.
+Esh's Aurunmilla has no DIP switches at all.
 
 ### Space Ace
 
@@ -435,6 +439,40 @@ switch on reads as a clear bit, and the factory setting is every switch off.
 
 With demo sounds off, the game plays the attract mode's video in a way the
 player keeps silent; `src/ldp/ldv1000.c` explains.
+
+### Esh's Aurunmilla
+
+Esh's Aurunmilla (Funai/Gakken, 1984) runs on Funai's own board: another Z80
+driving an LD-V1000, with tiles drawn over the picture for the score and
+the menus. You need:
+
+- **The video:** the Daphne-style clip `esh.m2v` with its soundtrack, and
+  the framefile `eshsaurunmilla.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** `esh.zip`, MAME's set 1, under MAME's chip names (`is1.h8`,
+  `is2.f8`, `a.m3`, `b.l3`, `c.k3`, `rgb.j1`, ...) or Daphne's (`h8_is1.bin`,
+  `f8_is2.bin`, `m3_a.bin`, ...). Sets 2 and 3, with other program chips,
+  should work too, but haven't been tested.
+
+```
+laser-vault path/to/eshsaurunmilla.txt --video-dir path/to/mpeg/eshsaurunmilla --roms path/to/esh.zip --fast-boot
+```
+
+Press 5 to insert a coin, then 1 to start. Choose a level (LOW, MIDDLE or
+HIGH: push the stick left or right, and the chosen one flickers), and press
+Space (button 1) to begin. The video itself shows what to do: at each
+danger, a lamp on the control panel lights and the animation shows the way
+out (a dial that points left or right, for one), and you push the stick
+that way before the scene moves on.
+
+MAME lists the game as not working. laser-vault's own reading of the game
+code gives the pieces MAME was missing: the laserdisc link runs in the
+interrupt that the player's command strobe raises once a field, and the
+colour PROM has see-through pixels (where the disc's picture shows) and a
+blue background for the menus, chosen by whether the game has the picture
+switched on. The board's settings live in battery-backed memory instead of
+on DIP switches, so `--free-play` and the other switch options do nothing.
+The beeper's pitch isn't known; laser-vault uses MAME's guess of 2 kHz.
 
 ### Driving the laserdisc player yourself
 
@@ -552,6 +590,8 @@ and takes a minute or two.
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
 - `src/games/universal/board.c`: Universal's System 1 board that runs Super Don Quix-ote
   (memory map, I/O, the tiles drawn over the picture, ROM sets).
+- `src/games/funai/board.c`: Funai's board that runs Esh's Aurunmilla (memory map, I/O,
+  the laserdisc interrupt, the tiles drawn over the picture, the beeper).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.
