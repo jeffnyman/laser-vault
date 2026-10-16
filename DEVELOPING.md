@@ -221,7 +221,7 @@ and takes a minute or two.
 - `src/util/png.c`: writing PNG files, for screenshots.
 - `src/video/framefile.c`: framefile parsing (disc frame → clip + offset).
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
-- `src/video/decomb.c`: detecting and repairing combed (mixed-field) frames.
+- `src/video/decomb.c`: finding and repairing combing (mixed fields), pixel by pixel.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal board.

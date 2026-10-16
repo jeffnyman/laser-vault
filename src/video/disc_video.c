@@ -31,7 +31,7 @@ struct DiscVideo {
     AVFrame *decombed;          // repaired copy of `picture`
     unsigned picture_serial;    // increases with every decoded picture
     unsigned checked_serial;    // picture last checked for combing
-    bool picture_combed;        // result of that check
+    bool picture_combed;        // whether that repaired any of it
 };
 
 static void close_clip(DiscVideo *dv)
@@ -160,26 +160,23 @@ const AVFrame *disc_video_get_frame(DiscVideo *dv, int frame)
     if (dv->picture_index < 0) return NULL;
     if (!dv->decomb || dv->picture->format != AV_PIX_FMT_YUV420P) return dv->picture;
 
-    // Check only the picture we're returning, not every picture decoded on
+    // Repair only the picture we're returning, not every picture decoded on
     // the way to it, and only once.
     if (dv->checked_serial != dv->picture_serial) {
         dv->checked_serial = dv->picture_serial;
-        dv->picture_combed = decomb_is_combed(dv->picture);
-        if (dv->picture_combed) {
-            AVFrame *out = dv->decombed;
-            if (out->width != dv->picture->width || out->height != dv->picture->height) {
+        AVFrame *out = dv->decombed;
+        if (out->width != dv->picture->width || out->height != dv->picture->height) {
+            av_frame_unref(out);
+            out->format = dv->picture->format;
+            out->width = dv->picture->width;
+            out->height = dv->picture->height;
+            if (av_frame_get_buffer(out, 0) < 0) {
                 av_frame_unref(out);
-                out->format = dv->picture->format;
-                out->width = dv->picture->width;
-                out->height = dv->picture->height;
-                if (av_frame_get_buffer(out, 0) < 0) {
-                    av_frame_unref(out);
-                    dv->picture_combed = false;  // out of memory: show it as is
-                    return dv->picture;
-                }
+                dv->picture_combed = false;  // out of memory: show it as is
+                return dv->picture;
             }
-            decomb_rebuild_from_even_field(out, dv->picture);
         }
+        dv->picture_combed = decomb_repair(out, dv->picture) > 0;
     }
     return dv->picture_combed ? dv->decombed : dv->picture;
 }
