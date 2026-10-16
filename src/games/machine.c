@@ -32,6 +32,11 @@ bool machine_load_roms(Machine *m, const char *path)
         m->konami = calloc(1, sizeof *m->konami);
         return konami_load_roms(m->konami, path);
     }
+    if (sega_recognizes(path)) {
+        m->kind = MACHINE_SEGA;
+        m->sega = calloc(1, sizeof *m->sega);
+        return sega_load_roms(m->sega, path);
+    }
     if (cine_recognizes(path)) {
         m->kind = MACHINE_CINEMATRONICS;
         m->cine = calloc(1, sizeof *m->cine);
@@ -41,8 +46,8 @@ bool machine_load_roms(Machine *m, const char *path)
                     "(lair.zip: revs D, E, F and F2, and the Dragon's Lair Enhancement 1.1 and\n"
                     "2.0 sets), Space Ace (ace.zip: rev A3, and the Space Ace Enhancement,\n"
                     "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip),\n"
-                    "Cliff Hanger (cliff.zip) and Badlands (badlands.zip). A folder of the ROM\n"
-                    "files works too.\n", path);
+                    "Cliff Hanger (cliff.zip), Badlands (badlands.zip) and Astron Belt\n"
+                    "(astronp.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -51,12 +56,20 @@ void machine_free(Machine *m)
     if (m->uni) sn76496_free(&m->uni->sound);
     if (m->cine) ay8910_free(&m->cine->ay);
     if (m->konami) sn76496_free(&m->konami->sound);
+    if (m->sega) samples_free(&m->sega->sound);
     free(m->cine);
     free(m->uni);
     free(m->funai);
     free(m->stern);
     free(m->konami);
+    free(m->sega);
     *m = (Machine){0};
+}
+
+int machine_load_samples(Machine *m, const char *dir, bool *wanted)
+{
+    *wanted = m->kind == MACHINE_SEGA;
+    return m->kind == MACHINE_SEGA ? sega_load_samples(m->sega, dir) : 0;
 }
 
 const char *machine_game_name(const Machine *m)
@@ -65,6 +78,7 @@ const char *machine_game_name(const Machine *m)
     if (m->kind == MACHINE_FUNAI) return funai_game_name(m->funai);
     if (m->kind == MACHINE_STERN) return stern_game_name(m->stern);
     if (m->kind == MACHINE_KONAMI) return konami_game_name(m->konami);
+    if (m->kind == MACHINE_SEGA) return sega_game_name(m->sega);
     return cine_game_name(m->cine->game);
 }
 
@@ -74,6 +88,7 @@ double machine_cpu_hz(const Machine *m)
     if (m->kind == MACHINE_FUNAI) return FUNAI_CPU_HZ;
     if (m->kind == MACHINE_STERN) return STERN_CPU_HZ;
     if (m->kind == MACHINE_KONAMI) return KONAMI_CPU_HZ;
+    if (m->kind == MACHINE_SEGA) return SEGA_CPU_HZ;
     return CINE_CPU_HZ;
 }
 
@@ -83,6 +98,7 @@ uint64_t machine_cycles(const Machine *m)
     if (m->kind == MACHINE_FUNAI) return m->funai->cycles;
     if (m->kind == MACHINE_STERN) return m->stern->cycles;
     if (m->kind == MACHINE_KONAMI) return m->konami->cycles;
+    if (m->kind == MACHINE_SEGA) return m->sega->cycles;
     return m->cine->cycles;
 }
 
@@ -107,6 +123,7 @@ void machine_reset(Machine *m, Ldp *ldp)
         m->ldv1000.konami_rom = true;
         konami_reset(m->konami, &m->ldv1000);
     }
+    else if (m->kind == MACHINE_SEGA) sega_reset(m->sega, &m->ldv1000);
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
 
@@ -129,6 +146,7 @@ void machine_run(Machine *m, uint64_t cycles)
     else if (m->kind == MACHINE_FUNAI) funai_run(m->funai, cycles);
     else if (m->kind == MACHINE_STERN) stern_run(m->stern, cycles);
     else if (m->kind == MACHINE_KONAMI) konami_run(m->konami, cycles);
+    else if (m->kind == MACHINE_SEGA) sega_run(m->sega, cycles);
     else cine_run(m->cine, cycles);
 }
 
@@ -139,6 +157,11 @@ void machine_set_controls(Machine *m, const Controls *c)
         m->stern->inputs = (SternInputs){
             .up = c->up, .down = c->down, .left = c->left, .right = c->right,
             .hand = c->button, .feet = c->button2,
+            .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
+        };
+    } else if (m->kind == MACHINE_SEGA) {
+        m->sega->inputs = (SegaInputs){
+            .up = c->up, .down = c->down, .left = c->left, .right = c->right, .fire = button,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
     } else if (m->kind == MACHINE_KONAMI) {
@@ -170,6 +193,7 @@ uint8_t *machine_dsw(Machine *m, int bank)
     if (m->kind == MACHINE_STERN) return bank >= 1 && bank <= 4 ? &m->stern->dsw[bank - 1] : NULL;
     if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI) return NULL;
     if (m->kind == MACHINE_KONAMI) return bank == 1 ? &m->konami->dsw1 : &m->konami->dsw2;
+    if (m->kind == MACHINE_SEGA) return bank == 1 ? &m->sega->dsw1 : &m->sega->dsw2;
     if (m->kind == MACHINE_UNIVERSAL) return bank == 1 ? &m->uni->dsw1 : &m->uni->dsw2;
     return bank == 1 ? &m->cine->dsw1 : &m->cine->dsw2;
 }
@@ -197,6 +221,8 @@ void machine_set(Machine *m, MachineSetting setting, bool on)
     else if (m->kind == MACHINE_STERN) stern_set(m->stern, stern_settings[setting], on);
     else if (m->kind == MACHINE_KONAMI && setting != MACHINE_UNLIMITED_LIVES)
         konami_set(m->konami, setting == MACHINE_FREE_PLAY ? KONAMI_FREE_PLAY : KONAMI_QUIET_ATTRACT, on);
+    else if (m->kind == MACHINE_SEGA && setting != MACHINE_UNLIMITED_LIVES)
+        sega_set(m->sega, setting == MACHINE_FREE_PLAY ? SEGA_FREE_PLAY : SEGA_QUIET_ATTRACT, on);
     else if (m->kind == MACHINE_CINEMATRONICS) cine_set(m->cine, cine_settings[setting], on);
 }
 
@@ -205,6 +231,10 @@ bool machine_get(const Machine *m, MachineSetting setting)
     if (m->kind == MACHINE_UNIVERSAL) return uni_get(m->uni, uni_settings[setting]);
     if (m->kind == MACHINE_FUNAI) return false;
     if (m->kind == MACHINE_STERN) return stern_get(m->stern, stern_settings[setting]);
+    if (m->kind == MACHINE_SEGA) {
+        if (setting == MACHINE_UNLIMITED_LIVES) return false;
+        return sega_get(m->sega, setting == MACHINE_FREE_PLAY ? SEGA_FREE_PLAY : SEGA_QUIET_ATTRACT);
+    }
     if (m->kind == MACHINE_KONAMI) {
         if (setting == MACHINE_UNLIMITED_LIVES) return false;
         return konami_get(m->konami, setting == MACHINE_FREE_PLAY ? KONAMI_FREE_PLAY : KONAMI_QUIET_ATTRACT);
@@ -218,6 +248,7 @@ int machine_sample_rate(const Machine *m)
     if (m->kind == MACHINE_FUNAI) return FUNAI_SAMPLE_RATE;
     if (m->kind == MACHINE_STERN) return STERN_SAMPLE_RATE;
     if (m->kind == MACHINE_KONAMI) return KONAMI_SAMPLE_RATE;
+    if (m->kind == MACHINE_SEGA) return SEGA_SAMPLE_RATE;
     return CINE_SAMPLE_RATE;
 }
 
@@ -227,6 +258,7 @@ void machine_start_sound(Machine *m)
     else if (m->kind == MACHINE_FUNAI) funai_start_sound(m->funai);
     else if (m->kind == MACHINE_STERN) stern_start_sound(m->stern);
     else if (m->kind == MACHINE_KONAMI) sn76496_set_rendering(&m->konami->sound, true, m->konami->cycles);
+    else if (m->kind == MACHINE_SEGA) samples_start(&m->sega->sound, m->sega->cycles);
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -238,6 +270,10 @@ int machine_take_samples(Machine *m, const float **samples)
     }
     if (m->kind == MACHINE_FUNAI) return funai_take_samples(m->funai, samples);
     if (m->kind == MACHINE_STERN) return stern_take_samples(m->stern, samples);
+    if (m->kind == MACHINE_SEGA) {
+        samples_run(&m->sega->sound, m->sega->cycles);
+        return samples_take(&m->sega->sound, samples);
+    }
     if (m->kind == MACHINE_KONAMI) {
         sn76496_run(&m->konami->sound, m->konami->cycles);
         return sn76496_take_samples(&m->konami->sound, samples);
@@ -251,6 +287,10 @@ bool machine_overlay_layout(const Machine *m, OverlayLayout *layout)
     if (m->kind == MACHINE_STERN) {
         // The video chip's picture and border, as much as a TV shows.
         *layout = (OverlayLayout){.width = TMS9928_W, .height = TMS9928_H, .x = 0, .y = 0, .w = 1, .h = 1};
+        return true;
+    }
+    if (m->kind == MACHINE_SEGA) {
+        *layout = (OverlayLayout){.width = SEGA_OVERLAY_W, .height = SEGA_OVERLAY_H, .x = 0, .y = 0, .w = 1, .h = 1};
         return true;
     }
     if (m->kind == MACHINE_KONAMI) {
@@ -281,6 +321,7 @@ unsigned machine_overlay_serial(const Machine *m)
     if (m->kind == MACHINE_FUNAI) return m->funai->overlay_serial;
     if (m->kind == MACHINE_STERN) return m->stern->vdp.serial;
     if (m->kind == MACHINE_KONAMI) return m->konami->overlay_serial;
+    if (m->kind == MACHINE_SEGA) return m->sega->overlay_serial;
     return 0;
 }
 
@@ -290,4 +331,5 @@ void machine_draw_overlay(const Machine *m, uint32_t *pixels)
     else if (m->kind == MACHINE_FUNAI) funai_draw_overlay(m->funai, pixels);
     else if (m->kind == MACHINE_STERN) stern_draw_overlay(m->stern, pixels);
     else if (m->kind == MACHINE_KONAMI) konami_draw_overlay(m->konami, pixels);
+    else if (m->kind == MACHINE_SEGA) sega_draw_overlay(m->sega, pixels);
 }

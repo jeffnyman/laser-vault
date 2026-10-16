@@ -24,11 +24,12 @@ enum {
 };
 
 // After GET FRAME NUMBER, the status byte carries the frame number's five
-// digits instead, most significant first, one per field (in its low four
-// bits), starting at the next field's status. (Found by reading how Super
-// Don Quix-ote reads the reply: it sends the NO ENTRY that follows the
-// command in the next field, and takes the first digit from the status read
-// in that same exchange.)
+// digits instead, most significant first, one per field, starting at the
+// next field's status. Each is the digit's character code, '0' to '9' (30
+// to 39). (Found by reading how the games read the reply: Super Don
+// Quix-ote sends the NO ENTRY that follows the command in the next field,
+// and takes the first digit from the status read in that same exchange,
+// keeping the low four bits; Astron Belt subtracts 30 from each byte.)
 #define FRAME_REPLY_DIGITS 5
 #define FRAME_REPLY_DELAY 1  // fields
 
@@ -244,7 +245,7 @@ uint8_t ldv1000_read_status(Ldv1000 *ld, uint64_t now)
         } else if (i >= 0) {
             int digit = ld->reply_frame;
             for (int64_t k = i; k < FRAME_REPLY_DIGITS - 1; k++) digit /= 10;
-            return (uint8_t)((ld->status & 0xF0) | (digit % 10));
+            return (uint8_t)('0' + digit % 10);
         }
     }
     return ld->status;

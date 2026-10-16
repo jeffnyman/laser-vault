@@ -72,10 +72,21 @@ static void open_clip(DiscAudio *da, const FramefileClip *clip)
     if (dot && !strpbrk(dot, "/\\")) *dot = '\0';
     strncat(path, ".ogg", sizeof path - strlen(path) - 1);
 
+    // For Vorbis, use the reference decoder, libvorbis, if FFmpeg has it:
+    // FFmpeg's own can't read some early encoders' files (Astron Belt's
+    // soundtrack is one: "codebook lookup type not supported"). Setting it
+    // before opening makes FFmpeg use it to look the file over, too.
+    const AVCodec *reference = avcodec_find_decoder_by_name("libvorbis");
+    da->format = avformat_alloc_context();
+    if (!da->format) return;
+    if (reference) da->format->audio_codec = reference;
     if (avformat_open_input(&da->format, path, NULL, NULL) < 0) return;  // a silent clip
     const AVCodec *codec = NULL;
-    if (avformat_find_stream_info(da->format, NULL) < 0 ||
-        (da->stream_index = av_find_best_stream(da->format, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0)) < 0 ||
+    da->stream_index = -1;
+    if (avformat_find_stream_info(da->format, NULL) >= 0)
+        da->stream_index = av_find_best_stream(da->format, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
+    if (codec && codec->id == AV_CODEC_ID_VORBIS && reference) codec = reference;
+    if (da->stream_index < 0 || !codec ||
         !(da->decoder = avcodec_alloc_context3(codec)) ||
         avcodec_parameters_to_context(da->decoder, da->format->streams[da->stream_index]->codecpar) < 0 ||
         avcodec_open2(da->decoder, codec, NULL) < 0) {
@@ -130,6 +141,19 @@ static bool decode_next(DiscAudio *da)
 
 // Hand a decoded block to SDL: drop anything before skip_until, mute
 // switched-off channels, and interleave the channels (left, right, left, ...).
+// Sample i of channel ch, as -1..1. Decoders give 32-bit floats or 16-bit
+// integers, either with the channels interleaved or one array per channel.
+static float sample_at(const AVFrame *s, int ch, int i)
+{
+    int channels = s->ch_layout.nb_channels;
+    switch (s->format) {
+    case AV_SAMPLE_FMT_FLTP: return ((const float *)s->data[ch])[i];
+    case AV_SAMPLE_FMT_FLT: return ((const float *)s->data[0])[(size_t)i * channels + ch];
+    case AV_SAMPLE_FMT_S16P: return ((const int16_t *)s->data[ch])[i] / 32768.0f;
+    default: return ((const int16_t *)s->data[0])[(size_t)i * channels + ch] / 32768.0f;
+    }
+}
+
 static void queue_samples(DiscAudio *da)
 {
     const AVFrame *s = da->samples;
@@ -141,7 +165,8 @@ static void queue_samples(DiscAudio *da)
     int count = s->nb_samples - skip;
     if (count <= 0) return;
 
-    if (s->format != AV_SAMPLE_FMT_FLTP && s->format != AV_SAMPLE_FMT_FLT) {
+    if (s->format != AV_SAMPLE_FMT_FLTP && s->format != AV_SAMPLE_FMT_FLT && s->format != AV_SAMPLE_FMT_S16P &&
+        s->format != AV_SAMPLE_FMT_S16) {
         fprintf(stderr, "disc_audio: unsupported sample format %d\n", s->format);
         return;
     }
@@ -152,15 +177,8 @@ static void queue_samples(DiscAudio *da)
 
     int in_channels = s->ch_layout.nb_channels;
     for (int i = 0; i < count; i++) {
-        float left, right;
-        if (s->format == AV_SAMPLE_FMT_FLTP) {  // one array per channel
-            left = ((const float *)s->data[0])[skip + i];
-            right = in_channels > 1 ? ((const float *)s->data[1])[skip + i] : left;
-        } else {  // already interleaved
-            const float *frame = (const float *)s->data[0] + (size_t)(skip + i) * in_channels;
-            left = frame[0];
-            right = in_channels > 1 ? frame[1] : left;
-        }
+        float left = sample_at(s, 0, skip + i);
+        float right = in_channels > 1 ? sample_at(s, 1, skip + i) : left;
         da->buffer[2 * i] = da->channel1 ? left : 0.0f;
         da->buffer[2 * i + 1] = da->channel2 ? right : 0.0f;
     }

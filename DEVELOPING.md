@@ -7,7 +7,7 @@ in the source. (To play the games, see [PLAYING.md](PLAYING.md).)
 
 You need a C compiler, CMake (3.21 or newer), [SDL3](https://www.libsdl.org/)
 (3.2 or newer), FFmpeg's development libraries (libavcodec, libavformat,
-libavutil) and zlib. How you get them depends on the platform. Each section below goes
+libavutil, built with libvorbis) and zlib. How you get them depends on the platform. Each section below goes
 from a fresh machine to a built `laser-vault`.
 
 ### Windows (native, with Visual Studio)
@@ -223,6 +223,8 @@ checksums both program ROMs, and which then plays.
   the laserdisc interrupt, the tiles drawn over the picture, the beeper).
 - `src/games/konami/board.c`: Konami's board that runs Badlands (memory map, the three
   interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
+- `src/games/sega/board.c`: Sega's board that runs Astron Belt (memory map, ROM banks,
+  the laserdisc latches, the sprites and characters drawn over the picture).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.
@@ -232,14 +234,15 @@ checksums both program ROMs, and which then plays.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
+- `src/audio/samples.c`: recorded sound effects (WAV files), for Astron Belt's sound board.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/cine_trace.c`: the `cine-trace` tool.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
-- `icons/`: the window icons (`dlair.ico`, and `laser.ico` for the other
-  games). CMake builds them into the program
+- `icons/`: the window icons (`dlair.ico`, `astron.ico`, and `laser.ico` for
+  the other games). CMake builds them into the program
   (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
   `name.ico` there and add `name` to `EMBEDDED_ICONS` in `CMakeLists.txt`.
 

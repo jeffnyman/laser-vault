@@ -18,9 +18,11 @@ SDL_Surface *icon_load(const char *path);
 SDL_Surface *icon_load_memory(const void *data, size_t size);
 
 // Icons built into the program from icons/ (see CMakeLists.txt): Dragon's
-// Lair's own, and the one the other games share.
+// Lair's and Astron Belt's own, and the one the other games share.
 extern const unsigned char icon_dlair[];
 extern const unsigned long icon_dlair_size;
+extern const unsigned char icon_astron[];
+extern const unsigned long icon_astron_size;
 extern const unsigned char icon_laser[];
 extern const unsigned long icon_laser_size;
 

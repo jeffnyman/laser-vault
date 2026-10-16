@@ -8,7 +8,7 @@ How to run the games, the keys, the options, and what each game needs.
 - The games: [Dragon's Lair ROM sets](#dragons-lair-rom-sets) and
   [DIP switches](#dip-switches), [Space Ace](#space-ace),
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
-  [Cliff Hanger](#cliff-hanger), [Badlands](#badlands)
+  [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -25,8 +25,8 @@ You need your own copy of the game:
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
   [Dragon's Lair ROM sets](#dragons-lair-rom-sets). For the other games, see
   [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
-  [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger) and
-  [Badlands](#badlands).
+  [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
+  [Badlands](#badlands) and [Astron Belt](#astron-belt).
 
 Then:
 
@@ -81,13 +81,14 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game     |
 | `--free-play`         | no coins needed: press 1 to start                              |
 | `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
+| `--samples DIR`       | Astron Belt: the folder of its recorded sound effects (default: a `sounds` folder beside the ROMs' folder) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
@@ -150,9 +151,9 @@ game should look like at the moment it's made; if the game has strayed
 from the plan (you pressed something too, say), the plans are thrown away
 and planning starts again from where the game is.
 
-**Window icon.** Dragon's Lair has its own icon; the other games share one
-(most laserdisc game packs come with the same icon). Both are built into the
-program from `icons/`.
+**Window icon.** Dragon's Lair and Astron Belt have their own icons; the
+other games share one (most laserdisc game packs come with the same icon).
+All are built into the program from `icons/`.
 
 ## Dragon's Lair ROM sets
 
@@ -218,8 +219,9 @@ Space Ace and Super Don Quix-ote have layouts of their own (see
 [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote)). In
 every set, the three named options flip whichever switches that set uses.
 Cliff Hanger has four banks (see [Cliff Hanger](#cliff-hanger)), Badlands
-two of its own (see [Badlands](#badlands)), and Esh's Aurunmilla has no DIP
-switches at all.
+and Astron Belt two of their own (see [Badlands](#badlands) and
+[Astron Belt](#astron-belt)), and Esh's Aurunmilla has no DIP switches at
+all.
 
 ## Space Ace
 
@@ -453,6 +455,77 @@ The other switches in DSW2 are unused (the manual says to leave them off,
 that is, set). laser-vault starts with DSW1 `FF` and DSW2 `7E`: 1 coin 1
 credit, 3 lives, sound in the attract mode. Hold both start buttons as the
 game powers on for its service mode.
+
+## Astron Belt
+
+Astron Belt (Sega, 1983; Bally Midway in America) runs on Sega's own board:
+a Z80 driving an LD-V1000, with sprites (your fighter, the enemy ships and
+their shots) and characters (the score, the timer, the messages) drawn over
+film of space battles. You need:
+
+- **The video:** the Daphne-style clip `abelt.m2v` with its soundtrack, and
+  the framefile `astronbelt.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** the version for Pioneer's LD-V1000. MAME keeps it as
+  `astronp.zip`, holding just the two program chips (`abp-ic03.bin`,
+  `abp-ic10.bin`), with the rest in `astron.zip` beside it; laser-vault
+  looks there too, as MAME does. A folder holding all the chips works as
+  well. `astron.zip` on its own is the version for Sega's own laserdisc
+  player, which laser-vault doesn't emulate yet.
+
+```
+laser-vault path/to/astronbelt.txt --video-dir path/to/mpeg/astronbelt --roms path/to/astronp.zip
+```
+
+Press 5 to insert a coin, then 1 to start. The arrow keys fly the fighter
+(up is up the screen) and Space fires. The game starts on a timer (60
+seconds, an operator setting) with unlimited ships: you can be hit, but
+you don't run out. When the timer runs out you get a few reserve ships
+(more for scoring well), and losing those ends the game. The film itself
+has explosions and battles in it, which play whatever you do.
+
+**Sound.** The soundtrack comes from the disc. The board's own sound
+effects (your shots, the enemies', the ship, the alarm tones on a coin and
+at the start) came from a separate sound board, which isn't emulated:
+instead, laser-vault plays recordings of its sounds, the ones made for the
+Daphne emulator (`ab_ship.wav`, `ab_fire.wav`, `ab_enemy.wav` and
+`ab_alarm1.wav` to `ab_alarm4.wav`), when the game asks the sound board for
+each one. It looks for them in a `sounds` folder beside the ROMs' folder
+(`astron/roms/astronp.zip` and `astron/sounds/`, say), or in the folder
+`--samples` names, and says at start-up what it found. Without them the
+game plays with the soundtrack alone.
+
+The soundtrack file was made with an early Vorbis encoder that FFmpeg's own
+decoder can't read, so laser-vault uses the reference decoder, libvorbis,
+for Vorbis (the Windows build gets it through vcpkg; Linux distributions'
+FFmpeg packages include it).
+
+The game keeps track of the disc by asking the player for the frame number
+now and then, and jumps between stretches of film as the battle goes; the
+player answers with each digit as its character code, which is what the
+game expects.
+
+MAME lists the game as not working (it stops in what it calls a
+"pseudo-attract mode") and doesn't draw the sprites. The sprite format and
+the colours come from the Daphne emulator; the stick follows Sega's
+schematic (Daphne has up and down the other way round, which flies the
+ship like an aircraft).
+
+Its DIP switches (from MAME's `segald.cpp`; not yet checked against the
+game):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | `F0` | coin slot 1: `F0` 1 coin 1 credit; MAME lists the rest |
+| DSW1 | `0F` | coin slot 2, the same way |
+| DSW2 | `80` | set: demo sounds (`--attract-sound` sets it) |
+| DSW2 | `60` | play timer: both set 60 s, `20` 50 s, `40` 40 s, neither unlimited |
+| DSW2 | `10` | set: normal difficulty, clear: hard |
+| DSW2 | `0C` | reserve ships at: both set 5000, 10000, 20000 (MAME lists the rest) |
+| DSW2 | `02` | set: continues allowed |
+
+laser-vault starts with DSW1 `FF` and DSW2 `FF`. There's no free play
+setting, so `--free-play` does nothing.
 
 ## Screenshots
 

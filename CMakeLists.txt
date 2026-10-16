@@ -51,7 +51,7 @@ target_link_libraries(lv_png PUBLIC ZLIB::ZLIB)
 # The emulator.
 # The window icons are built into the program (as a C array generated
 # from the .ico file), so it never has to find the file at run time.
-set(EMBEDDED_ICONS dlair laser)
+set(EMBEDDED_ICONS dlair astron laser)
 set(EMBEDDED_ICON_SOURCES "")
 foreach(icon ${EMBEDDED_ICONS})
     set(input ${CMAKE_SOURCE_DIR}/icons/${icon}.ico)
@@ -73,7 +73,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -103,10 +103,11 @@ add_library(lv_roms STATIC
 target_include_directories(lv_roms PUBLIC src)
 target_link_libraries(lv_roms PUBLIC ZLIB::ZLIB)
 
-# The sound chips: AY-3-8910 and SN76496.
+# The sound chips (AY-3-8910 and SN76496), and recorded sound effects.
 add_library(lv_sound STATIC
     src/audio/ay8910.c
     src/audio/sn76496.c
+    src/audio/samples.c
 )
 target_include_directories(lv_sound PUBLIC src)
 if(NOT WIN32)
@@ -146,13 +147,19 @@ add_library(lv_konami STATIC
 )
 target_link_libraries(lv_konami PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
+# Sega's laserdisc board, which runs Astron Belt.
+add_library(lv_sega STATIC
+    src/games/sega/board.c
+)
+target_link_libraries(lv_sega PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

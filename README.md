@@ -25,6 +25,7 @@ real hardware works.
 | [Super Don Quix-ote](#super-don-quix-ote) | 1984 | Universal | Universal System 1 | LD-V1000 |
 | [Esh's Aurunmilla](#eshs-aurunmilla) | 1984 | Funai / Gakken | Funai | LD-V1000 |
 | [Badlands](#badlands) | 1984 | Konami / Centuri | Konami | LD-V1000 |
+| [Astron Belt](#astron-belt) | 1983 | Sega / Bally Midway | Sega | LD-V1000 |
 
 ### Dragon's Lair
 
@@ -105,13 +106,29 @@ code filled in the rest.
   <a href="assets/bl-play-1.png"><img src="assets/bl-play-1.png" width="32%" alt="Playing Badlands: the score, the lives and Buck's name over the picture"></a>
 </p>
 
+### Astron Belt
+
+A space shooter: your fighter, drawn by the board, flies over film of space
+battles and fights the enemy ships it draws over them. Sega's board is the
+first here with sprites. It doesn't run in MAME either; laser-vault plays
+it, with the disc's soundtrack, and plays recordings of the separate sound
+board's effects if you have them.
+
+<p align="center">
+  <a href="assets/ab-attract.png"><img src="assets/ab-attract.png" width="32%" alt="Astron Belt's attract screen, drawn by the board over the film"></a>
+  <a href="assets/ab-6950-7150.gif"><img src="assets/ab-6950-7150.gif" width="32%" alt="Astron Belt: an enemy ship closes in and explodes, frames 6950 to 7150"></a>
+  <a href="assets/ab-play-1.png"><img src="assets/ab-play-1.png" width="32%" alt="Playing Astron Belt: the fighter among enemy ships, with the score and timer"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
 - **More games:** *Thayer's Quest* (RDI, 1984), an adventure played on a
-  keyboard of named buttons, with a speech chip; *Astron Belt* and *Galaxy
-  Ranger* (Sega, 1983), shooters with sprites over the video. (*Goal to Go*,
+  keyboard of named buttons, with a speech chip; *Galaxy Ranger* (Sega,
+  1983), Astron Belt's sister game on the same board; the version of
+  Astron Belt for Sega's own laserdisc player.
+  (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been
   dumped.)
 - **Keeping high scores and settings** between runs, for the boards that

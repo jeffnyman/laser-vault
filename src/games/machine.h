@@ -11,6 +11,7 @@
 //     Funai (games/funai)                  Esh's Aurunmilla            LD-V1000
 //     Stern (games/stern)                  Cliff Hanger                PR-8210
 //     Konami (games/konami)                Badlands                    LD-V1000
+//     Sega (games/sega)                    Astron Belt                 LD-V1000
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -21,6 +22,7 @@
 #include "games/cinematronics/board.h"
 #include "games/funai/board.h"
 #include "games/konami/board.h"
+#include "games/sega/board.h"
 #include "games/stern/board.h"
 #include "games/universal/board.h"
 #include "ldp/ldv1000.h"
@@ -35,6 +37,7 @@ typedef enum {
     MACHINE_FUNAI,
     MACHINE_STERN,
     MACHINE_KONAMI,
+    MACHINE_SEGA,
 } MachineKind;
 
 typedef struct {
@@ -44,6 +47,7 @@ typedef struct {
     FunaiBoard *funai;  // when kind is MACHINE_FUNAI
     SternBoard *stern;  // when kind is MACHINE_STERN
     KonamiBoard *konami;  // when kind is MACHINE_KONAMI
+    SegaBoard *sega;      // when kind is MACHINE_SEGA
 
     // The laserdisc player the board drives, which drives the player model.
     Ldv1000 ldv1000;  // all but Stern's board
@@ -71,6 +75,11 @@ typedef enum {
 // false (after printing why) if no board can run them.
 bool machine_load_roms(Machine *m, const char *path);
 void machine_free(Machine *m);
+
+// Load recordings of sound effects the board can't make itself (Astron
+// Belt's sound board) from dir. Sets *wanted if the board uses any; returns
+// how many were found.
+int machine_load_samples(Machine *m, const char *dir, bool *wanted);
 
 const char *machine_game_name(const Machine *m);
 double machine_cpu_hz(const Machine *m);

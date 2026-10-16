@@ -3,7 +3,8 @@
 // Usage: laser-vault FRAMEFILE [--video-dir DIR]
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
 //                                 [--unlimited-lives] [--free-play]
-//                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]]
+//                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]
+//                                 [--samples DIR]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //
 // The window icons are built in (icons/); --icon uses a
@@ -26,7 +27,9 @@
 // --free-play needs no coins. --dsw1 and --dsw2 set the game's DIP switches
 // directly (each bank as a hex byte, replacing the ROM set's defaults; Cliff
 // Hanger also has --dsw3 and --dsw4); the options above then change their
-// own switches on top. --autoplay lets the
+// own switches on top. --samples names the folder of recorded sound
+// effects for a board whose sounds aren't emulated (Astron Belt's; by
+// default, a "sounds" folder beside the ROMs' folder). --autoplay lets the
 // program play Dragon's Lair or Space Ace (see
 // games/cinematronics/autoplay.h); A switches it on and off during a game.
 //
@@ -137,6 +140,7 @@ static void usage(void)
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
                     "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
+                    "                   [--samples DIR]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n");
 }
 
@@ -652,11 +656,41 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
     return true;
 }
 
+// Recorded sound effects, for a board that uses them: from dir if given,
+// else from a "sounds" folder beside the ROMs' folder, or inside it.
+static void load_samples(Machine *m, const char *roms, const char *dir)
+{
+    bool wanted = false;
+    char tried[2][1024];
+    int found = 0, tries = 0;
+    if (dir) {
+        snprintf(tried[tries++], sizeof tried[0], "%s", dir);
+    } else {
+        const char *slash = strrchr(roms, '/'), *backslash = strrchr(roms, '\\');
+        if (backslash > slash) slash = backslash;
+        int base = slash ? (int)(slash - roms) : 1;
+        const char *folder = slash ? roms : ".";
+        snprintf(tried[tries++], sizeof tried[0], "%.*s/../sounds", base, folder);
+        snprintf(tried[tries++], sizeof tried[0], "%.*s/sounds", base, folder);
+    }
+    for (int i = 0; i < tries && !found; i++) {
+        found = machine_load_samples(m, tried[i], &wanted);
+        if (!wanted) return;
+        if (found) printf("Sound effects: %d recordings from %s\n", found, tried[i]);
+    }
+    if (!found)
+        printf("%s's sound effects are recordings (ab_fire.wav and others), and none\n"
+               "were found in %s%s%s, so it plays without them. --samples\n"
+               "names their folder.\n", machine_game_name(m), tried[0], tries > 1 ? " or " : "",
+               tries > 1 ? tried[1] : "");
+}
+
 int main(int argc, char **argv)
 {
     const char *framefile_path = NULL;
     const char *video_dir = NULL;
     const char *roms = NULL;
+    const char *samples_dir = NULL;
     bool want_fast_boot = false;
     bool attract_sound = false;
     bool unlimited_lives = false;
@@ -674,6 +708,8 @@ int main(int argc, char **argv)
             video_dir = argv[++i];
         } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
             roms = argv[++i];
+        } else if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
+            samples_dir = argv[++i];
         } else if (strcmp(argv[i], "--icon") == 0 && i + 1 < argc) {
             icon_path = argv[++i];
         } else if (strcmp(argv[i], "--scores") == 0) {
@@ -726,6 +762,7 @@ int main(int argc, char **argv)
     if (roms) {
         app.game = true;
         if (!machine_load_roms(&app.machine, roms)) return 1;
+        load_samples(&app.machine, roms, samples_dir);
         if (!disc_fps) disc_fps = machine_disc_fps(&app.machine);
         app.has_overlay = machine_overlay_layout(&app.machine, &app.overlay_layout);
         if (app.has_overlay)
@@ -755,13 +792,15 @@ int main(int argc, char **argv)
     if (app.game && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
         fprintf(stderr, "No gamepads: %s\n", SDL_GetError());
 
-    // The window icon, built into the program: Dragon's Lair has its own,
-    // and other games share one (most laserdisc game packs come with the
-    // same icon). --icon names another.
+    // The window icon, built into the program: Dragon's Lair and Astron Belt
+    // have their own, and other games share one (most laserdisc game packs
+    // come with the same icon). --icon names another.
     SDL_Surface *icon = NULL;
     if (icon_path) icon = icon_load(icon_path);
     else if (app.game && app.machine.kind == MACHINE_CINEMATRONICS && app.machine.cine->game == CINE_DRAGONS_LAIR)
         icon = icon_load_memory(icon_dlair, icon_dlair_size);
+    else if (app.game && app.machine.kind == MACHINE_SEGA)
+        icon = icon_load_memory(icon_astron, icon_astron_size);
     else if (app.game) icon = icon_load_memory(icon_laser, icon_laser_size);
     if (icon) {
         SDL_SetWindowIcon(app.window, icon);
