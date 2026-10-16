@@ -10,9 +10,10 @@
 // ROMs
 // ---------------------------------------------------------------------------
 //
-// The board ran three games, each in two versions: one for Pioneer's
-// LD-V1000, and one for Sega's own player, driven over a serial link. Only
-// the Pioneer versions are supported. The games share the character
+// The board ran three games of its own, each in two versions: one for
+// Pioneer's LD-V1000, and one for Sega's own player, driven over a serial
+// link. Sega also converted Data East's Cobra Command to it, for its own
+// player. The games share the character
 // graphics and colour PROM, and Galaxy Ranger and Star Blazer (its Japanese
 // release) share everything but the program. MAME keeps a Pioneer set as
 // just its program chips (astronp.zip, galaxyrp.zip, sblazerp.zip), with
@@ -26,14 +27,29 @@ typedef struct {
     uint32_t crc;
 } RomChip;
 
+static const RomChip char_chips[2] = {
+    {{"5280", "epr5280.bin", "gr5280.bin"}, 0x800, 0x583AF1FF},
+    {{"5281", "epr5281.bin", "gr5281.bin"}, 0x800, 0x7B5C820C},
+};
+static const RomChip char_prom = {{"5279", "pr-5279.bin", NULL}, 0x200, 0x8716AEB5};
+static const RomChip cobra_chars[2] = {
+    {{"ic-11.bin", NULL, NULL}, 0x800, 0x5A2E8F4E},
+    {{"ic-12.bin", NULL, NULL}, 0x800, 0x4B89D7ED},
+};
+static const RomChip cobra_prom = {{"ic-13.bin", NULL, NULL}, 0x200, 0x3547A14C};
+
 typedef struct {
     SegaGame game;
     const char *title;
     bool tested;            // known to work with laser-vault
     const char *parent;     // the parent set's zip
     RomChip program[2];     // 0000-3FFF, 4000-7FFF
-    RomChip banks[2];       // the two banks at 8000-BFFF
+    RomChip banks[2];       // the two banks at 8000-BFFF, if any
     RomChip sprites[4];     // at 0000, 4000, 8000 and C000 of the sprite graphics
+    const RomChip *chars;   // the character graphics (two chips)
+    const RomChip *prom;    // and their colours
+    int first_line;         // the first line of the grid on screen
+    bool serial;            // drives Sega's player, not the LD-V1000
 } RomSet;
 
 #define NO_CHIP {{NULL, NULL, NULL}, 0, 0}
@@ -48,30 +64,30 @@ static const RomSet rom_sets[] = {
     {SEGA_ASTRON_BELT, "Astron Belt (Pioneer LD-V1000 version)", true, "astron.zip",
      {{{"abp-ic03.bin", "5282", NULL}, 0x4000, 0xFD0DCFC9}, {{"abp-ic10.bin", "5283", NULL}, 0x4000, 0xA3746393}},
      {{{"5284", NULL, NULL}, 0x4000, 0xEEC6DB27}, {{"5285", NULL, NULL}, 0x4000, 0x820E154E}},
-     {{{"5286", NULL, NULL}, 0x4000, 0x8EB1C28E}, NO_CHIP, {{"5338", NULL, NULL}, 0x4000, 0x94CA5F9A}, NO_CHIP}},
-    {SEGA_STAR_BLAZER, "Star Blazer (Pioneer LD-V1000 version)", false, "galaxyr.zip",
+     {{{"5286", NULL, NULL}, 0x4000, 0x8EB1C28E}, NO_CHIP, {{"5338", NULL, NULL}, 0x4000, 0x94CA5F9A}, NO_CHIP},
+     char_chips, &char_prom, 16, false},
+    {SEGA_STAR_BLAZER, "Star Blazer (Pioneer LD-V1000 version)", true, "galaxyr.zip",
      {{{"epr-5590.bin", NULL, NULL}, 0x4000, 0xC06E41BB}, {{"epr-5591.bin", NULL, NULL}, 0x4000, 0xB179D18C}},
-     GR_BANKS, GR_SPRITES},
+     GR_BANKS, GR_SPRITES, char_chips, &char_prom, 16, false},
     {SEGA_GALAXY_RANGER, "Galaxy Ranger (Pioneer LD-V1000 version)", false, "galaxyr.zip",
      {{{"epr-5613.bin", NULL, NULL}, 0x4000, 0x6617E702}, {{"epr-5614.bin", NULL, NULL}, 0x4000, 0x73AD8932}},
-     GR_BANKS, GR_SPRITES},
-};
-
-static const RomChip char_chips[2] = {
-    {{"5280", "epr5280.bin", "gr5280.bin"}, 0x800, 0x583AF1FF},
-    {{"5281", "epr5281.bin", "gr5281.bin"}, 0x800, 0x7B5C820C},
-};
-static const RomChip char_prom = {{"5279", "pr-5279.bin", NULL}, 0x200, 0x8716AEB5};
-
-// The versions for Sega's player, recognized only to say they aren't
-// supported yet.
-static const struct {
-    RomChip program;
-    const char *game, *pioneer_set;
-} sega_player_sets[] = {
-    {{{"5473c", NULL, NULL}, 0x4000, 0x0F24BAAA}, "Astron Belt", "astronp.zip, with astron.zip beside it"},
-    {{{"gr5633.bin", NULL, NULL}, 0x4000, 0x398F6B23}, "Galaxy Ranger",
-     "galaxyrp.zip, or Star Blazer's sblazerp.zip, with galaxyr.zip beside it"},
+     GR_BANKS, GR_SPRITES, char_chips, &char_prom, 16, false},
+    // Sega's version of Data East's Cobra Command: its own graphics and
+    // colours, an 8 KB second program chip, and no banks.
+    {SEGA_COBRA_COMMAND, "Cobra Command (Sega laserdisc hardware)", false, "cobraab.zip",
+     {{{"ic-1.bin", NULL, NULL}, 0x4000, 0x079783C7}, {{"ic-2.bin", NULL, NULL}, 0x2000, 0x40C0B825}},
+     {NO_CHIP, NO_CHIP},
+     {{{"ic-7.bin", NULL, NULL}, 0x2000, 0x9E12B19C}, NO_CHIP, {{"ic-8.bin", NULL, NULL}, 0x2000, 0x201041C0}, NO_CHIP},
+     cobra_chars, &cobra_prom, 8, true},
+    // The versions for Sega's player.
+    {SEGA_ASTRON_BELT, "Astron Belt (Sega laserdisc player version)", false, "astron.zip",
+     {{{"5473c", NULL, NULL}, 0x4000, 0x0F24BAAA}, {{"5474a", NULL, NULL}, 0x4000, 0x5D44603D}},
+     {{{"5284", NULL, NULL}, 0x4000, 0xEEC6DB27}, {{"5285", NULL, NULL}, 0x4000, 0x820E154E}},
+     {{{"5286", NULL, NULL}, 0x4000, 0x8EB1C28E}, NO_CHIP, {{"5338", NULL, NULL}, 0x4000, 0x94CA5F9A}, NO_CHIP},
+     char_chips, &char_prom, 16, true},
+    {SEGA_GALAXY_RANGER, "Galaxy Ranger (Sega laserdisc player version)", false, "galaxyr.zip",
+     {{{"gr5633.bin", NULL, NULL}, 0x4000, 0x398F6B23}, {{"gr5634.bin", NULL, NULL}, 0x4000, 0x2C5BE1B7}},
+     GR_BANKS, GR_SPRITES, char_chips, &char_prom, 16, true},
 };
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
@@ -94,10 +110,7 @@ static const RomSet *find_set(const char *path)
 
 bool sega_recognizes(const char *path)
 {
-    if (find_set(path)) return true;
-    for (size_t i = 0; i < COUNT(sega_player_sets); i++)
-        if (chip_name(path, &sega_player_sets[i].program)) return true;
-    return false;
+    return find_set(path) != NULL;
 }
 
 // The parent set's path: its zip in the same folder as path.
@@ -109,14 +122,22 @@ static void parent_path(const char *path, const char *parent, char *out, size_t 
     snprintf(out, size, "%.*s%s", dir, path, parent);
 }
 
-// Read and check one chip, from the set or else its parent. A checksum
-// that doesn't match only warns.
+// Read and check one chip: from the set, else its parent, else any other
+// zip in the same folder (a set may lack a chip its relatives share). A
+// checksum that doesn't match only warns.
 static bool load_chip(const char *path, const char *parent, const RomChip *chip, uint8_t *dest)
 {
+    static char nearby[1024];
     const char *from = path, *name = chip_name(path, chip);
     if (!name) {
         from = parent;
         name = chip_name(parent, chip);
+    }
+    for (int i = 0; !name && i < 3 && chip->names[i]; i++) {
+        if (roms_find_nearby(path, chip->names[i], nearby, sizeof nearby)) {
+            from = nearby;
+            name = chip->names[i];
+        }
     }
     uint8_t *data = NULL;
     size_t size = 0;
@@ -141,28 +162,25 @@ static bool load_chip(const char *path, const char *parent, const RomChip *chip,
 bool sega_load_roms(SegaBoard *b, const char *path)
 {
     const RomSet *set = find_set(path);
-    if (!set) {
-        for (size_t i = 0; i < COUNT(sega_player_sets); i++) {
-            if (!chip_name(path, &sega_player_sets[i].program)) continue;
-            fprintf(stderr, "ROMs: %s is %s for Sega's own laserdisc player, which\n"
-                            "laser-vault doesn't emulate yet. Use the version for Pioneer's\n"
-                            "LD-V1000 (%s).\n", path, sega_player_sets[i].game, sega_player_sets[i].pioneer_set);
-        }
-        return false;
-    }
+    if (!set) return false;
     char parent[1024];
     parent_path(path, set->parent, parent, sizeof parent);
-    memset(b->sprites, 0xFF, sizeof b->sprites);  // empty sockets read as FF
+    // Empty sockets read as FF.
+    memset(b->rom, 0xFF, sizeof b->rom);
+    memset(b->banks, 0xFF, sizeof b->banks);
+    memset(b->sprites, 0xFF, sizeof b->sprites);
     for (int i = 0; i < 2; i++) {
         if (!load_chip(path, parent, &set->program[i], b->rom + i * 0x4000) ||
-            !load_chip(path, parent, &set->banks[i], b->banks[i]) ||
-            !load_chip(path, parent, &char_chips[i], b->chars + i * 0x800))
+            (set->banks[i].size && !load_chip(path, parent, &set->banks[i], b->banks[i])) ||
+            !load_chip(path, parent, &set->chars[i], b->chars + i * 0x800))
             return false;
     }
     for (int i = 0; i < 4; i++)
         if (set->sprites[i].size && !load_chip(path, parent, &set->sprites[i], b->sprites + i * 0x4000)) return false;
-    if (!load_chip(path, parent, &char_prom, b->char_prom)) return false;
+    if (!load_chip(path, parent, set->prom, b->char_prom)) return false;
     b->game = set->game;
+    b->first_line = set->first_line;
+    b->serial = set->serial;
     samples_init(&b->sound, SEGA_CPU_HZ, SEGA_SAMPLE_RATE);
     b->dsw1 = 0xFF;  // 1 coin, 1 credit in both slots
     b->dsw2 = 0xFF;  // demo sounds, 60 s play timer, normal, ships at 5000/10000/20000, continues
@@ -175,6 +193,7 @@ const char *sega_game_name(const SegaBoard *b)
     switch (b->game) {
     case SEGA_STAR_BLAZER: return "Star Blazer";
     case SEGA_GALAXY_RANGER: return "Galaxy Ranger";
+    case SEGA_COBRA_COMMAND: return "Cobra Command";
     default: return "Astron Belt";
     }
 }
@@ -203,8 +222,10 @@ static const SoundTable galaxy_sounds = {
     "gr_fire.wav",
 };
 
+// No recordings are known of Cobra Command's sounds.
 static const SoundTable *sound_table(const SegaBoard *b)
 {
+    if (b->game == SEGA_COBRA_COMMAND) return NULL;
     return b->game == SEGA_ASTRON_BELT ? &astron_sounds : &galaxy_sounds;
 }
 
@@ -212,6 +233,7 @@ int sega_load_samples(SegaBoard *b, const char *dir)
 {
     const SoundTable *t = sound_table(b);
     int found = 0;
+    if (!t) return 0;
     for (int i = 0; i < 16; i++)
         if (t->files[i]) found += samples_load(&b->sound, i, dir, t->files[i]);
     return found;
@@ -219,14 +241,15 @@ int sega_load_samples(SegaBoard *b, const char *dir)
 
 const char *sega_sample_example(const SegaBoard *b)
 {
-    return sound_table(b)->example;
+    return sound_table(b) ? sound_table(b)->example : NULL;
 }
 
 static void sound_write(SegaBoard *b, uint8_t v)
 {
     int sound = v & 0x0F;
-    if (sound == 0 && (b->game != SEGA_ASTRON_BELT || (v & 0x20))) return;
-    if (sound_table(b)->files[sound]) samples_trigger(&b->sound, b->cycles, sound);
+    const SoundTable *t = sound_table(b);
+    if (!t || (sound == 0 && (b->game != SEGA_ASTRON_BELT || (v & 0x20)))) return;
+    if (t->files[sound]) samples_trigger(&b->sound, b->cycles, sound);
 }
 
 // Free play is one of the coinage settings; laser-vault takes "1 coin, 1
@@ -252,13 +275,19 @@ bool sega_get(const SegaBoard *b, SegaSetting setting)
 // The address space
 // ---------------------------------------------------------------------------
 
-static uint8_t read_buttons(const SegaInputs *in)
+// Bit 2 is the test switch and bit 3 service (not wired up here). Cobra
+// Command has its second button where the others have start 2 (bit 6),
+// and start 2 on bit 5.
+static uint8_t read_buttons(const SegaBoard *b)
 {
-    uint8_t v = 0xFF;  // bit 2 test, bit 3 service (not wired up here)
+    const SegaInputs *in = &b->inputs;
+    bool cobra = b->game == SEGA_COBRA_COMMAND;
+    uint8_t v = 0xFF;
     if (in->coin1) v &= ~0x01;
     if (in->coin2) v &= ~0x02;
     if (in->start1) v &= ~0x10;
-    if (in->start2) v &= ~0x40;
+    if (in->start2) v &= cobra ? ~0x20 : ~0x40;
+    if (cobra && in->fire2) v &= ~0x40;
     return v;
 }
 
@@ -276,17 +305,79 @@ static uint8_t read_stick(const SegaInputs *in)
     return v;
 }
 
+// ---------------------------------------------------------------------------
+// The serial chip (for Sega's player)
+// ---------------------------------------------------------------------------
+//
+// An Intel 8251, as far as the games use it (from the Daphne emulator):
+// after a reset the first control byte is the mode, and the rest are
+// commands (bit 0 transmitter on, bit 2 receiver on, bit 6 reset). The
+// status has "ready to send" in bit 0 and "byte received" in bit 1. Every
+// 2 ms (USART_TICK) it looks at the line, and interrupts (the NMI, gated by
+// D801 bit 6) when a byte has come in, or else when it's ready to send.
+
+#define USART_TICK (SEGA_CPU_HZ / 500)
+
+static void usart_interrupt(SegaBoard *b)
+{
+    if (b->out[1] & 0x40) b->cpu.nmi = true;
+}
+
+static uint8_t usart_read(SegaBoard *b, uint16_t addr)
+{
+    if (addr & 1) return (uint8_t)((b->tx_ready ? 0x01 : 0) | (b->rx_ready ? 0x02 : 0));
+    b->rx_ready = false;
+    return vip9500sg_read(b->vip, b->cycles);
+}
+
+static void usart_write(SegaBoard *b, uint16_t addr, uint8_t v)
+{
+    if (!(addr & 1)) {
+        b->tx_ready = false;
+        vip9500sg_write(b->vip, b->cycles, v);
+        return;
+    }
+    if (b->usart_mode_next) {  // the mode (baud rate, bits): nothing to do
+        b->usart_mode_next = false;
+        return;
+    }
+    if (v & 0x40) {  // internal reset: the next byte is a mode again
+        b->usart_mode_next = true;
+        b->tx_enabled = b->rx_enabled = false;
+        return;
+    }
+    bool tx = v & 0x01;
+    if (tx && !b->tx_enabled) {
+        b->tx_ready = true;
+        usart_interrupt(b);
+    }
+    if (!tx) b->tx_ready = false;
+    b->tx_enabled = tx;
+    b->rx_enabled = v & 0x04;
+}
+
+static void usart_tick(SegaBoard *b)
+{
+    if (b->rx_enabled && !b->rx_ready && vip9500sg_has_reply(b->vip, b->cycles)) {
+        b->rx_ready = true;
+        usart_interrupt(b);
+    } else if (b->tx_enabled && !b->tx_ready) {
+        b->tx_ready = true;
+        usart_interrupt(b);
+    }
+}
+
 static uint8_t mem_read(void *ctx, uint16_t addr)
 {
     SegaBoard *b = ctx;
     if (addr < 0x8000) return b->rom[addr];
     if (addr < 0xC000) return b->banks[b->bank][addr - 0x8000];
     if (addr < 0xC800) return b->sprite_ram[addr - 0xC000];
-    if (addr < 0xD000) return b->ld_in;
+    if (addr < 0xD000) return b->serial ? usart_read(b, addr) : b->ld_in;
     switch (addr) {
     case 0xD000: return b->dsw1;
     case 0xD001: return b->dsw2;
-    case 0xD002: return read_buttons(&b->inputs);
+    case 0xD002: return read_buttons(b);
     case 0xD003: return read_stick(&b->inputs);
     default: break;
     }
@@ -304,7 +395,8 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
         b->sprite_ram[addr - 0xC000] = v;
         b->overlay_serial++;
     } else if (addr >= 0xC800 && addr < 0xD000) {
-        b->ld_out = v;
+        if (b->serial) usart_write(b, addr, v);
+        else b->ld_out = v;
     } else if (addr >= 0xD800 && addr < 0xD804) {
         if (addr == 0xD800) sound_write(b, v);
         if (addr == 0xD801 && ((v ^ b->out[1]) & 0x20)) b->overlay_serial++;
@@ -347,9 +439,13 @@ static uint64_t field_start(uint64_t n)
 // ldp/ldv1000.c).
 #define STROBE_CYCLES ((uint64_t)SEGA_CPU_HZ * 554 / 1000000)
 
-void sega_reset(SegaBoard *b, Ldv1000 *player)
+void sega_reset(SegaBoard *b, Ldv1000 *player, Vip9500sg *vip)
 {
     b->player = player;
+    b->vip = vip;
+    b->usart_mode_next = true;
+    b->tx_enabled = b->rx_enabled = b->tx_ready = b->rx_ready = false;
+    b->next_usart = USART_TICK;
     memset(&b->inputs, 0, sizeof b->inputs);
     memset(b->sprite_ram, 0, sizeof b->sprite_ram);
     memset(b->colour_ram, 0, sizeof b->colour_ram);
@@ -379,7 +475,11 @@ void sega_run(SegaBoard *b, uint64_t cycles)
             b->fields++;
             b->next_field = field_start(b->fields + 1);
         }
-        if (b->cycles >= b->next_strobe) {
+        if (b->serial && b->cycles >= b->next_usart) {
+            usart_tick(b);
+            b->next_usart += USART_TICK;
+        }
+        if (!b->serial && b->cycles >= b->next_strobe) {
             // The latches pass the player's status to the game and the game's
             // byte to the player, while the NMI is on. The status is latched
             // first (at the player's status strobe, which comes before its
@@ -432,9 +532,9 @@ static uint32_t char_colour(int v)
 }
 
 // Set pixel (x, y) of the 256 x 256 grid, if it's on screen.
-static void put(uint32_t *pixels, int x, int y, uint32_t c)
+static void put(const SegaBoard *b, uint32_t *pixels, int x, int y, uint32_t c)
 {
-    y -= SEGA_FIRST_LINE;
+    y -= b->first_line;
     if (x >= 0 && x < SEGA_OVERLAY_W && y >= 0 && y < SEGA_OVERLAY_H) pixels[y * SEGA_OVERLAY_W + x] = c;
 }
 
@@ -464,8 +564,8 @@ static void draw_sprite(const SegaBoard *b, const uint8_t *s, uint32_t *pixels)
             } else {
                 at++;
             }
-            if (p1) put(pixels, x, y, colour(b, p1));
-            if (p2) put(pixels, x + 1, y, colour(b, p2));
+            if (p1) put(b, pixels, x, y, colour(b, p1));
+            if (p2) put(b, pixels, x + 1, y, colour(b, p2));
             x += 2;
         }
     }
@@ -492,7 +592,7 @@ void sega_draw_overlay(const SegaBoard *b, uint32_t *pixels)
                     int bit = 7 - x;
                     int pen = ((p0 >> bit) & 1) | ((p1 >> bit) & 1) << 1;
                     int c = b->char_prom[pen | (tile & 0xF8) >> 1 | half];
-                    if (c) put(pixels, col * 8 + x, row * 8 + y, char_colour(c));
+                    if (c) put(b, pixels, col * 8 + x, row * 8 + y, char_colour(c));
                 }
             }
         }

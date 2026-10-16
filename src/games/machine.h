@@ -29,6 +29,7 @@
 #include "games/universal/board.h"
 #include "ldp/ldv1000.h"
 #include "ldp/pr8210.h"
+#include "ldp/vip9500sg.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -54,8 +55,9 @@ typedef struct {
     RdiBoard *rdi;        // when kind is MACHINE_RDI
 
     // The laserdisc player the board drives, which drives the player model.
-    Ldv1000 ldv1000;  // all but Stern's board
+    Ldv1000 ldv1000;  // most boards
     Pr8210 pr8210;    // Stern's board
+    Vip9500sg vip;    // the Sega board, in its versions for Sega's player
 } Machine;
 
 // The control panel: true means pressed. Games use what they have: Esh's

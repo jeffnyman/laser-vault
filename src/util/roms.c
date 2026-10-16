@@ -37,3 +37,51 @@ bool roms_has(const char *path, const char *name)
     free(data);
     return true;
 }
+
+// The folder a set is in, with its separator ("" for the current folder).
+static void folder_of(const char *path, char *out, size_t size)
+{
+    const char *slash = strrchr(path, '/'), *backslash = strrchr(path, '\\');
+    if (backslash > slash) slash = backslash;
+    snprintf(out, size, "%.*s", slash ? (int)(slash - path + 1) : 0, path);
+}
+
+#ifdef _WIN32
+#include <io.h>
+
+bool roms_find_nearby(const char *path, const char *name, char *out, size_t size)
+{
+    char folder[1024], pattern[1100];
+    folder_of(path, folder, sizeof folder);
+    snprintf(pattern, sizeof pattern, "%s*.zip", folder);
+    struct _finddata_t found;
+    intptr_t h = _findfirst(pattern, &found);
+    if (h == -1) return false;
+    bool ok = false;
+    do {
+        snprintf(out, size, "%s%s", folder, found.name);
+        if (strcmp(out, path) != 0 && roms_has(out, name)) ok = true;
+    } while (!ok && _findnext(h, &found) == 0);
+    _findclose(h);
+    return ok;
+}
+#else
+#include <dirent.h>
+
+bool roms_find_nearby(const char *path, const char *name, char *out, size_t size)
+{
+    char folder[1024];
+    folder_of(path, folder, sizeof folder);
+    DIR *d = opendir(folder[0] ? folder : ".");
+    if (!d) return false;
+    bool ok = false;
+    struct dirent *e;
+    while (!ok && (e = readdir(d)) != NULL) {
+        if (!ends_with_zip(e->d_name)) continue;
+        snprintf(out, size, "%s%s", folder, e->d_name);
+        if (strcmp(out, path) != 0 && roms_has(out, name)) ok = true;
+    }
+    closedir(d);
+    return ok;
+}
+#endif

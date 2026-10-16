@@ -210,6 +210,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
+- `src/ldp/vip9500sg.c`: Sega's laserdisc player (the VIP9500SG) and its serial commands.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/cpu/m6809.c`: the Motorola 6809 CPU emulator, with a disassembler.
 - `src/cpu/cop421.c`: the National Semiconductor COP421 microcontroller (Thayer's Quest's keyboard).
@@ -227,7 +228,8 @@ checksums both program ROMs, and which then plays. The COP421
   interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
 - `src/games/rdi/board.c`: RDI's board that runs Thayer's Quest (I/O ports, the COP421's
   connections and the keyboard's serial link, interrupts, subtitles from the game's text).
-- `src/games/sega/board.c`: Sega's board that runs Astron Belt and Galaxy Ranger (memory map, ROM banks,
+- `src/games/sega/board.c`: Sega's board that runs Astron Belt, Galaxy Ranger and Sega's Cobra Command
+  (memory map, ROM banks, the serial chip for Sega's player,
   the laserdisc latches, the sprites and characters drawn over the picture).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.

@@ -9,7 +9,8 @@ How to run the games, the keys, the options, and what each game needs.
   [DIP switches](#dip-switches), [Space Ace](#space-ace),
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
-  [Galaxy Ranger](#galaxy-ranger), [Thayer's Quest](#thayers-quest)
+  [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
+  [Thayer's Quest](#thayers-quest)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -84,7 +85,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `sblazerp.zip`, `tq.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `galaxy.zip`, `cobraab.zip`, `tq.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
@@ -463,19 +464,22 @@ game powers on for its service mode.
 ## Astron Belt
 
 Astron Belt (Sega, 1983; Bally Midway in America) runs on Sega's own board:
-a Z80 driving an LD-V1000, with sprites (your fighter, the enemy ships and
+a Z80 driving a laserdisc player, with sprites (your fighter, the enemy ships and
 their shots) and characters (the score, the timer, the messages) drawn over
 film of space battles. You need:
 
 - **The video:** the Daphne-style clip `abelt.m2v` with its soundtrack, and
   the framefile `astronbelt.txt`. Its first line is often a placeholder
   instead of a folder, so give the folder with `--video-dir`.
-- **The ROMs:** the version for Pioneer's LD-V1000. MAME keeps it as
-  `astronp.zip`, holding just the two program chips (`abp-ic03.bin`,
-  `abp-ic10.bin`), with the rest in `astron.zip` beside it; laser-vault
-  looks there too, as MAME does. A folder holding all the chips works as
-  well. `astron.zip` on its own is the version for Sega's own laserdisc
-  player, which laser-vault doesn't emulate yet.
+- **The ROMs:** either version. `astron.zip` (MAME's `astron`, program
+  chips `5473c` and `5474a`) is the version for Sega's own laserdisc player,
+  which the board drives over a serial line. `astronp.zip` (MAME's
+  `astronp`) is the version for Pioneer's LD-V1000, and holds just its two
+  program chips (`abp-ic03.bin`, `abp-ic10.bin`), with the rest in
+  `astron.zip` beside it; laser-vault looks there too, as MAME does, and
+  then in any other zip in the same folder. A folder holding all the chips
+  works as well. The two play the same; the version for Sega's player
+  hasn't been played as much.
 
 ```
 laser-vault path/to/astronbelt.txt --video-dir path/to/mpeg/astronbelt --roms path/to/astronp.zip
@@ -541,18 +545,19 @@ plays the same way (see [Astron Belt](#astron-belt)). You need:
 - **The video:** the Daphne-style clip `galaxy.m2v` with its soundtrack,
   and the framefile `galaxyranger.txt`. Its first line is often a
   placeholder instead of a folder, so give the folder with `--video-dir`.
-- **The ROMs:** a version for Pioneer's LD-V1000. Star Blazer's
-  (`epr-5590.bin` and `epr-5591.bin`, MAME's `sblazerp`) plays the Galaxy
-  Ranger disc; its screens say "Starblazer". Galaxy Ranger's own Pioneer
-  version (`epr-5613.bin` and `epr-5614.bin`, MAME's `galaxyrp`) should
-  work too, but hasn't been tested. The graphics chips are the same in all;
-  as with Astron Belt, laser-vault also looks for them in the parent set,
-  `galaxyr.zip`, beside a set that holds only its program chips. Galaxy
-  Ranger's `galaxy.zip` with `gr5633.bin` is the version for Sega's own
-  laserdisc player, which laser-vault doesn't emulate yet.
+- **The ROMs:** Galaxy Ranger's `galaxy.zip` (`gr5633.bin` and
+  `gr5634.bin`, MAME's `galaxyr`), the version for Sega's own laserdisc
+  player; or Star Blazer's (`epr-5590.bin` and `epr-5591.bin`, MAME's
+  `sblazerp`), for Pioneer's LD-V1000, which plays the same disc and whose
+  screens say "Starblazer". Galaxy Ranger's own Pioneer version
+  (`epr-5613.bin` and `epr-5614.bin`, MAME's `galaxyrp`) should work too,
+  but hasn't been tested. The graphics chips are the same in all; a set
+  missing some (some copies of `galaxy.zip` lack the colour PROM,
+  `5279`) takes them from the parent set, `galaxyr.zip`, or any other zip
+  in the same folder.
 
 ```
-laser-vault path/to/galaxyranger.txt --video-dir path/to/mpeg/galaxyranger --roms path/to/starblazer.zip
+laser-vault path/to/galaxyranger.txt --video-dir path/to/mpeg/galaxyranger --roms path/to/galaxy.zip
 ```
 
 Its sound effects are recordings too, as for Astron Belt: `gr_fire.wav`,
@@ -560,6 +565,31 @@ Its sound effects are recordings too, as for Astron Belt: `gr_fire.wav`,
 `gr_alarm4.wav`, in a `sounds` folder beside the ROMs' folder or the folder
 `--samples` names. Without them it plays with the soundtrack alone. Its DIP
 switches are taken to be Astron Belt's, which hasn't been checked.
+
+## Cobra Command
+
+Cobra Command (Data East, 1984) came in two versions: Data East's own, on
+its own board, and Sega's, on the board Astron Belt and Galaxy Ranger use,
+driving Sega's own laserdisc player. laser-vault runs Sega's. From the
+cockpit of an attack helicopter you fight through New York, the desert and
+the sea; the board draws the cockpit, the radar, the lives and fuel, and the
+gun sight over Data East's film. You need:
+
+- **The video:** the Daphne-style clip `cc.m2v` with its soundtrack, and
+  the framefile `cobracommand.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** Sega's version, as `cobraab.zip` (MAME's `cobraseg`:
+  `ic-1.bin`, `ic-2.bin`, and its own graphics and colour chips `ic-7`,
+  `ic-8`, `ic-11`, `ic-12`, `ic-13`).
+
+```
+laser-vault path/to/cobracommand.txt --video-dir path/to/mpeg/cobracommand --roms path/to/cobraab.zip
+```
+
+Press 5 to insert a coin, then 1 to start. The arrow keys move the gun
+sight, Space fires the guns and Shift the missiles. No recordings of its
+sound effects are known, so it plays with the disc's soundtrack alone. Its
+DIP switches are taken to be Astron Belt's, which hasn't been checked.
 
 ## Thayer's Quest
 

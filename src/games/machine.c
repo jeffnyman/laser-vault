@@ -54,8 +54,8 @@ bool machine_load_roms(Machine *m, const char *path)
                     "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip),\n"
                     "Cliff Hanger (cliff.zip), Badlands (badlands.zip), Astron Belt\n"
                     "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
-                    "sblazerp.zip) and Thayer's Quest (tq.zip). A folder of the ROM files\n"
-                    "works too.\n", path);
+                    "sblazerp.zip), Cobra Command (Sega's version, cobraab.zip) and Thayer's\n"
+                    "Quest (tq.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -78,7 +78,7 @@ void machine_free(Machine *m)
 
 int machine_load_samples(Machine *m, const char *dir, bool *wanted)
 {
-    *wanted = m->kind == MACHINE_SEGA;
+    *wanted = m->kind == MACHINE_SEGA && sega_sample_example(m->sega);
     return m->kind == MACHINE_SEGA ? sega_load_samples(m->sega, dir) : 0;
 }
 
@@ -140,9 +140,16 @@ bool machine_uses_pr8210(const Machine *m)
     return m->kind == MACHINE_STERN;
 }
 
+// Sega's player, for the Sega board's versions made for it.
+static bool uses_vip(const Machine *m)
+{
+    return m->kind == MACHINE_SEGA && m->sega->serial;
+}
+
 void machine_reset(Machine *m, Ldp *ldp)
 {
     if (machine_uses_pr8210(m)) pr8210_init(&m->pr8210, ldp, machine_cpu_hz(m));
+    else if (uses_vip(m)) vip9500sg_init(&m->vip, ldp, machine_cpu_hz(m));
     else ldv1000_init(&m->ldv1000, ldp, machine_cpu_hz(m));
     if (m->kind == MACHINE_UNIVERSAL) uni_reset(m->uni, &m->ldv1000);
     else if (m->kind == MACHINE_FUNAI) funai_reset(m->funai, &m->ldv1000);
@@ -151,7 +158,7 @@ void machine_reset(Machine *m, Ldp *ldp)
         m->ldv1000.konami_rom = true;
         konami_reset(m->konami, &m->ldv1000);
     }
-    else if (m->kind == MACHINE_SEGA) sega_reset(m->sega, &m->ldv1000);
+    else if (m->kind == MACHINE_SEGA) sega_reset(m->sega, &m->ldv1000, &m->vip);
     else if (m->kind == MACHINE_RDI) rdi_reset(m->rdi, &m->ldv1000);
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
@@ -159,12 +166,14 @@ void machine_reset(Machine *m, Ldp *ldp)
 void machine_update_player(Machine *m)
 {
     if (machine_uses_pr8210(m)) pr8210_update(&m->pr8210, machine_cycles(m));
+    else if (uses_vip(m)) vip9500sg_update(&m->vip, machine_cycles(m));
     else ldv1000_update(&m->ldv1000, machine_cycles(m));
 }
 
 bool machine_audio_on(const Machine *m, int channel)
 {
     if (machine_uses_pr8210(m)) return pr8210_audio_on(&m->pr8210, channel);
+    if (uses_vip(m)) return vip9500sg_audio_on(&m->vip, channel);
     if (m->kind == MACHINE_KONAMI && !konami_disc_audio_on(m->konami)) return false;
     return ldv1000_audio_on(&m->ldv1000, channel);
 }
@@ -195,7 +204,9 @@ void machine_set_controls(Machine *m, const Controls *c)
         memcpy(m->rdi->inputs.keys, c->keyboard, sizeof m->rdi->inputs.keys);
     } else if (m->kind == MACHINE_SEGA) {
         m->sega->inputs = (SegaInputs){
-            .up = c->up, .down = c->down, .left = c->left, .right = c->right, .fire = button,
+            .up = c->up, .down = c->down, .left = c->left, .right = c->right,
+            // Cobra Command has two buttons; the others take either as their one.
+            .fire = m->sega->game == SEGA_COBRA_COMMAND ? c->button : button, .fire2 = c->button2,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
     } else if (m->kind == MACHINE_KONAMI) {

@@ -35,6 +35,7 @@ add_library(lv_ldp STATIC
     src/ldp/ldp.c
     src/ldp/ldv1000.c
     src/ldp/pr8210.c
+    src/ldp/vip9500sg.c
 )
 target_include_directories(lv_ldp PUBLIC src)
 if(NOT WIN32)

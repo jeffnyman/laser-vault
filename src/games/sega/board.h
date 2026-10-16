@@ -1,15 +1,19 @@
 // board.h - Sega's laserdisc game board, which runs Astron Belt (Sega,
-// 1983) and Galaxy Ranger (Sega, 1984; Star Blazer in Japan).
+// 1983), Galaxy Ranger (Sega, 1984; Star Blazer in Japan), and Sega's
+// version of Data East's Cobra Command (1984).
 //
-// A Z80 driving a Pioneer LD-V1000, with sprites and characters drawn over
-// the picture:
+// A Z80 driving a laserdisc player (Pioneer's LD-V1000, or Sega's own over
+// a serial line, depending on the version), with sprites and characters
+// drawn over the picture:
 //
 //     Z80 at 5 MHz (20 MHz / 4)
 //     0000-7FFF  ROM (32 KB)
 //     8000-BFFF  ROM, one of two 16 KB banks (chosen by writing to port 0
 //                or 1: bit 0)
 //     C000-C1FF  sprites: 32 of 16 bytes
-//     C800       laserdisc: read the latched status, write the next command
+//     C800       LD-V1000: read the latched status, write the next command
+//     C800, C801 Sega's player: an Intel 8251 serial chip's data, and its
+//                status (read) and mode or command (write)
 //     D000, D001 DIP switches 1 and 2
 //     D002       coins, start buttons, test and service
 //     D003       joystick and fire
@@ -21,10 +25,11 @@
 //                F400-F7FF)
 //     F800-FFFF  RAM
 //
-// The IRQ, at vertical blank, runs the game. The NMI, once a field, is the
-// laserdisc link: the board latches the player's status and passes on the
-// command byte the game left, and the NMI lets the game read the one and
-// leave the next.
+// The IRQ, at vertical blank, runs the game. The NMI is the laserdisc link.
+// With the LD-V1000 it comes once a field: the board latches the player's
+// status and passes on the command byte the game left, and the NMI lets the
+// game read the one and leave the next. With Sega's player it comes from
+// the serial chip, when a byte has arrived or it's ready to send another.
 //
 // Sprites are drawn row by row from two graphics ROMs, which give each
 // pixel 4 bits apiece: the 8-bit result is a colour number. Characters are
@@ -46,6 +51,7 @@
 #include "audio/samples.h"
 #include "cpu/z80.h"
 #include "ldp/ldv1000.h"
+#include "ldp/vip9500sg.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -54,14 +60,14 @@
 #define SEGA_SAMPLE_RATE 44100
 
 // The part of the 256 x 256 pixel grid on screen: all of it across, and
-// from line 16 down (as the Daphne emulator places it).
+// 240 lines from line 16 (Cobra Command: line 8), as the Daphne emulator
+// places it.
 #define SEGA_OVERLAY_W 256
 #define SEGA_OVERLAY_H 240
-#define SEGA_FIRST_LINE 16
 
 // Inputs are active low on the real board; here, true means pressed.
 typedef struct {
-    bool up, down, left, right, fire;
+    bool up, down, left, right, fire, fire2;  // fire2: Cobra Command's second button
     bool start1, start2, coin1, coin2;
 } SegaInputs;
 
@@ -69,6 +75,7 @@ typedef enum {
     SEGA_ASTRON_BELT,
     SEGA_GALAXY_RANGER,
     SEGA_STAR_BLAZER,  // Galaxy Ranger's Japanese release
+    SEGA_COBRA_COMMAND,
 } SegaGame;
 
 typedef enum {
@@ -78,6 +85,7 @@ typedef enum {
 
 typedef struct {
     SegaGame game;
+    int first_line;               // the first line of the grid on screen
     Z80 cpu;
     uint8_t rom[0x8000];
     uint8_t banks[2][0x4000];
@@ -95,6 +103,14 @@ typedef struct {
     uint8_t dsw1, dsw2;
     Ldv1000 *player;
     uint8_t ld_in, ld_out;        // the latches between the game and the player
+
+    // Sega's player, and the serial chip that talks to it.
+    bool serial;                  // this version uses Sega's player
+    Vip9500sg *vip;
+    bool usart_mode_next;         // the next control byte is the mode
+    bool tx_enabled, rx_enabled;  // command bits 0 and 2
+    bool tx_ready, rx_ready;      // status bits 0 and 1
+    uint64_t next_usart;          // when the serial chip next looks at the line
     Samples sound;                // the sound board's recorded sounds
 
     uint64_t cycles;              // CPU clock cycles since power-on
@@ -126,8 +142,8 @@ const char *sega_sample_example(const SegaBoard *board);
 void sega_set(SegaBoard *board, SegaSetting setting, bool on);
 bool sega_get(const SegaBoard *board, SegaSetting setting);
 
-// Power on, connected to an LD-V1000.
-void sega_reset(SegaBoard *board, Ldv1000 *player);
+// Power on, connected to an LD-V1000 or (if the version uses it) Sega's player.
+void sega_reset(SegaBoard *board, Ldv1000 *player, Vip9500sg *vip);
 
 // Run the board for (at least) the given number of CPU cycles.
 void sega_run(SegaBoard *board, uint64_t cycles);

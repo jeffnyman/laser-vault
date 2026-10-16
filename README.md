@@ -26,8 +26,9 @@ real hardware works.
 | [Super Don Quix-ote](#super-don-quix-ote) | 1984 | Universal | Universal System 1 | LD-V1000 |
 | [Esh's Aurunmilla](#eshs-aurunmilla) | 1984 | Funai / Gakken | Funai | LD-V1000 |
 | [Badlands](#badlands) | 1984 | Konami / Centuri | Konami | LD-V1000 |
-| [Astron Belt](#astron-belt) | 1983 | Sega / Bally Midway | Sega | LD-V1000 |
-| [Galaxy Ranger](#galaxy-ranger) (Star Blazer) | 1984 | Sega / Bally Midway | Sega | LD-V1000 |
+| [Astron Belt](#astron-belt) | 1983 | Sega / Bally Midway | Sega | LD-V1000 or Sega's own |
+| [Galaxy Ranger](#galaxy-ranger) (Star Blazer) | 1984 | Sega / Bally Midway | Sega | LD-V1000 or Sega's own |
+| [Cobra Command](#cobra-command) | 1984 | Data East (Sega's version) | Sega | Sega's own |
 | [Thayer's Quest](#thayers-quest) | 1984 | RDI Video Systems | RDI | LD-V1000 |
 
 ### Dragon's Lair
@@ -127,13 +128,27 @@ board's effects if you have them.
 
 Astron Belt's sequel, on the same board: your fighter flies through tunnels,
 over alien deserts and cities, and into dogfights, to the enemy's battle
-cruiser. laser-vault runs it from the program of Star Blazer, its Japanese
-release, which plays the same disc.
+cruiser. laser-vault runs both the American version and Star Blazer, its
+Japanese release, which plays the same disc.
 
 <p align="center">
   <a href="assets/gr-attract.png"><img src="assets/gr-attract.png" width="32%" alt="Star Blazer's attract screen over the enemy battle cruiser"></a>
   <a href="assets/gr-2880-3140.gif"><img src="assets/gr-2880-3140.gif" width="32%" alt="Galaxy Ranger: enemy craft over the desert, an explosion, then a ground vehicle, frames 2880 to 3140"></a>
   <a href="assets/gr-play-1.png"><img src="assets/gr-play-1.png" width="32%" alt="Playing Star Blazer: the fighter over the alien desert, with the score and timer"></a>
+</p>
+
+### Cobra Command
+
+Data East's helicopter game, in the version Sega made for its own board:
+from the cockpit of an attack helicopter you fight through New York, the
+desert and the sea, with the board drawing the cockpit, the radar and the
+gun sight over Data East's film. It drives Sega's own laserdisc player, over
+a serial line.
+
+<p align="center">
+  <a href="assets/cc-title-700.png"><img src="assets/cc-title-700.png" width="32%" alt="Cobra Command title, frame 700"></a>
+  <a href="assets/cc-420-680.gif"><img src="assets/cc-420-680.gif" width="32%" alt="Cobra Command: the helicopter rises out of the sunset as the title appears, frames 420 to 680"></a>
+  <a href="assets/cc-play-1.png"><img src="assets/cc-play-1.png" width="32%" alt="Playing Cobra Command: an enemy helicopter in the gun sight, with the cockpit and radar"></a>
 </p>
 
 ### Thayer's Quest
@@ -155,9 +170,9 @@ subtitles.
 
 Ideas rather than promises:
 
-- **More games:** *Bega's Battle* and *Cobra Command* (Data East, 1983-84),
-  on a board with two 6502s and Sony's LDP-1000 player; the versions of
-  Astron Belt and Galaxy Ranger for Sega's own laserdisc player.
+- **More games:** *Bega's Battle*, and Data East's own version of *Cobra
+  Command* (Data East, 1983-84), on a board with two 6502s and Sony's
+  LDP-1000 player.
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been
   dumped.)
