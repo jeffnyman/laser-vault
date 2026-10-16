@@ -73,7 +73,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -82,10 +82,11 @@ add_executable(disc-gif
 )
 target_link_libraries(disc-gif PRIVATE lv_video lv_png)
 
-# The CPUs: Z80 and 6809.
+# The CPUs: Z80, 6809 and COP421.
 add_library(lv_cpu STATIC
     src/cpu/z80.c
     src/cpu/m6809.c
+    src/cpu/cop421.c
 )
 target_include_directories(lv_cpu PUBLIC src)
 
@@ -103,11 +104,12 @@ add_library(lv_roms STATIC
 target_include_directories(lv_roms PUBLIC src)
 target_link_libraries(lv_roms PUBLIC ZLIB::ZLIB)
 
-# The sound chips (AY-3-8910 and SN76496), and recorded sound effects.
+# The sound chips (AY-3-8910, SN76496, SSI-263), and recorded sound effects.
 add_library(lv_sound STATIC
     src/audio/ay8910.c
     src/audio/sn76496.c
     src/audio/samples.c
+    src/audio/ssi263.c
 )
 target_include_directories(lv_sound PUBLIC src)
 if(NOT WIN32)
@@ -153,13 +155,19 @@ add_library(lv_sega STATIC
 )
 target_link_libraries(lv_sega PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
+# RDI's laserdisc board, which runs Thayer's Quest.
+add_library(lv_rdi STATIC
+    src/games/rdi/board.c
+)
+target_link_libraries(lv_rdi PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

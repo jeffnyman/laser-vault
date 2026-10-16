@@ -9,7 +9,7 @@ How to run the games, the keys, the options, and what each game needs.
   [DIP switches](#dip-switches), [Space Ace](#space-ace),
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
-  [Galaxy Ranger](#galaxy-ranger)
+  [Galaxy Ranger](#galaxy-ranger), [Thayer's Quest](#thayers-quest)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -27,8 +27,8 @@ You need your own copy of the game:
   [Dragon's Lair ROM sets](#dragons-lair-rom-sets). For the other games, see
   [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
   [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
-  [Badlands](#badlands), [Astron Belt](#astron-belt) and
-  [Galaxy Ranger](#galaxy-ranger).
+  [Badlands](#badlands), [Astron Belt](#astron-belt),
+  [Galaxy Ranger](#galaxy-ranger) and [Thayer's Quest](#thayers-quest).
 
 Then:
 
@@ -48,10 +48,11 @@ flashing, and move or use the sword at the right moment.
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
-| P / Pause             | pause / resume                            |
+| P / Pause             | pause / resume (Thayer's Quest: Pause only, since P is a letter) |
 | A                     | autoplay on / off (see below)             |
 | S                     | show / hide the score displays (Dragon's Lair, Space Ace) |
-| D                     | turn combing repair off / on              |
+| D                     | turn combing repair off / on (not in Thayer's Quest) |
+| Tab                   | show / hide subtitles (Thayer's Quest)    |
 | F11 / Alt+Enter       | fullscreen on / off                       |
 | F12                   | save a screenshot (see [Screenshots](#screenshots)) |
 | Escape                | quit                                      |
@@ -83,7 +84,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `sblazerp.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `sblazerp.zip`, `tq.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
@@ -91,6 +92,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--free-play`         | no coins needed: press 1 to start                              |
 | `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
 | `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` folder beside the ROMs' folder) |
+| `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
@@ -558,6 +560,71 @@ Its sound effects are recordings too, as for Astron Belt: `gr_fire.wav`,
 `gr_alarm4.wav`, in a `sounds` folder beside the ROMs' folder or the folder
 `--samples` names. Without them it plays with the soundtrack alone. Its DIP
 switches are taken to be Astron Belt's, which hasn't been checked.
+
+## Thayer's Quest
+
+Thayer's Quest (RDI Video Systems, 1984), from Rick Dyer, who designed
+Dragon's Lair, runs on RDI's own board: a Z80 driving an LD-V1000, with a
+COP421 microcontroller reading the keyboard and an SSI-263 speech chip for
+the narrator. A row of LED digits on the cabinet shows the time and score;
+laser-vault shows them in the window's title. You need:
+
+- **The video:** the Daphne-style clip `tq.m2v` with its soundtrack, and
+  the framefile `thayersquest.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** `tq.zip`, MAME's set 1 (`tq_u33.bin`, `tq_u1.bin` and the
+  COP421's `tq_cop.bin`). Set 2 (`tqalt.zip`, with `thayers.u1`) should
+  work too but hasn't been tested; so should the fans' `tq_swear.zip`,
+  whose U33 lets the narrator say the words the original won't. A set
+  holding only its changed chip takes the rest from `tq.zip` beside it.
+
+```
+laser-vault path/to/thayersquest.txt --video-dir path/to/mpeg/thayersquest --roms path/to/tq.zip
+```
+
+Wait for the disc to spin up (the narrator says so), press 5 to insert a
+coin, then any key; type your name and press Enter, and answer the
+narrator's questions with Yes (F1) or No (F10). From then on the film
+shows your choices, each with a key to press. The game is played on a
+keyboard of named buttons, mapped onto the PC's:
+
+| PC key                     | Thayer's Quest key |
+|----------------------------|--------------------|
+| A to Z                     | the letters (some double as items: W Amulet, E Black Mace, S Dagger, and so on, as printed on the cabinet's keys) |
+| 1, 2, 3, 4                 | 1 (Clear), 2, 3 (Enter), 4 (Space) |
+| Backspace, Enter, Space    | Clear, Enter, Space |
+| F1 to F10                  | Yes, Items, Drop Item, Give Score, Replay, Combine Action, Save Game, Update, Hint, No |
+| 5, 6                       | coins |
+
+The console prints each key as it goes in.
+
+**The narrator.** The SSI-263 speaks phonemes, the sounds that make up
+words, which the game sends one at a time. How the chip turns them into
+sound isn't documented, so laser-vault has its own synthesizer: a buzz at
+the pitch the game asks for, and a hiss for sounds like S and SH, shaped
+into each phoneme by three resonators, gliding from sound to sound as the
+game's settings say. It isn't the chip's voice, and some words are hard to
+follow, so the narrator's words are also shown as subtitles (Tab hides
+them; `--no-subtitles` starts with them hidden). The cabinet had no
+subtitles. The game keeps each line in memory as text spelled the way it
+should sound ("PL/EEZ/"), and the subtitles turn that back into ordinary
+spelling from a list of the game's words; a word not on the list shows as
+the game spells it.
+
+Its DIP switches (from MAME's `thayers.cpp`; a switch on reads as a clear
+bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | `07` | time a coin buys: all set 110 s, then 95, 80, 70, 60, 45, 30; all clear free play (`--free-play`) |
+| DSW1 | `08` | set: 1 coin 1 credit; clear: 2 coins |
+| DSW1 | `10` | set: 3 lives; clear: 5 |
+| DSW1 | `20` | set: demo sounds (`--attract-sound` sets it) |
+| DSW1 | `40` | set: attract sound every time; clear: one time in eight |
+| DSW2 | `01` | clear: service mode |
+| DSW2 | `08` | set: LD-V1000 (leave it set) |
+
+laser-vault starts with DSW1 `FF` and DSW2 `0F`.
 
 ## Screenshots
 

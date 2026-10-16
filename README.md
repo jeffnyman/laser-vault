@@ -3,8 +3,9 @@
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
-The original game code runs on an emulated CPU (a Z80, or Badlands' 6809)
-and drives an emulated Pioneer laserdisc player, just as on the arcade board: the attract mode
+The original game code runs on emulated CPUs (a Z80, Badlands' 6809, and
+Thayer's Quest's COP421 microcontroller) and drives an emulated Pioneer
+laserdisc player, just as on the arcade board: the attract mode
 plays, coins and start work, and you can play the game, with the
 laserdisc's soundtrack, the board's own sounds, and whatever the board draws
 over the picture. The code is meant to be read: each part explains how the
@@ -27,6 +28,7 @@ real hardware works.
 | [Badlands](#badlands) | 1984 | Konami / Centuri | Konami | LD-V1000 |
 | [Astron Belt](#astron-belt) | 1983 | Sega / Bally Midway | Sega | LD-V1000 |
 | [Galaxy Ranger](#galaxy-ranger) (Star Blazer) | 1984 | Sega / Bally Midway | Sega | LD-V1000 |
+| [Thayer's Quest](#thayers-quest) | 1984 | RDI Video Systems | RDI | LD-V1000 |
 
 ### Dragon's Lair
 
@@ -134,13 +136,28 @@ release, which plays the same disc.
   <a href="assets/gr-play-1.png"><img src="assets/gr-play-1.png" width="32%" alt="Playing Star Blazer: the fighter over the alien desert, with the score and timer"></a>
 </p>
 
+### Thayer's Quest
+
+An adventure from the makers of Dragon's Lair: Thayer travels the five
+kingdoms of Quoid, gathering the items he needs, and you play it on a
+keyboard of named buttons, typing your name and choosing what to do. A
+speech chip narrates. Its voice here is laser-vault's own synthesizer,
+speaking the sounds the game sends, with the narrator's words also shown as
+subtitles.
+
+<p align="center">
+  <a href="assets/tq-title-50430.png"><img src="assets/tq-title-50430.png" width="32%" alt="Thayer's Quest title, frame 50430"></a>
+  <a href="assets/tq-50140-50400.gif"><img src="assets/tq-50140-50400.gif" width="32%" alt="Thayer's Quest: ogres seize a girl and warriors battle on the rocks, frames 50140 to 50400"></a>
+  <a href="assets/tq-play-1.png"><img src="assets/tq-play-1.png" width="32%" alt="Playing Thayer's Quest: the wizard, with the narrator's words as a subtitle"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
-- **More games:** *Thayer's Quest* (RDI, 1984), an adventure played on a
-  keyboard of named buttons, with a speech chip; the versions of Astron
-  Belt and Galaxy Ranger for Sega's own laserdisc player.
+- **More games:** *Bega's Battle* and *Cobra Command* (Data East, 1983-84),
+  on a board with two 6502s and Sony's LDP-1000 player; the versions of
+  Astron Belt and Galaxy Ranger for Sega's own laserdisc player.
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been
   dumped.)

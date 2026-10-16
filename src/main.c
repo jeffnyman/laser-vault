@@ -4,7 +4,7 @@
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
 //                                 [--unlimited-lives] [--free-play]
 //                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]
-//                                 [--samples DIR]]
+//                                 [--samples DIR] [--no-subtitles]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //
 // The window icons are built in (icons/); --icon uses a
@@ -29,7 +29,9 @@
 // Hanger also has --dsw3 and --dsw4); the options above then change their
 // own switches on top. --samples names the folder of recorded sound
 // effects for a board whose sounds aren't emulated (Astron Belt's; by
-// default, a "sounds" folder beside the ROMs' folder). --autoplay lets the
+// default, a "sounds" folder beside the ROMs' folder). Thayer's Quest's
+// narrator is shown as subtitles; --no-subtitles (or Tab) hides them.
+// --autoplay lets the
 // program play Dragon's Lair or Space Ace (see
 // games/cinematronics/autoplay.h); A switches it on and off during a game.
 //
@@ -101,6 +103,7 @@ typedef struct {
     bool show_scores;  // the score display panel beside the picture (Cinematronics)
     bool paused;       // game mode: everything frozen
     bool screenshot;   // save the next frame drawn
+    bool subtitles;    // show what a game's narrator says (Tab)
     bool autoplaying;  // game mode: the program plays the joystick and sword
     CineAutoplay autoplay;
     SDL_Thread *autoplay_thread;    // planning the next move, or NULL
@@ -140,7 +143,7 @@ static void usage(void)
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
                     "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
-                    "                   [--samples DIR]\n"
+                    "                   [--samples DIR] [--no-subtitles]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n");
 }
 
@@ -153,10 +156,11 @@ static void update_title(App *app)
         // The score display (if the board has one), then what the player is
         // doing.
         char scores[32] = "";
-        if (app->machine.kind == MACHINE_CINEMATRONICS) {
-            static const char glyphs[] = "0123456789AbCdE ";
+        static const char glyphs[] = "0123456789AbCdE ";
+        if (app->machine.kind == MACHINE_CINEMATRONICS || app->machine.kind == MACHINE_RDI) {
+            const uint8_t *d = app->machine.kind == MACHINE_RDI ? app->machine.rdi->digits : app->machine.cine->digits;
             char digits[17];
-            for (int i = 0; i < 16; i++) digits[i] = glyphs[app->machine.cine->digits[i]];
+            for (int i = 0; i < 16; i++) digits[i] = glyphs[d[i] & 15];
             digits[16] = '\0';
             snprintf(scores, sizeof scores, " - [%.8s] [%.8s]", digits, digits + 8);
         }
@@ -212,6 +216,40 @@ static void upload_picture(App *app, const AVFrame *pic)
 }
 
 // "PAUSED" across the middle of the picture, on a translucent band.
+// Subtitles: the narrator's words in a band at the foot of the picture,
+// wrapped to fit, in SDL's built-in font at twice its size.
+static void draw_subtitle(SDL_Renderer *r, const char *text)
+{
+    const float scale = 2;
+    const int per_line = VIDEO_W / 16 - 2, max_lines = 4;
+    char lines[4][64];
+    int count = 0;
+    const char *p = text;
+    while (*p && count < max_lines) {
+        int len = (int)strlen(p);
+        if (len > per_line) {
+            len = per_line;
+            while (len > 0 && p[len] != ' ') len--;  // break at a space
+            if (len == 0) len = per_line;
+        }
+        snprintf(lines[count++], sizeof lines[0], "%.*s", len, p);
+        p += len;
+        while (*p == ' ') p++;
+    }
+    float line_h = 8.0f * scale + 4, box_h = count * line_h + 12;
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 170);
+    SDL_RenderFillRect(r, &(SDL_FRect){0, VIDEO_H - box_h, VIDEO_W, box_h});
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
+    SDL_SetRenderScale(r, scale, scale);
+    SDL_SetRenderDrawColor(r, 255, 255, 160, 255);
+    for (int i = 0; i < count; i++) {
+        float w = (float)strlen(lines[i]) * 8 * scale;
+        SDL_RenderDebugText(r, (VIDEO_W - w) / 2 / scale, (VIDEO_H - box_h + 6 + i * line_h) / scale, lines[i]);
+    }
+    SDL_SetRenderScale(r, 1, 1);
+}
+
 static void draw_paused_banner(SDL_Renderer *r)
 {
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
@@ -320,6 +358,10 @@ static void draw(App *app)
     if (ldp_has_picture(ldp) && app->texture_frame >= 0)
         SDL_RenderTexture(app->renderer, app->texture, NULL, &(SDL_FRect){0, 0, VIDEO_W, VIDEO_H});
     if (app->has_overlay) draw_overlay(app);
+    if (app->game && app->subtitles) {
+        const char *text = machine_subtitle(&app->machine);
+        if (text) draw_subtitle(app->renderer, text);
+    }
     if (app->game && app->show_scores && app->machine.kind == MACHINE_CINEMATRONICS) {
         // Space Ace writes A for a blank digit, so only its digits are shown,
         // along with its skill-level lamps (whose signals the board takes
@@ -483,6 +525,44 @@ static void run_board(App *app, uint64_t cycles)
 
 // The control panel, read from the keyboard and any controllers every pass
 // of the main loop.
+// Thayer's Quest's keyboard, from the PC's: the letters as themselves; 1 to
+// 4 as its 1 to 4 keys, which are also Clear, Space and Enter (as are
+// Backspace, Space and Enter); F1 to F10 as its ten function keys, Yes to
+// No. 5 and 6 stay the coins; there are no start buttons or joystick.
+static void read_keyboard(const bool *key, Controls *in)
+{
+    static const struct {
+        int key;
+        SDL_Scancode codes[3];
+    } map[] = {
+        {RDI_KEY_YES, {SDL_SCANCODE_F1}}, {RDI_KEY_ITEMS, {SDL_SCANCODE_F2}}, {RDI_KEY_DROP, {SDL_SCANCODE_F3}},
+        {RDI_KEY_GIVE_SCORE, {SDL_SCANCODE_F4}}, {RDI_KEY_REPLAY, {SDL_SCANCODE_F5}},
+        {RDI_KEY_COMBINE, {SDL_SCANCODE_F6}}, {RDI_KEY_SAVE, {SDL_SCANCODE_F7}}, {RDI_KEY_UPDATE, {SDL_SCANCODE_F8}},
+        {RDI_KEY_HINT, {SDL_SCANCODE_F9}}, {RDI_KEY_NO, {SDL_SCANCODE_F10}},
+        {RDI_KEY_1, {SDL_SCANCODE_1, SDL_SCANCODE_KP_1, SDL_SCANCODE_BACKSPACE}},
+        {RDI_KEY_2, {SDL_SCANCODE_2, SDL_SCANCODE_KP_2}},
+        {RDI_KEY_3, {SDL_SCANCODE_3, SDL_SCANCODE_KP_3, SDL_SCANCODE_RETURN}},
+        {RDI_KEY_4, {SDL_SCANCODE_4, SDL_SCANCODE_KP_4, SDL_SCANCODE_SPACE}},
+        {RDI_KEY_Q, {SDL_SCANCODE_Q}}, {RDI_KEY_W, {SDL_SCANCODE_W}}, {RDI_KEY_E, {SDL_SCANCODE_E}},
+        {RDI_KEY_R, {SDL_SCANCODE_R}}, {RDI_KEY_T, {SDL_SCANCODE_T}}, {RDI_KEY_Y, {SDL_SCANCODE_Y}},
+        {RDI_KEY_U, {SDL_SCANCODE_U}}, {RDI_KEY_I, {SDL_SCANCODE_I}}, {RDI_KEY_O, {SDL_SCANCODE_O}},
+        {RDI_KEY_P, {SDL_SCANCODE_P}}, {RDI_KEY_A, {SDL_SCANCODE_A}}, {RDI_KEY_S, {SDL_SCANCODE_S}},
+        {RDI_KEY_D, {SDL_SCANCODE_D}}, {RDI_KEY_F, {SDL_SCANCODE_F}}, {RDI_KEY_G, {SDL_SCANCODE_G}},
+        {RDI_KEY_H, {SDL_SCANCODE_H}}, {RDI_KEY_J, {SDL_SCANCODE_J}}, {RDI_KEY_K, {SDL_SCANCODE_K}},
+        {RDI_KEY_L, {SDL_SCANCODE_L}}, {RDI_KEY_Z, {SDL_SCANCODE_Z}}, {RDI_KEY_X, {SDL_SCANCODE_X}},
+        {RDI_KEY_C, {SDL_SCANCODE_C}}, {RDI_KEY_V, {SDL_SCANCODE_V}}, {RDI_KEY_B, {SDL_SCANCODE_B}},
+        {RDI_KEY_N, {SDL_SCANCODE_N}}, {RDI_KEY_M, {SDL_SCANCODE_M}},
+    };
+    for (size_t i = 0; i < SDL_arraysize(map); i++) {
+        bool down = false;
+        for (int c = 0; c < 3; c++) down = down || (map[i].codes[c] && key[map[i].codes[c]]);
+        in->keyboard[map[i].key] = down;
+    }
+    in->up = in->down = in->left = in->right = in->button = in->button2 = false;
+    in->start1 = in->start2 = false;
+    for (int i = 0; i < 3; i++) in->skill[i] = false;
+}
+
 static void read_game_inputs(App *app)
 {
     // Number keys work on the top row or the numeric keypad.
@@ -502,6 +582,7 @@ static void read_game_inputs(App *app)
     in->skill[0] = key[SDL_SCANCODE_F1];
     in->skill[1] = key[SDL_SCANCODE_F2];
     in->skill[2] = key[SDL_SCANCODE_F3];
+    if (machine_has_keyboard(&app->machine)) read_keyboard(key, in);
     // (A pad just unplugged reads its stick as pushed all the way up until
     // the event saying it's gone arrives, so check it's still there.)
     for (int i = 0; i < (int)SDL_arraysize(app->gamepads); i++)
@@ -512,6 +593,15 @@ static void read_game_inputs(App *app)
     // Say so on the console when a button goes down or the stick moves, so
     // it's easy to tell whether the keyboard is reaching the game.
     double t = (double)machine_cycles(&app->machine) / machine_cpu_hz(&app->machine);
+    if (machine_has_keyboard(&app->machine)) {
+        static const char *const names[RDI_KEY_COUNT] = {
+            "YES", "Q", "1 (clear)", "2", "ITEMS", "W", "A", "Z", "DROP", "E", "S", "X", "GIVE SCORE", "R", "D", "C",
+            "REPLAY", "T", "F", "V", "COMBINE", "Y", "G", "B", "SAVE", "U", "H", "N", "UPDATE", "I", "J", "M",
+            "HINT", "O", "K", "4 (space)", "NO", "P", "L", "3 (enter)",
+        };
+        for (int i = 0; i < RDI_KEY_COUNT; i++)
+            if (in->keyboard[i] && !before.keyboard[i]) printf("%6.1f s  key %s\n", t, names[i]);
+    }
     if (in->coin1 && !before.coin1) printf("%6.1f s  coin inserted (slot 1)\n", t);
     if (in->coin2 && !before.coin2) printf("%6.1f s  coin inserted (slot 2)\n", t);
     if (in->start1 && !before.start1) printf("%6.1f s  start (1 player)\n", t);
@@ -587,12 +677,14 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
     }
     if (app->game) {  // the rest of the keyboard is the control panel
         if (key == SDLK_ESCAPE) return false;
-        if (key == SDLK_D) toggle_decomb(app);
+        bool typing = app->game && machine_has_keyboard(&app->machine);  // letters are the game's
+        if (key == SDLK_D && !typing) toggle_decomb(app);
+        if (key == SDLK_TAB) app->subtitles = !app->subtitles;
         if (key == SDLK_S && app->machine.kind == MACHINE_CINEMATRONICS) {
             app->show_scores = !app->show_scores;
             set_layout(app);
         }
-        if (key == SDLK_P || key == SDLK_PAUSE) {
+        if ((key == SDLK_P && !typing) || key == SDLK_PAUSE) {
             app->paused = !app->paused;
             // Cut the sound at once, including what's already queued. (The
             // soundtrack is silenced by the main loop and picks up from the
@@ -699,6 +791,7 @@ int main(int argc, char **argv)
     int dsw[4] = {-1, -1, -1, -1};  // DIP switch banks, -1 = the ROM set's defaults
     bool show_scores = false;
     bool fullscreen = false;
+    bool no_subtitles = false;
     const char *icon_path = NULL;
     int start_frame = -1;
     double disc_fps = 0;  // 0 = the game's own rate, or the default without ROMs
@@ -714,6 +807,8 @@ int main(int argc, char **argv)
             icon_path = argv[++i];
         } else if (strcmp(argv[i], "--scores") == 0) {
             show_scores = true;
+        } else if (strcmp(argv[i], "--no-subtitles") == 0) {
+            no_subtitles = true;
         } else if (strcmp(argv[i], "--fullscreen") == 0) {
             fullscreen = true;
         } else if (strcmp(argv[i], "--attract-sound") == 0) {
@@ -758,6 +853,7 @@ int main(int argc, char **argv)
     }
 
     App app = {0};
+    app.subtitles = !no_subtitles;
     app.texture_frame = -1;
     if (roms) {
         app.game = true;
@@ -857,7 +953,12 @@ int main(int argc, char **argv)
             printf("%s is starting. (Use --fast-boot to start straight in the attract\n"
                    "mode.)\n", machine_game_name(m));
         }
-        if (machine_get(m, MACHINE_FREE_PLAY))
+        if (machine_has_keyboard(m))
+            printf("With the game window active, press 5 to insert a coin (unless on free play),\n"
+                   "then any key. Type your name and press Enter; answer the narrator with F1\n"
+                   "(Yes) or F10 (No). The letters, 1-4, Space, Enter and F1-F10 are the game's\n"
+                   "keyboard (see PLAYING.md); Tab shows or hides the subtitles.\n");
+        else if (machine_get(m, MACHINE_FREE_PLAY))
             printf("With the game window active, press 1 to start (free play).\n");
         else if (dsw_given)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");

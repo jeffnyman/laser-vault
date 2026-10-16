@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 
 bool machine_load_roms(Machine *m, const char *path)
@@ -37,6 +38,11 @@ bool machine_load_roms(Machine *m, const char *path)
         m->sega = calloc(1, sizeof *m->sega);
         return sega_load_roms(m->sega, path);
     }
+    if (rdi_recognizes(path)) {
+        m->kind = MACHINE_RDI;
+        m->rdi = calloc(1, sizeof *m->rdi);
+        return rdi_load_roms(m->rdi, path);
+    }
     if (cine_recognizes(path)) {
         m->kind = MACHINE_CINEMATRONICS;
         m->cine = calloc(1, sizeof *m->cine);
@@ -47,8 +53,9 @@ bool machine_load_roms(Machine *m, const char *path)
                     "2.0 sets), Space Ace (ace.zip: rev A3, and the Space Ace Enhancement,\n"
                     "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip),\n"
                     "Cliff Hanger (cliff.zip), Badlands (badlands.zip), Astron Belt\n"
-                    "(astronp.zip) and Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
-                    "sblazerp.zip). A folder of the ROM files works too.\n", path);
+                    "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
+                    "sblazerp.zip) and Thayer's Quest (tq.zip). A folder of the ROM files\n"
+                    "works too.\n", path);
     return false;
 }
 
@@ -58,12 +65,14 @@ void machine_free(Machine *m)
     if (m->cine) ay8910_free(&m->cine->ay);
     if (m->konami) sn76496_free(&m->konami->sound);
     if (m->sega) samples_free(&m->sega->sound);
+    if (m->rdi) ssi263_free(&m->rdi->speech);
     free(m->cine);
     free(m->uni);
     free(m->funai);
     free(m->stern);
     free(m->konami);
     free(m->sega);
+    free(m->rdi);
     *m = (Machine){0};
 }
 
@@ -78,6 +87,16 @@ const char *machine_sample_example(const Machine *m)
     return m->kind == MACHINE_SEGA ? sega_sample_example(m->sega) : "";
 }
 
+bool machine_has_keyboard(const Machine *m)
+{
+    return m->kind == MACHINE_RDI;
+}
+
+const char *machine_subtitle(Machine *m)
+{
+    return m->kind == MACHINE_RDI ? rdi_subtitle(m->rdi) : NULL;
+}
+
 const char *machine_game_name(const Machine *m)
 {
     if (m->kind == MACHINE_UNIVERSAL) return uni_game_name(m->uni);
@@ -85,6 +104,7 @@ const char *machine_game_name(const Machine *m)
     if (m->kind == MACHINE_STERN) return stern_game_name(m->stern);
     if (m->kind == MACHINE_KONAMI) return konami_game_name(m->konami);
     if (m->kind == MACHINE_SEGA) return sega_game_name(m->sega);
+    if (m->kind == MACHINE_RDI) return rdi_game_name(m->rdi);
     return cine_game_name(m->cine->game);
 }
 
@@ -95,6 +115,7 @@ double machine_cpu_hz(const Machine *m)
     if (m->kind == MACHINE_STERN) return STERN_CPU_HZ;
     if (m->kind == MACHINE_KONAMI) return KONAMI_CPU_HZ;
     if (m->kind == MACHINE_SEGA) return SEGA_CPU_HZ;
+    if (m->kind == MACHINE_RDI) return RDI_CPU_HZ;
     return CINE_CPU_HZ;
 }
 
@@ -105,6 +126,7 @@ uint64_t machine_cycles(const Machine *m)
     if (m->kind == MACHINE_STERN) return m->stern->cycles;
     if (m->kind == MACHINE_KONAMI) return m->konami->cycles;
     if (m->kind == MACHINE_SEGA) return m->sega->cycles;
+    if (m->kind == MACHINE_RDI) return m->rdi->cycles;
     return m->cine->cycles;
 }
 
@@ -130,6 +152,7 @@ void machine_reset(Machine *m, Ldp *ldp)
         konami_reset(m->konami, &m->ldv1000);
     }
     else if (m->kind == MACHINE_SEGA) sega_reset(m->sega, &m->ldv1000);
+    else if (m->kind == MACHINE_RDI) rdi_reset(m->rdi, &m->ldv1000);
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
 
@@ -153,6 +176,7 @@ void machine_run(Machine *m, uint64_t cycles)
     else if (m->kind == MACHINE_STERN) stern_run(m->stern, cycles);
     else if (m->kind == MACHINE_KONAMI) konami_run(m->konami, cycles);
     else if (m->kind == MACHINE_SEGA) sega_run(m->sega, cycles);
+    else if (m->kind == MACHINE_RDI) rdi_run(m->rdi, cycles);
     else cine_run(m->cine, cycles);
 }
 
@@ -165,6 +189,10 @@ void machine_set_controls(Machine *m, const Controls *c)
             .hand = c->button, .feet = c->button2,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
+    } else if (m->kind == MACHINE_RDI) {
+        m->rdi->inputs.coin1 = c->coin1;
+        m->rdi->inputs.coin2 = c->coin2;
+        memcpy(m->rdi->inputs.keys, c->keyboard, sizeof m->rdi->inputs.keys);
     } else if (m->kind == MACHINE_SEGA) {
         m->sega->inputs = (SegaInputs){
             .up = c->up, .down = c->down, .left = c->left, .right = c->right, .fire = button,
@@ -200,6 +228,7 @@ uint8_t *machine_dsw(Machine *m, int bank)
     if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI) return NULL;
     if (m->kind == MACHINE_KONAMI) return bank == 1 ? &m->konami->dsw1 : &m->konami->dsw2;
     if (m->kind == MACHINE_SEGA) return bank == 1 ? &m->sega->dsw1 : &m->sega->dsw2;
+    if (m->kind == MACHINE_RDI) return bank == 1 ? &m->rdi->dswa : &m->rdi->dswb;
     if (m->kind == MACHINE_UNIVERSAL) return bank == 1 ? &m->uni->dsw1 : &m->uni->dsw2;
     return bank == 1 ? &m->cine->dsw1 : &m->cine->dsw2;
 }
@@ -227,6 +256,8 @@ void machine_set(Machine *m, MachineSetting setting, bool on)
     else if (m->kind == MACHINE_STERN) stern_set(m->stern, stern_settings[setting], on);
     else if (m->kind == MACHINE_KONAMI && setting != MACHINE_UNLIMITED_LIVES)
         konami_set(m->konami, setting == MACHINE_FREE_PLAY ? KONAMI_FREE_PLAY : KONAMI_QUIET_ATTRACT, on);
+    else if (m->kind == MACHINE_RDI && setting != MACHINE_UNLIMITED_LIVES)
+        rdi_set(m->rdi, setting == MACHINE_FREE_PLAY ? RDI_FREE_PLAY : RDI_QUIET_ATTRACT, on);
     else if (m->kind == MACHINE_SEGA && setting != MACHINE_UNLIMITED_LIVES)
         sega_set(m->sega, setting == MACHINE_FREE_PLAY ? SEGA_FREE_PLAY : SEGA_QUIET_ATTRACT, on);
     else if (m->kind == MACHINE_CINEMATRONICS) cine_set(m->cine, cine_settings[setting], on);
@@ -237,6 +268,10 @@ bool machine_get(const Machine *m, MachineSetting setting)
     if (m->kind == MACHINE_UNIVERSAL) return uni_get(m->uni, uni_settings[setting]);
     if (m->kind == MACHINE_FUNAI) return false;
     if (m->kind == MACHINE_STERN) return stern_get(m->stern, stern_settings[setting]);
+    if (m->kind == MACHINE_RDI) {
+        if (setting == MACHINE_UNLIMITED_LIVES) return false;
+        return rdi_get(m->rdi, setting == MACHINE_FREE_PLAY ? RDI_FREE_PLAY : RDI_QUIET_ATTRACT);
+    }
     if (m->kind == MACHINE_SEGA) {
         if (setting == MACHINE_UNLIMITED_LIVES) return false;
         return sega_get(m->sega, setting == MACHINE_FREE_PLAY ? SEGA_FREE_PLAY : SEGA_QUIET_ATTRACT);
@@ -255,6 +290,7 @@ int machine_sample_rate(const Machine *m)
     if (m->kind == MACHINE_STERN) return STERN_SAMPLE_RATE;
     if (m->kind == MACHINE_KONAMI) return KONAMI_SAMPLE_RATE;
     if (m->kind == MACHINE_SEGA) return SEGA_SAMPLE_RATE;
+    if (m->kind == MACHINE_RDI) return RDI_SAMPLE_RATE;
     return CINE_SAMPLE_RATE;
 }
 
@@ -265,6 +301,7 @@ void machine_start_sound(Machine *m)
     else if (m->kind == MACHINE_STERN) stern_start_sound(m->stern);
     else if (m->kind == MACHINE_KONAMI) sn76496_set_rendering(&m->konami->sound, true, m->konami->cycles);
     else if (m->kind == MACHINE_SEGA) samples_start(&m->sega->sound, m->sega->cycles);
+    else if (m->kind == MACHINE_RDI) ssi263_start(&m->rdi->speech, m->rdi->cycles);
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -276,6 +313,10 @@ int machine_take_samples(Machine *m, const float **samples)
     }
     if (m->kind == MACHINE_FUNAI) return funai_take_samples(m->funai, samples);
     if (m->kind == MACHINE_STERN) return stern_take_samples(m->stern, samples);
+    if (m->kind == MACHINE_RDI) {
+        ssi263_run(&m->rdi->speech, m->rdi->cycles);
+        return ssi263_take_samples(&m->rdi->speech, samples);
+    }
     if (m->kind == MACHINE_SEGA) {
         samples_run(&m->sega->sound, m->sega->cycles);
         return samples_take(&m->sega->sound, samples);

@@ -200,7 +200,8 @@ and takes a minute or two.
 
 The 6809 emulator (`src/cpu/m6809.c`) has no exerciser of its own yet. So
 far it's checked by Badlands itself, whose start-up code tests its RAM and
-checksums both program ROMs, and which then plays.
+checksums both program ROMs, and which then plays. The COP421
+(`src/cpu/cop421.c`) likewise: Thayer's Quest's keyboard works through it.
 
 ## Source map
 
@@ -211,6 +212,7 @@ checksums both program ROMs, and which then plays.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/cpu/m6809.c`: the Motorola 6809 CPU emulator, with a disassembler.
+- `src/cpu/cop421.c`: the National Semiconductor COP421 microcontroller (Thayer's Quest's keyboard).
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
@@ -223,6 +225,8 @@ checksums both program ROMs, and which then plays.
   the laserdisc interrupt, the tiles drawn over the picture, the beeper).
 - `src/games/konami/board.c`: Konami's board that runs Badlands (memory map, the three
   interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
+- `src/games/rdi/board.c`: RDI's board that runs Thayer's Quest (I/O ports, the COP421's
+  connections and the keyboard's serial link, interrupts, subtitles from the game's text).
 - `src/games/sega/board.c`: Sega's board that runs Astron Belt and Galaxy Ranger (memory map, ROM banks,
   the laserdisc latches, the sprites and characters drawn over the picture).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
@@ -235,6 +239,7 @@ checksums both program ROMs, and which then plays.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
 - `src/audio/samples.c`: recorded sound effects (WAV files), for the Sega board's sound board.
+- `src/audio/ssi263.c`: the SSI-263 speech chip: its registers and timing, and a formant synthesizer for its voice.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).

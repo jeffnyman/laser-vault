@@ -12,6 +12,7 @@
 //     Stern (games/stern)                  Cliff Hanger                PR-8210
 //     Konami (games/konami)                Badlands                    LD-V1000
 //     Sega (games/sega)                    Astron Belt, Galaxy Ranger  LD-V1000
+//     RDI (games/rdi)                      Thayer's Quest              LD-V1000
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -22,6 +23,7 @@
 #include "games/cinematronics/board.h"
 #include "games/funai/board.h"
 #include "games/konami/board.h"
+#include "games/rdi/board.h"
 #include "games/sega/board.h"
 #include "games/stern/board.h"
 #include "games/universal/board.h"
@@ -38,6 +40,7 @@ typedef enum {
     MACHINE_STERN,
     MACHINE_KONAMI,
     MACHINE_SEGA,
+    MACHINE_RDI,
 } MachineKind;
 
 typedef struct {
@@ -48,6 +51,7 @@ typedef struct {
     SternBoard *stern;  // when kind is MACHINE_STERN
     KonamiBoard *konami;  // when kind is MACHINE_KONAMI
     SegaBoard *sega;      // when kind is MACHINE_SEGA
+    RdiBoard *rdi;        // when kind is MACHINE_RDI
 
     // The laserdisc player the board drives, which drives the player model.
     Ldv1000 ldv1000;  // all but Stern's board
@@ -61,6 +65,7 @@ typedef struct {
     bool up, down, left, right, button, button2;
     bool start1, start2, coin1, coin2;
     bool skill[3];  // Space Ace: Cadet, Captain, Ace
+    bool keyboard[RDI_KEY_COUNT];  // Thayer's Quest's keyboard (see games/rdi/board.h)
 } Controls;
 
 // DIP switch settings the main program offers as options. Each board knows
@@ -85,6 +90,14 @@ int machine_load_samples(Machine *m, const char *dir, bool *wanted);
 const char *machine_sample_example(const Machine *m);
 
 const char *machine_game_name(const Machine *m);
+
+// Does the game have a keyboard (Thayer's Quest), so typing letters plays
+// it rather than reaching the program's own keys?
+bool machine_has_keyboard(const Machine *m);
+
+// What the game's narrator is saying, as text to show (Thayer's Quest), or
+// NULL.
+const char *machine_subtitle(Machine *m);
 double machine_cpu_hz(const Machine *m);
 uint64_t machine_cycles(const Machine *m);
 
