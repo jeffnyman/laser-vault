@@ -10,61 +10,103 @@
 // ROMs
 // ---------------------------------------------------------------------------
 //
-// Astron Belt came in two versions: one for Pioneer's LD-V1000 (MAME's
-// astronp) and one for Sega's own player, driven over a serial link
-// (astron). Only the first is supported. MAME keeps the Pioneer set as
-// just its two program chips, astronp.zip, beside the rest in the Sega
-// set's astron.zip. (Names and checksums from MAME's segald.cpp.)
+// The board ran three games, each in two versions: one for Pioneer's
+// LD-V1000, and one for Sega's own player, driven over a serial link. Only
+// the Pioneer versions are supported. The games share the character
+// graphics and colour PROM, and Galaxy Ranger and Star Blazer (its Japanese
+// release) share everything but the program. MAME keeps a Pioneer set as
+// just its program chips (astronp.zip, galaxyrp.zip, sblazerp.zip), with
+// the rest in its parent's zip beside it, which is where laser-vault looks
+// for any chip the set doesn't have. (Names and checksums from MAME's
+// segald.cpp; the second and third names are ones other sets use.)
 
 typedef struct {
-    const char *names[2];  // MAME's name, and the one some sets use
+    const char *names[3];
     size_t size;
     uint32_t crc;
 } RomChip;
 
-static const RomChip program_chips[2] = {
-    {{"abp-ic03.bin", "5282"}, 0x4000, 0xFD0DCFC9},  // 0000-3FFF
-    {{"abp-ic10.bin", "5283"}, 0x4000, 0xA3746393},  // 4000-7FFF
+typedef struct {
+    SegaGame game;
+    const char *title;
+    bool tested;            // known to work with laser-vault
+    const char *parent;     // the parent set's zip
+    RomChip program[2];     // 0000-3FFF, 4000-7FFF
+    RomChip banks[2];       // the two banks at 8000-BFFF
+    RomChip sprites[4];     // at 0000, 4000, 8000 and C000 of the sprite graphics
+} RomSet;
+
+#define NO_CHIP {{NULL, NULL, NULL}, 0, 0}
+#define GR_BANKS {{{"gr5592.bin", "epr-5592.bin", NULL}, 0x4000, 0xD13715F8}, \
+                  {{"gr5593.bin", "epr-5593.bin", NULL}, 0x4000, 0xB0A557AA}}
+#define GR_SPRITES {{{"gr5594.bin", "epr-5594.bin", NULL}, 0x4000, 0x4403EF5A}, \
+                    {{"gr5611.bin", "epr-5611.bin", NULL}, 0x4000, 0xB16BDFE4}, \
+                    {{"gr5595.bin", "epr-5595.bin", NULL}, 0x4000, 0xCCBAEC4F}, \
+                    {{"gr5612.bin", "epr-5612.bin", NULL}, 0x4000, 0xE312D080}}
+
+static const RomSet rom_sets[] = {
+    {SEGA_ASTRON_BELT, "Astron Belt (Pioneer LD-V1000 version)", true, "astron.zip",
+     {{{"abp-ic03.bin", "5282", NULL}, 0x4000, 0xFD0DCFC9}, {{"abp-ic10.bin", "5283", NULL}, 0x4000, 0xA3746393}},
+     {{{"5284", NULL, NULL}, 0x4000, 0xEEC6DB27}, {{"5285", NULL, NULL}, 0x4000, 0x820E154E}},
+     {{{"5286", NULL, NULL}, 0x4000, 0x8EB1C28E}, NO_CHIP, {{"5338", NULL, NULL}, 0x4000, 0x94CA5F9A}, NO_CHIP}},
+    {SEGA_STAR_BLAZER, "Star Blazer (Pioneer LD-V1000 version)", false, "galaxyr.zip",
+     {{{"epr-5590.bin", NULL, NULL}, 0x4000, 0xC06E41BB}, {{"epr-5591.bin", NULL, NULL}, 0x4000, 0xB179D18C}},
+     GR_BANKS, GR_SPRITES},
+    {SEGA_GALAXY_RANGER, "Galaxy Ranger (Pioneer LD-V1000 version)", false, "galaxyr.zip",
+     {{{"epr-5613.bin", NULL, NULL}, 0x4000, 0x6617E702}, {{"epr-5614.bin", NULL, NULL}, 0x4000, 0x73AD8932}},
+     GR_BANKS, GR_SPRITES},
 };
-static const RomChip bank_chips[2] = {
-    {{"5284", NULL}, 0x4000, 0xEEC6DB27},
-    {{"5285", NULL}, 0x4000, 0x820E154E},
-};
+
 static const RomChip char_chips[2] = {
-    {{"5280", NULL}, 0x800, 0x583AF1FF},
-    {{"5281", NULL}, 0x800, 0x7B5C820C},
+    {{"5280", "epr5280.bin", "gr5280.bin"}, 0x800, 0x583AF1FF},
+    {{"5281", "epr5281.bin", "gr5281.bin"}, 0x800, 0x7B5C820C},
 };
-static const RomChip sprite_chips[2] = {
-    {{"5286", NULL}, 0x4000, 0x8EB1C28E},
-    {{"5338", NULL}, 0x4000, 0x94CA5F9A},
+static const RomChip char_prom = {{"5279", "pr-5279.bin", NULL}, 0x200, 0x8716AEB5};
+
+// The versions for Sega's player, recognized only to say they aren't
+// supported yet.
+static const struct {
+    RomChip program;
+    const char *game, *pioneer_set;
+} sega_player_sets[] = {
+    {{{"5473c", NULL, NULL}, 0x4000, 0x0F24BAAA}, "Astron Belt", "astronp.zip, with astron.zip beside it"},
+    {{{"gr5633.bin", NULL, NULL}, 0x4000, 0x398F6B23}, "Galaxy Ranger",
+     "galaxyrp.zip, or Star Blazer's sblazerp.zip, with galaxyr.zip beside it"},
 };
-static const RomChip char_prom = {{"5279", NULL}, 0x200, 0x8716AEB5};
 
-// The Sega player's version, recognized only to say it isn't supported.
-static const RomChip sega_player_program = {{"5473c", NULL}, 0x4000, 0x0F24BAAA};
-
-#define PARENT_ZIP "astron.zip"
+#define COUNT(a) (sizeof (a) / sizeof (a)[0])
 
 // The chip's name in the set at path, or NULL if it isn't there.
 static const char *chip_name(const char *path, const RomChip *chip)
 {
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         if (chip->names[i] && roms_has(path, chip->names[i])) return chip->names[i];
+    return NULL;
+}
+
+// The supported set at path, or NULL.
+static const RomSet *find_set(const char *path)
+{
+    for (size_t i = 0; i < COUNT(rom_sets); i++)
+        if (chip_name(path, &rom_sets[i].program[0])) return &rom_sets[i];
     return NULL;
 }
 
 bool sega_recognizes(const char *path)
 {
-    return chip_name(path, &program_chips[0]) || chip_name(path, &sega_player_program);
+    if (find_set(path)) return true;
+    for (size_t i = 0; i < COUNT(sega_player_sets); i++)
+        if (chip_name(path, &sega_player_sets[i].program)) return true;
+    return false;
 }
 
-// The parent set's path: astron.zip in the same folder as path.
-static void parent_path(const char *path, char *out, size_t size)
+// The parent set's path: its zip in the same folder as path.
+static void parent_path(const char *path, const char *parent, char *out, size_t size)
 {
     const char *slash = strrchr(path, '/'), *backslash = strrchr(path, '\\');
     if (backslash > slash) slash = backslash;
     int dir = slash ? (int)(slash - path + 1) : 0;
-    snprintf(out, size, "%.*s%s", dir, path, PARENT_ZIP);
+    snprintf(out, size, "%.*s%s", dir, path, parent);
 }
 
 // Read and check one chip, from the set or else its parent. A checksum
@@ -79,8 +121,7 @@ static bool load_chip(const char *path, const char *parent, const RomChip *chip,
     uint8_t *data = NULL;
     size_t size = 0;
     if (!name || !roms_read(from, name, &data, &size)) {
-        fprintf(stderr, "ROMs: %s looks like Astron Belt, but %s is missing (looked in it and in\n"
-                        "%s)\n", path, chip->names[0], parent);
+        fprintf(stderr, "ROMs: %s is missing (looked in %s and in %s)\n", chip->names[0], path, parent);
         return false;
     }
     if (size != chip->size) {
@@ -99,70 +140,93 @@ static bool load_chip(const char *path, const char *parent, const RomChip *chip,
 
 bool sega_load_roms(SegaBoard *b, const char *path)
 {
-    if (!chip_name(path, &program_chips[0])) {
-        fprintf(stderr, "ROMs: %s is Astron Belt for Sega's own laserdisc player, which\n"
-                        "laser-vault doesn't emulate yet. Use the version for Pioneer's\n"
-                        "LD-V1000 (astronp.zip, with astron.zip beside it).\n", path);
+    const RomSet *set = find_set(path);
+    if (!set) {
+        for (size_t i = 0; i < COUNT(sega_player_sets); i++) {
+            if (!chip_name(path, &sega_player_sets[i].program)) continue;
+            fprintf(stderr, "ROMs: %s is %s for Sega's own laserdisc player, which\n"
+                            "laser-vault doesn't emulate yet. Use the version for Pioneer's\n"
+                            "LD-V1000 (%s).\n", path, sega_player_sets[i].game, sega_player_sets[i].pioneer_set);
+        }
         return false;
     }
     char parent[1024];
-    parent_path(path, parent, sizeof parent);
+    parent_path(path, set->parent, parent, sizeof parent);
+    memset(b->sprites, 0xFF, sizeof b->sprites);  // empty sockets read as FF
     for (int i = 0; i < 2; i++) {
-        if (!load_chip(path, parent, &program_chips[i], b->rom + i * 0x4000) ||
-            !load_chip(path, parent, &bank_chips[i], b->banks[i]) ||
-            !load_chip(path, parent, &char_chips[i], b->chars + i * 0x800) ||
-            !load_chip(path, parent, &sprite_chips[i], b->sprites + i * 0x8000))
+        if (!load_chip(path, parent, &set->program[i], b->rom + i * 0x4000) ||
+            !load_chip(path, parent, &set->banks[i], b->banks[i]) ||
+            !load_chip(path, parent, &char_chips[i], b->chars + i * 0x800))
             return false;
     }
+    for (int i = 0; i < 4; i++)
+        if (set->sprites[i].size && !load_chip(path, parent, &set->sprites[i], b->sprites + i * 0x4000)) return false;
     if (!load_chip(path, parent, &char_prom, b->char_prom)) return false;
+    b->game = set->game;
     samples_init(&b->sound, SEGA_CPU_HZ, SEGA_SAMPLE_RATE);
     b->dsw1 = 0xFF;  // 1 coin, 1 credit in both slots
     b->dsw2 = 0xFF;  // demo sounds, 60 s play timer, normal, ships at 5000/10000/20000, continues
-    printf("ROMs: Astron Belt (Pioneer LD-V1000 version)\n");
+    printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
     return true;
 }
 
 const char *sega_game_name(const SegaBoard *b)
 {
-    (void)b;
-    return "Astron Belt";
+    switch (b->game) {
+    case SEGA_STAR_BLAZER: return "Star Blazer";
+    case SEGA_GALAXY_RANGER: return "Galaxy Ranger";
+    default: return "Astron Belt";
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Sound
 // ---------------------------------------------------------------------------
 //
-// The sounds, by the low four bits of what the game writes to D800. 0 is the
-// ship's sound only with bit 5 clear; with it set, it means "nothing".
-// (From the Daphne emulator, whose recordings these are.)
+// The sounds, by the low four bits of what the game writes to D800 (from
+// the Daphne emulator, whose recordings these are). In Astron Belt, 0 is
+// the ship's sound only with bit 5 clear; with it set, it means "nothing".
 
-enum { SOUND_SHIP, SOUND_FIRE, SOUND_ENEMY, SOUND_ALARM1, SOUND_ALARM2, SOUND_ALARM3, SOUND_ALARM4, SOUND_COUNT };
+typedef struct {
+    const char *files[16];  // by the low four bits; NULL: no sound
+    const char *example;    // one of them, to name in messages
+} SoundTable;
 
-static const char *const sound_files[SOUND_COUNT] = {
-    "ab_ship.wav", "ab_fire.wav", "ab_enemy.wav", "ab_alarm1.wav", "ab_alarm2.wav", "ab_alarm3.wav", "ab_alarm4.wav",
+static const SoundTable astron_sounds = {
+    {[0x0] = "ab_ship.wav", [0xA] = "ab_enemy.wav", [0xB] = "ab_fire.wav", [0xC] = "ab_alarm4.wav",
+     [0xD] = "ab_alarm3.wav", [0xE] = "ab_alarm2.wav", [0xF] = "ab_alarm1.wav"},
+    "ab_fire.wav",
 };
+static const SoundTable galaxy_sounds = {
+    {[0x8] = "gr_mineon.wav", [0x9] = "gr_cannon.wav", [0xA] = "gr_attack.wav", [0xB] = "gr_fire.wav",
+     [0xC] = "gr_alarm4.wav", [0xD] = "gr_alarm3.wav", [0xE] = "gr_alarm2.wav", [0xF] = "gr_alarm1.wav"},
+    "gr_fire.wav",
+};
+
+static const SoundTable *sound_table(const SegaBoard *b)
+{
+    return b->game == SEGA_ASTRON_BELT ? &astron_sounds : &galaxy_sounds;
+}
 
 int sega_load_samples(SegaBoard *b, const char *dir)
 {
+    const SoundTable *t = sound_table(b);
     int found = 0;
-    for (int i = 0; i < SOUND_COUNT; i++) found += samples_load(&b->sound, i, dir, sound_files[i]);
+    for (int i = 0; i < 16; i++)
+        if (t->files[i]) found += samples_load(&b->sound, i, dir, t->files[i]);
     return found;
+}
+
+const char *sega_sample_example(const SegaBoard *b)
+{
+    return sound_table(b)->example;
 }
 
 static void sound_write(SegaBoard *b, uint8_t v)
 {
-    int sound;
-    switch (v & 0x0F) {
-    case 0x0: sound = (v & 0x20) ? -1 : SOUND_SHIP; break;
-    case 0xA: sound = SOUND_ENEMY; break;
-    case 0xB: sound = SOUND_FIRE; break;
-    case 0xC: sound = SOUND_ALARM4; break;
-    case 0xD: sound = SOUND_ALARM3; break;
-    case 0xE: sound = SOUND_ALARM2; break;
-    case 0xF: sound = SOUND_ALARM1; break;
-    default: sound = -1; break;
-    }
-    if (sound >= 0) samples_trigger(&b->sound, b->cycles, sound);
+    int sound = v & 0x0F;
+    if (sound == 0 && (b->game != SEGA_ASTRON_BELT || (v & 0x20))) return;
+    if (sound_table(b)->files[sound]) samples_trigger(&b->sound, b->cycles, sound);
 }
 
 // Free play is one of the coinage settings; laser-vault takes "1 coin, 1

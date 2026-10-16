@@ -11,7 +11,7 @@
 //     Funai (games/funai)                  Esh's Aurunmilla            LD-V1000
 //     Stern (games/stern)                  Cliff Hanger                PR-8210
 //     Konami (games/konami)                Badlands                    LD-V1000
-//     Sega (games/sega)                    Astron Belt                 LD-V1000
+//     Sega (games/sega)                    Astron Belt, Galaxy Ranger  LD-V1000
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -80,6 +80,9 @@ void machine_free(Machine *m);
 // Belt's sound board) from dir. Sets *wanted if the board uses any; returns
 // how many were found.
 int machine_load_samples(Machine *m, const char *dir, bool *wanted);
+
+// The name of one of those recordings, for messages ("ab_fire.wav").
+const char *machine_sample_example(const Machine *m);
 
 const char *machine_game_name(const Machine *m);
 double machine_cpu_hz(const Machine *m);

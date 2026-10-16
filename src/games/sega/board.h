@@ -1,5 +1,5 @@
 // board.h - Sega's laserdisc game board, which runs Astron Belt (Sega,
-// 1983).
+// 1983) and Galaxy Ranger (Sega, 1984; Star Blazer in Japan).
 //
 // A Z80 driving a Pioneer LD-V1000, with sprites and characters drawn over
 // the picture:
@@ -66,11 +66,18 @@ typedef struct {
 } SegaInputs;
 
 typedef enum {
+    SEGA_ASTRON_BELT,
+    SEGA_GALAXY_RANGER,
+    SEGA_STAR_BLAZER,  // Galaxy Ranger's Japanese release
+} SegaGame;
+
+typedef enum {
     SEGA_FREE_PLAY,
     SEGA_QUIET_ATTRACT,  // on: no sound in the attract mode ("demo sounds" off)
 } SegaSetting;
 
 typedef struct {
+    SegaGame game;
     Z80 cpu;
     uint8_t rom[0x8000];
     uint8_t banks[2][0x4000];
@@ -81,7 +88,7 @@ typedef struct {
     uint8_t ram[0x800];
     uint8_t out[4];               // D800-D803
     uint8_t chars[0x1000];        // character graphics: two bit planes of 256 tiles
-    uint8_t sprites[0x10000];     // sprite graphics: two ROMs of 4 bits a pixel each
+    uint8_t sprites[0x10000];     // sprite graphics: 4 bits a pixel from each half
     uint8_t char_prom[0x200];     // character colours
 
     SegaInputs inputs;
@@ -109,8 +116,12 @@ bool sega_load_roms(SegaBoard *board, const char *path);
 const char *sega_game_name(const SegaBoard *board);
 
 // Load the recordings of the sound board's sounds from dir (ab_fire.wav and
-// so on). Returns how many were found; the game plays without the others.
+// so on for Astron Belt, gr_fire.wav and so on for Galaxy Ranger). Returns
+// how many were found; the game plays without the others.
 int sega_load_samples(SegaBoard *board, const char *dir);
+
+// The name of one of those recordings, for messages.
+const char *sega_sample_example(const SegaBoard *board);
 
 void sega_set(SegaBoard *board, SegaSetting setting, bool on);
 bool sega_get(const SegaBoard *board, SegaSetting setting);

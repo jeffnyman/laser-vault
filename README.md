@@ -26,6 +26,7 @@ real hardware works.
 | [Esh's Aurunmilla](#eshs-aurunmilla) | 1984 | Funai / Gakken | Funai | LD-V1000 |
 | [Badlands](#badlands) | 1984 | Konami / Centuri | Konami | LD-V1000 |
 | [Astron Belt](#astron-belt) | 1983 | Sega / Bally Midway | Sega | LD-V1000 |
+| [Galaxy Ranger](#galaxy-ranger) (Star Blazer) | 1984 | Sega / Bally Midway | Sega | LD-V1000 |
 
 ### Dragon's Lair
 
@@ -120,14 +121,26 @@ board's effects if you have them.
   <a href="assets/ab-play-1.png"><img src="assets/ab-play-1.png" width="32%" alt="Playing Astron Belt: the fighter among enemy ships, with the score and timer"></a>
 </p>
 
+### Galaxy Ranger
+
+Astron Belt's sequel, on the same board: your fighter flies through tunnels,
+over alien deserts and cities, and into dogfights, to the enemy's battle
+cruiser. laser-vault runs it from the program of Star Blazer, its Japanese
+release, which plays the same disc.
+
+<p align="center">
+  <a href="assets/gr-attract.png"><img src="assets/gr-attract.png" width="32%" alt="Star Blazer's attract screen over the enemy battle cruiser"></a>
+  <a href="assets/gr-2880-3140.gif"><img src="assets/gr-2880-3140.gif" width="32%" alt="Galaxy Ranger: enemy craft over the desert, an explosion, then a ground vehicle, frames 2880 to 3140"></a>
+  <a href="assets/gr-play-1.png"><img src="assets/gr-play-1.png" width="32%" alt="Playing Star Blazer: the fighter over the alien desert, with the score and timer"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
 - **More games:** *Thayer's Quest* (RDI, 1984), an adventure played on a
-  keyboard of named buttons, with a speech chip; *Galaxy Ranger* (Sega,
-  1983), Astron Belt's sister game on the same board; the version of
-  Astron Belt for Sega's own laserdisc player.
+  keyboard of named buttons, with a speech chip; the versions of Astron
+  Belt and Galaxy Ranger for Sega's own laserdisc player.
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been
   dumped.)

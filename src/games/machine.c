@@ -46,8 +46,9 @@ bool machine_load_roms(Machine *m, const char *path)
                     "(lair.zip: revs D, E, F and F2, and the Dragon's Lair Enhancement 1.1 and\n"
                     "2.0 sets), Space Ace (ace.zip: rev A3, and the Space Ace Enhancement,\n"
                     "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip),\n"
-                    "Cliff Hanger (cliff.zip), Badlands (badlands.zip) and Astron Belt\n"
-                    "(astronp.zip). A folder of the ROM files works too.\n", path);
+                    "Cliff Hanger (cliff.zip), Badlands (badlands.zip), Astron Belt\n"
+                    "(astronp.zip) and Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
+                    "sblazerp.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -70,6 +71,11 @@ int machine_load_samples(Machine *m, const char *dir, bool *wanted)
 {
     *wanted = m->kind == MACHINE_SEGA;
     return m->kind == MACHINE_SEGA ? sega_load_samples(m->sega, dir) : 0;
+}
+
+const char *machine_sample_example(const Machine *m)
+{
+    return m->kind == MACHINE_SEGA ? sega_sample_example(m->sega) : "";
 }
 
 const char *machine_game_name(const Machine *m)

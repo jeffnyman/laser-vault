@@ -223,7 +223,7 @@ checksums both program ROMs, and which then plays.
   the laserdisc interrupt, the tiles drawn over the picture, the beeper).
 - `src/games/konami/board.c`: Konami's board that runs Badlands (memory map, the three
   interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
-- `src/games/sega/board.c`: Sega's board that runs Astron Belt (memory map, ROM banks,
+- `src/games/sega/board.c`: Sega's board that runs Astron Belt and Galaxy Ranger (memory map, ROM banks,
   the laserdisc latches, the sprites and characters drawn over the picture).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
@@ -234,7 +234,7 @@ checksums both program ROMs, and which then plays.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
-- `src/audio/samples.c`: recorded sound effects (WAV files), for Astron Belt's sound board.
+- `src/audio/samples.c`: recorded sound effects (WAV files), for the Sega board's sound board.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).

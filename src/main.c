@@ -679,10 +679,10 @@ static void load_samples(Machine *m, const char *roms, const char *dir)
         if (found) printf("Sound effects: %d recordings from %s\n", found, tried[i]);
     }
     if (!found)
-        printf("%s's sound effects are recordings (ab_fire.wav and others), and none\n"
+        printf("%s's sound effects are recordings (%s and others), and none\n"
                "were found in %s%s%s, so it plays without them. --samples\n"
-               "names their folder.\n", machine_game_name(m), tried[0], tries > 1 ? " or " : "",
-               tries > 1 ? tried[1] : "");
+               "names their folder.\n", machine_game_name(m), machine_sample_example(m), tried[0],
+               tries > 1 ? " or " : "", tries > 1 ? tried[1] : "");
 }
 
 int main(int argc, char **argv)
@@ -799,7 +799,7 @@ int main(int argc, char **argv)
     if (icon_path) icon = icon_load(icon_path);
     else if (app.game && app.machine.kind == MACHINE_CINEMATRONICS && app.machine.cine->game == CINE_DRAGONS_LAIR)
         icon = icon_load_memory(icon_dlair, icon_dlair_size);
-    else if (app.game && app.machine.kind == MACHINE_SEGA)
+    else if (app.game && app.machine.kind == MACHINE_SEGA && app.machine.sega->game == SEGA_ASTRON_BELT)
         icon = icon_load_memory(icon_astron, icon_astron_size);
     else if (app.game) icon = icon_load_memory(icon_laser, icon_laser_size);
     if (icon) {

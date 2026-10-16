@@ -8,7 +8,8 @@ How to run the games, the keys, the options, and what each game needs.
 - The games: [Dragon's Lair ROM sets](#dragons-lair-rom-sets) and
   [DIP switches](#dip-switches), [Space Ace](#space-ace),
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
-  [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt)
+  [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
+  [Galaxy Ranger](#galaxy-ranger)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -26,7 +27,8 @@ You need your own copy of the game:
   [Dragon's Lair ROM sets](#dragons-lair-rom-sets). For the other games, see
   [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
   [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
-  [Badlands](#badlands) and [Astron Belt](#astron-belt).
+  [Badlands](#badlands), [Astron Belt](#astron-belt) and
+  [Galaxy Ranger](#galaxy-ranger).
 
 Then:
 
@@ -81,14 +83,14 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `sblazerp.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game     |
 | `--free-play`         | no coins needed: press 1 to start                              |
 | `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
-| `--samples DIR`       | Astron Belt: the folder of its recorded sound effects (default: a `sounds` folder beside the ROMs' folder) |
+| `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` folder beside the ROMs' folder) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
@@ -526,6 +528,36 @@ game):
 
 laser-vault starts with DSW1 `FF` and DSW2 `FF`. There's no free play
 setting, so `--free-play` does nothing.
+
+## Galaxy Ranger
+
+Galaxy Ranger (Sega, 1984; Bally Midway in America; Star Blazer in Japan)
+is Astron Belt's sequel on the same board: through tunnels, over alien
+deserts and cities, and into dogfights, to the enemy's battle cruiser. It
+plays the same way (see [Astron Belt](#astron-belt)). You need:
+
+- **The video:** the Daphne-style clip `galaxy.m2v` with its soundtrack,
+  and the framefile `galaxyranger.txt`. Its first line is often a
+  placeholder instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** a version for Pioneer's LD-V1000. Star Blazer's
+  (`epr-5590.bin` and `epr-5591.bin`, MAME's `sblazerp`) plays the Galaxy
+  Ranger disc; its screens say "Starblazer". Galaxy Ranger's own Pioneer
+  version (`epr-5613.bin` and `epr-5614.bin`, MAME's `galaxyrp`) should
+  work too, but hasn't been tested. The graphics chips are the same in all;
+  as with Astron Belt, laser-vault also looks for them in the parent set,
+  `galaxyr.zip`, beside a set that holds only its program chips. Galaxy
+  Ranger's `galaxy.zip` with `gr5633.bin` is the version for Sega's own
+  laserdisc player, which laser-vault doesn't emulate yet.
+
+```
+laser-vault path/to/galaxyranger.txt --video-dir path/to/mpeg/galaxyranger --roms path/to/starblazer.zip
+```
+
+Its sound effects are recordings too, as for Astron Belt: `gr_fire.wav`,
+`gr_cannon.wav`, `gr_attack.wav`, `gr_mineon.wav` and `gr_alarm1.wav` to
+`gr_alarm4.wav`, in a `sounds` folder beside the ROMs' folder or the folder
+`--samples` names. Without them it plays with the soundtrack alone. Its DIP
+switches are taken to be Astron Belt's, which hasn't been checked.
 
 ## Screenshots
 
