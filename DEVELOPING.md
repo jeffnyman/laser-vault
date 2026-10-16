@@ -198,6 +198,25 @@ z80-zex path/to/zexall.com
 All 67 tests should print `OK`. A full run is about 47 billion clock cycles
 and takes a minute or two.
 
+## Testing the 6502
+
+The 6502 emulator (`src/cpu/m6502.c`) is checked with Klaus Dormann's
+functional test, which runs every documented instruction in every
+addressing mode, decimal mode included. It's GPL-licensed and not included
+here. Get `bin_files/6502_functional_test.bin` from
+[Klaus2m5/6502_65C02_functional_tests](https://github.com/Klaus2m5/6502_65C02_functional_tests),
+then run:
+
+```
+m6502-test path/to/6502_functional_test.bin
+```
+
+It should print `passed`, after about 96 million clock cycles (a second or
+so). A failure prints the address the test stopped at; the `.lst` file
+beside the binary shows which check that is.
+
+## The other CPUs
+
 The 6809 emulator (`src/cpu/m6809.c`) has no exerciser of its own yet. So
 far it's checked by Badlands itself, whose start-up code tests its RAM and
 checksums both program ROMs, and which then plays. The COP421
@@ -211,9 +230,11 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
 - `src/ldp/vip9500sg.c`: Sega's laserdisc player (the VIP9500SG) and its serial commands.
+- `src/ldp/ldp1000.c`: Sony's LDP-1000 and its serial commands.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/cpu/m6809.c`: the Motorola 6809 CPU emulator, with a disassembler.
 - `src/cpu/cop421.c`: the National Semiconductor COP421 microcontroller (Thayer's Quest's keyboard).
+- `src/cpu/m6502.c`: the MOS 6502 CPU emulator, with a disassembler.
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
@@ -231,6 +252,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/games/sega/board.c`: Sega's board that runs Astron Belt, Galaxy Ranger and Sega's Cobra Command
   (memory map, ROM banks, the serial chip for Sega's player,
   the laserdisc latches, the sprites and characters drawn over the picture).
+- `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle (two 6502s, the
+  serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.
@@ -238,7 +261,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: finding and repairing combing (mixed fields), pixel by pixel.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
-- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
+- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics and Data East boards.
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
 - `src/audio/samples.c`: recorded sound effects (WAV files), for the Sega board's sound board.
 - `src/audio/ssi263.c`: the SSI-263 speech chip: its registers and timing, and a formant synthesizer for its voice.
@@ -248,6 +271,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/tools/gif.c`: GIF writer (median-cut palette, LZW compression).
 - `src/tools/cine_trace.c`: the `cine-trace` tool.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
+- `tests/m6502_test.c`: runs Klaus Dormann's functional test on the 6502.
 - `icons/`: the window icons (`dlair.ico`, `astron.ico`, and `laser.ico` for
   the other games). CMake builds them into the program
   (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
@@ -256,7 +280,7 @@ checksums both program ROMs, and which then plays. The COP421
 ### How a game fits together
 
 Each game runs on its board, in `src/games/<maker>/board.c`: the CPU (a
-Z80, or Konami's 6809), the memory map, the I/O ports, the interrupts and whatever the board draws or
+Z80, Konami's 6809, or Data East's 6502s), the memory map, the I/O ports, the interrupts and whatever the board draws or
 plays. The board drives a laserdisc player model (`src/ldp/`), which drives
 the plain player in `src/ldp/ldp.c`, whose frame number the main program
 shows. `src/games/machine.c` is the common ground: the main program asks it

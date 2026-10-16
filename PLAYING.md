@@ -10,7 +10,7 @@ How to run the games, the keys, the options, and what each game needs.
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
-  [Thayer's Quest](#thayers-quest)
+  [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -29,7 +29,8 @@ You need your own copy of the game:
   [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
   [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
   [Badlands](#badlands), [Astron Belt](#astron-belt),
-  [Galaxy Ranger](#galaxy-ranger) and [Thayer's Quest](#thayers-quest).
+  [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
+  [Thayer's Quest](#thayers-quest) and [Bega's Battle](#begas-battle).
 
 Then:
 
@@ -45,7 +46,8 @@ flashing, and move or use the sword at the right moment.
 |-----------------------|-------------------------------------------|
 | Arrow keys            | joystick                                  |
 | Space / Ctrl          | sword (the action button)                 |
-| Shift                 | Esh's Aurunmilla: button 2; Cliff Hanger: feet (other games: the action button) |
+| Shift                 | Esh's Aurunmilla, Bega's Battle: button 2; Cliff Hanger: feet; Cobra Command: missiles (other games: the action button) |
+| Z                     | Bega's Battle: button 3                   |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
@@ -67,10 +69,10 @@ Game controllers work too, plugged in before or during play:
 | Controller            | Action                                    |
 |-----------------------|-------------------------------------------|
 | D-pad or left stick   | joystick                                  |
-| any face button       | sword (the action button); in Esh's Aurunmilla, bottom and left are button 1, right and top button 2 |
+| any face button       | sword (the action button); in games with two or more buttons, bottom and left are button 1, right and top button 2 |
 | Back (Select)         | insert a coin                             |
 | Start                 | start (1 player)                          |
-| left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace |
+| left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace; the left shoulder is also Bega's Battle's button 3 |
 
 That covers Xbox, PlayStation and Switch pads, and arcade sticks that
 present themselves as one; the console names each controller as it
@@ -85,7 +87,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `galaxy.zip`, `cobraab.zip`, `tq.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `galaxy.zip`, `cobraab.zip`, `tq.zip`, `bega.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
@@ -655,6 +657,53 @@ bit):
 | DSW2 | `08` | set: LD-V1000 (leave it set) |
 
 laser-vault starts with DSW1 `FF` and DSW2 `0F`.
+
+## Bega's Battle
+
+Bega's Battle (Data East, 1983) runs on Data East's own board: two 6502s,
+one running the game and one its sound (two AY-3-8910s), driving Sony's
+LDP-1000 player over a serial line. The disc holds scenes from the anime
+film *Harmagedon*, and the board draws Bega, his enemies, the shots and the
+score over them. You need:
+
+- **The video:** the Daphne-style clip `bega.m2v` with its soundtrack, and
+  the framefile `begasbattle.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** `bega.zip`, MAME's `begas` (revision 3: `an00-3` to
+  `an05-3`, and `an01`, `an06` to `an09`, `an0a` to `an0c`). Revision 1
+  (`begar1.zip`, MAME's `begas1`) works too; it holds only its five changed
+  chips and takes the rest from `bega.zip` beside it. The colour PROM
+  `af-8.bpr` isn't needed: the game sets its colours itself.
+
+```
+laser-vault path/to/begasbattle.txt --video-dir path/to/mpeg/begasbattle --roms path/to/bega.zip
+```
+
+Like the real machine it waits about 16 s for the disc to spin up before
+the attract mode starts (`--fast-boot` skips that). Press 5 to insert a
+coin, then 1 to start. The arrow keys move Bega and Space fires. Luna, the
+first friend you rescue (touch her when the game says so), calls the
+others; Joe and Sony each bring a power on a button of its own, which the
+game names when you rescue them: Shift is the second button and Z the
+third (a gamepad's left shoulder works too).
+
+Its DIP switches, as the game's code reads them (MAME and Daphne list them
+as unknown; a switch on reads as a clear bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | `03` | coin slot 1: `03` 1 coin 1 credit, `02` 3 coins 1 credit, `01` 1 coin 2 credits, `00` 2 coins 1 credit |
+| DSW1 | `0C` | coin slot 2, the same way |
+| DSW2 | `03` | lives: `03` 3, `02` 5, `01` 4, `00` 6 |
+| DSW2 | `04` | clear: you can continue after the game ends |
+| DSW2 | `18` | the bonus life (at `00`, also: holding Space fires repeatedly) |
+| DSW2 | `20` | difficulty (clear seems the harder) |
+| DSW2 | `40` | set: one player only |
+| DSW2 | `80` | set: the game; clear: the board's test program |
+
+There's no free play setting, so `--free-play` does nothing; nor a switch
+for the attract mode's sound. laser-vault starts with DSW1 `0F` and DSW2
+`BB` (3 lives, continues, one or two players).
 
 ## Screenshots
 

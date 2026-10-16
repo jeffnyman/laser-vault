@@ -467,6 +467,8 @@ static void read_gamepad(SDL_Gamepad *pad, Controls *in)
                  SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
     in->coin1 = in->coin1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK);
     in->start1 = in->start1 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START);
+    // The left shoulder is also Bega's Battle's third button.
+    in->button3 = in->button3 || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
     in->skill[0] = in->skill[0] || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);
     in->skill[1] = in->skill[1] || SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
     in->skill[2] = in->skill[2] || SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) > tilt;
@@ -558,7 +560,7 @@ static void read_keyboard(const bool *key, Controls *in)
         for (int c = 0; c < 3; c++) down = down || (map[i].codes[c] && key[map[i].codes[c]]);
         in->keyboard[map[i].key] = down;
     }
-    in->up = in->down = in->left = in->right = in->button = in->button2 = false;
+    in->up = in->down = in->left = in->right = in->button = in->button2 = in->button3 = false;
     in->start1 = in->start2 = false;
     for (int i = 0; i < 3; i++) in->skill[i] = false;
 }
@@ -575,6 +577,7 @@ static void read_game_inputs(App *app)
     in->right = key[SDL_SCANCODE_RIGHT];
     in->button = key[SDL_SCANCODE_SPACE] || key[SDL_SCANCODE_LCTRL] || key[SDL_SCANCODE_RCTRL];
     in->button2 = key[SDL_SCANCODE_LSHIFT] || key[SDL_SCANCODE_RSHIFT];
+    in->button3 = key[SDL_SCANCODE_Z];
     in->coin1 = key[SDL_SCANCODE_5] || key[SDL_SCANCODE_KP_5];
     in->coin2 = key[SDL_SCANCODE_6] || key[SDL_SCANCODE_KP_6];
     in->start1 = key[SDL_SCANCODE_1] || key[SDL_SCANCODE_KP_1];
@@ -611,10 +614,12 @@ static void read_game_inputs(App *app)
     if (in->left && !before.left) printf("%6.1f s  stick: left\n", t);
     if (in->right && !before.right) printf("%6.1f s  stick: right\n", t);
     const char *button = app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button";
-    if (app->machine.kind == MACHINE_FUNAI || app->machine.kind == MACHINE_STERN) {
+    if (app->machine.kind == MACHINE_FUNAI || app->machine.kind == MACHINE_STERN ||
+        app->machine.kind == MACHINE_DATAEAST) {
         bool stern = app->machine.kind == MACHINE_STERN;
         if (in->button && !before.button) printf("%6.1f s  %s\n", t, stern ? "hands" : "button 1");
         if (in->button2 && !before.button2) printf("%6.1f s  %s\n", t, stern ? "feet" : "button 2");
+        if (in->button3 && !before.button3) printf("%6.1f s  button 3\n", t);
     } else if ((in->button || in->button2) && !(before.button || before.button2)) {
         printf("%6.1f s  %s\n", t, button);
     }
@@ -949,6 +954,9 @@ int main(int argc, char **argv)
             printf("%s is starting. Like the real machine, it waits about 20 s for the\n"
                    "disc to spin up; the attract mode starts after about 35 s. (Use\n"
                    "--fast-boot to skip the wait.)\n", machine_game_name(m));
+        } else if (m->kind == MACHINE_DATAEAST) {
+            printf("%s is starting. Like the real machine, it waits about 16 s for the\n"
+                   "disc to spin up. (Use --fast-boot to skip the wait.)\n", machine_game_name(m));
         } else {
             printf("%s is starting. (Use --fast-boot to start straight in the attract\n"
                    "mode.)\n", machine_game_name(m));
@@ -971,6 +979,9 @@ int main(int argc, char **argv)
             printf("Then choose a skill level: F1 Cadet, F2 Captain or F3 Ace.\n");
         if (m->kind == MACHINE_STERN)
             printf("Space is Cliff's hands, Shift his feet, the arrow keys the joystick.\n");
+        if (m->kind == MACHINE_DATAEAST)
+            printf("The arrow keys move Bega, Space fires; Shift and Z are the buttons for\n"
+                   "the friends you rescue.\n");
         if (cinematronics) {
             cine_autoplay_init(&app.autoplay, true);
             app.autoplaying = autoplay;

@@ -13,6 +13,7 @@
 //     Konami (games/konami)                Badlands                    LD-V1000
 //     Sega (games/sega)                    Astron Belt, Galaxy Ranger  LD-V1000
 //     RDI (games/rdi)                      Thayer's Quest              LD-V1000
+//     Data East (games/dataeast)           Bega's Battle               LDP-1000
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -21,12 +22,14 @@
 #define LV_MACHINE_H
 
 #include "games/cinematronics/board.h"
+#include "games/dataeast/board.h"
 #include "games/funai/board.h"
 #include "games/konami/board.h"
 #include "games/rdi/board.h"
 #include "games/sega/board.h"
 #include "games/stern/board.h"
 #include "games/universal/board.h"
+#include "ldp/ldp1000.h"
 #include "ldp/ldv1000.h"
 #include "ldp/pr8210.h"
 #include "ldp/vip9500sg.h"
@@ -42,6 +45,7 @@ typedef enum {
     MACHINE_KONAMI,
     MACHINE_SEGA,
     MACHINE_RDI,
+    MACHINE_DATAEAST,
 } MachineKind;
 
 typedef struct {
@@ -53,18 +57,20 @@ typedef struct {
     KonamiBoard *konami;  // when kind is MACHINE_KONAMI
     SegaBoard *sega;      // when kind is MACHINE_SEGA
     RdiBoard *rdi;        // when kind is MACHINE_RDI
+    DecoBoard *deco;      // when kind is MACHINE_DATAEAST
 
     // The laserdisc player the board drives, which drives the player model.
     Ldv1000 ldv1000;  // most boards
     Pr8210 pr8210;    // Stern's board
     Vip9500sg vip;    // the Sega board, in its versions for Sega's player
+    Ldp1000 ldp1000;  // Data East's board
 } Machine;
 
-// The control panel: true means pressed. Games use what they have: Esh's
-// Aurunmilla alone has a second button (the others take either as their
-// one button), Space Ace alone the three skill buttons.
+// The control panel: true means pressed. Games use what they have: some
+// have a second button (a game with one takes either as it), Bega's Battle
+// a third, Space Ace the three skill buttons.
 typedef struct {
-    bool up, down, left, right, button, button2;
+    bool up, down, left, right, button, button2, button3;
     bool start1, start2, coin1, coin2;
     bool skill[3];  // Space Ace: Cadet, Captain, Ace
     bool keyboard[RDI_KEY_COUNT];  // Thayer's Quest's keyboard (see games/rdi/board.h)

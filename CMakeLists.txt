@@ -36,6 +36,7 @@ add_library(lv_ldp STATIC
     src/ldp/ldv1000.c
     src/ldp/pr8210.c
     src/ldp/vip9500sg.c
+    src/ldp/ldp1000.c
 )
 target_include_directories(lv_ldp PUBLIC src)
 if(NOT WIN32)
@@ -74,7 +75,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -83,11 +84,12 @@ add_executable(disc-gif
 )
 target_link_libraries(disc-gif PRIVATE lv_video lv_png)
 
-# The CPUs: Z80, 6809 and COP421.
+# The CPUs: Z80, 6809, COP421 and 6502.
 add_library(lv_cpu STATIC
     src/cpu/z80.c
     src/cpu/m6809.c
     src/cpu/cop421.c
+    src/cpu/m6502.c
 )
 target_include_directories(lv_cpu PUBLIC src)
 
@@ -96,6 +98,12 @@ add_executable(z80-zex
     tests/z80_zex.c
 )
 target_link_libraries(z80-zex PRIVATE lv_cpu)
+
+# Test: run Klaus Dormann's functional test on the 6502.
+add_executable(m6502-test
+    tests/m6502_test.c
+)
+target_link_libraries(m6502-test PRIVATE lv_cpu)
 
 # Reading ROM sets, from zips or folders.
 add_library(lv_roms STATIC
@@ -162,13 +170,19 @@ add_library(lv_rdi STATIC
 )
 target_link_libraries(lv_rdi PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
+# Data East's laserdisc board, which runs Bega's Battle.
+add_library(lv_dataeast STATIC
+    src/games/dataeast/board.c
+)
+target_link_libraries(lv_dataeast PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_png laser-vault disc-gif z80-zex m6502-test cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

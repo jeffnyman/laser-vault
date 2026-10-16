@@ -3,9 +3,9 @@
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
-The original game code runs on emulated CPUs (a Z80, Badlands' 6809, and
-Thayer's Quest's COP421 microcontroller) and drives an emulated Pioneer
-laserdisc player, just as on the arcade board: the attract mode
+The original game code runs on emulated CPUs (a Z80, Badlands' 6809, Bega's
+Battle's two 6502s, and Thayer's Quest's COP421 microcontroller) and drives
+an emulated laserdisc player, just as on the arcade board: the attract mode
 plays, coins and start work, and you can play the game, with the
 laserdisc's soundtrack, the board's own sounds, and whatever the board draws
 over the picture. The code is meant to be read: each part explains how the
@@ -30,6 +30,7 @@ real hardware works.
 | [Galaxy Ranger](#galaxy-ranger) (Star Blazer) | 1984 | Sega / Bally Midway | Sega | LD-V1000 or Sega's own |
 | [Cobra Command](#cobra-command) | 1984 | Data East (Sega's version) | Sega | Sega's own |
 | [Thayer's Quest](#thayers-quest) | 1984 | RDI Video Systems | RDI | LD-V1000 |
+| [Bega's Battle](#begas-battle) | 1983 | Data East | Data East | Sony LDP-1000 |
 
 ### Dragon's Lair
 
@@ -166,13 +167,27 @@ subtitles.
   <a href="assets/tq-play-1.png"><img src="assets/tq-play-1.png" width="32%" alt="Playing Thayer's Quest: the wizard, with the narrator's words as a subtitle"></a>
 </p>
 
+### Bega's Battle
+
+Data East's shooting game over scenes from the anime film *Harmagedon*: Bega
+flies through the city and into space, shooting the creatures of the alien
+Varga and rescuing the friends who fight beside him. The film is only the
+background; the board draws Bega, his enemies and the score over it. Two
+6502s run it, one for the game and one for its sound, driving Sony's
+LDP-1000 player over a serial line.
+
+<p align="center">
+  <a href="assets/bb-title-44100.png"><img src="assets/bb-title-44100.png" width="32%" alt="Bega's Battle title, frame 44100"></a>
+  <a href="assets/bb-43901-44161.gif"><img src="assets/bb-43901-44161.gif" width="32%" alt="Bega's Battle: the robot in the dark as the title appears, frames 43901 to 44161"></a>
+  <a href="assets/bb-play-1.png"><img src="assets/bb-play-1.png" width="32%" alt="Playing Bega's Battle: Bega fires up past a skyscraper at night, with Luna beside him and an enemy exploding"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
-- **More games:** *Bega's Battle*, and Data East's own version of *Cobra
-  Command* (Data East, 1983-84), on a board with two 6502s and Sony's
-  LDP-1000 player.
+- **More games:** Data East's own versions of *Cobra Command* and *Road
+  Blaster*, on Bega's Battle's board.
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been
   dumped.)
