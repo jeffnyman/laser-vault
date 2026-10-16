@@ -36,7 +36,7 @@ rev F2 and the fan-made Dragon's Lair Enhancement 1.1 and 2.0.
 <p align="center">
   <a href="assets/dl-title-1320.png"><img src="assets/dl-title-1320.png" width="32%" alt="Dragon's Lair title screen, frame 1320"></a>
   <a href="assets/dl-1560-1820.gif"><img src="assets/dl-1560-1820.gif" width="32%" alt="Dragon's Lair: Dirk on the drawbridge, frames 1560 to 1820"></a>
-  <a href="assets/dl-play-1.png"><img src="assets/dl-play-1.png" width="32%" alt="Playing Dragon's Lair, with the score displays beside the picture"></a>
+  <a href="assets/dl-play-1.png"><img src="assets/dl-play-1.png" width="32%" alt="Playing Dragon's Lair: magic fire sweeps across the floor toward Dirk"></a>
 </p>
 
 ### Space Ace
@@ -49,7 +49,7 @@ runs the arcade rev A3 and the fan-made Space Ace Enhancement.
 <p align="center">
   <a href="assets/sa-title-160.png"><img src="assets/sa-title-160.png" width="32%" alt="Space Ace title screen, frame 160"></a>
   <a href="assets/sa-1162-1420.gif"><img src="assets/sa-1162-1420.gif" width="32%" alt="Space Ace: Dexter and Kimmy under Borf's ship, frames 1162 to 1420"></a>
-  <a href="assets/sa-play-1.png"><img src="assets/sa-play-1.png" width="32%" alt="Playing Space Ace at Captain level, with the score displays and skill lamps"></a>
+  <a href="assets/sa-play-1.png"><img src="assets/sa-play-1.png" width="32%" alt="Playing Space Ace at Captain level: Borf fires at Dexter from his platform"></a>
 </p>
 
 ### Cliff Hanger

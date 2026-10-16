@@ -105,6 +105,11 @@ the screen but on LED displays in the bezel around it. `--scores` (or S)
 shows them in a panel beside the picture. The window title always shows the
 raw display digits and what the laserdisc player is doing.
 
+<p align="center">
+  <a href="assets/dl-scores-1.png"><img src="assets/dl-scores-1.png" width="49%" alt="Playing Dragon's Lair, with the score displays beside the picture"></a>
+  <a href="assets/sa-scores-1.png"><img src="assets/sa-scores-1.png" width="49%" alt="Playing Space Ace at Captain level, with the score displays and skill lamps"></a>
+</p>
+
 **Between scenes** the screen goes black for a moment while the laserdisc
 player searches, as on the real machine. Longer jumps take a little longer,
 from about 0.1 s up to 0.3 s.
