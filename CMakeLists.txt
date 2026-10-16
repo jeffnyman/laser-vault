@@ -73,7 +73,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -82,9 +82,10 @@ add_executable(disc-gif
 )
 target_link_libraries(disc-gif PRIVATE lv_video lv_png)
 
-# The Z80 CPU.
+# The CPUs: Z80 and 6809.
 add_library(lv_cpu STATIC
     src/cpu/z80.c
+    src/cpu/m6809.c
 )
 target_include_directories(lv_cpu PUBLIC src)
 
@@ -102,24 +103,29 @@ add_library(lv_roms STATIC
 target_include_directories(lv_roms PUBLIC src)
 target_link_libraries(lv_roms PUBLIC ZLIB::ZLIB)
 
+# The sound chips: AY-3-8910 and SN76496.
+add_library(lv_sound STATIC
+    src/audio/ay8910.c
+    src/audio/sn76496.c
+)
+target_include_directories(lv_sound PUBLIC src)
+if(NOT WIN32)
+    target_link_libraries(lv_sound PUBLIC m)  # powf
+endif()
+
 # The Cinematronics laserdisc board (CPU, memory map, I/O) that runs Dragon's
 # Lair and Space Ace, and the autoplayer.
 add_library(lv_cine STATIC
     src/games/cinematronics/board.c
     src/games/cinematronics/autoplay.c
-    src/audio/ay8910.c
 )
-target_link_libraries(lv_cine PUBLIC lv_cpu lv_ldp lv_roms)
+target_link_libraries(lv_cine PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
 # Universal's System 1 laserdisc board, which runs Super Don Quix-ote.
 add_library(lv_universal STATIC
     src/games/universal/board.c
-    src/audio/sn76496.c
 )
-target_link_libraries(lv_universal PUBLIC lv_cpu lv_ldp lv_roms)
-if(NOT WIN32)
-    target_link_libraries(lv_universal PUBLIC m)  # powf
-endif()
+target_link_libraries(lv_universal PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
 # Funai's laserdisc board, which runs Esh's Aurunmilla.
 add_library(lv_funai STATIC
@@ -134,13 +140,19 @@ add_library(lv_stern STATIC
 )
 target_link_libraries(lv_stern PUBLIC lv_cpu lv_ldp lv_roms)
 
+# Konami's laserdisc board, which runs Badlands.
+add_library(lv_konami STATIC
+    src/games/konami/board.c
+)
+target_link_libraries(lv_konami PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_cine lv_universal lv_funai lv_stern lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

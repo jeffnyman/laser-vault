@@ -8,7 +8,7 @@ How to run the games, the keys, the options, and what each game needs.
 - The games: [Dragon's Lair ROM sets](#dragons-lair-rom-sets) and
   [DIP switches](#dip-switches), [Space Ace](#space-ace),
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
-  [Cliff Hanger](#cliff-hanger)
+  [Cliff Hanger](#cliff-hanger), [Badlands](#badlands)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -25,7 +25,8 @@ You need your own copy of the game:
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
   [Dragon's Lair ROM sets](#dragons-lair-rom-sets). For the other games, see
   [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
-  [Esh's Aurunmilla](#eshs-aurunmilla) and [Cliff Hanger](#cliff-hanger).
+  [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger) and
+  [Badlands](#badlands).
 
 Then:
 
@@ -80,7 +81,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
@@ -216,8 +217,9 @@ and give physical positions, where OFF means the bit is set. The original
 Space Ace and Super Don Quix-ote have layouts of their own (see
 [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote)). In
 every set, the three named options flip whichever switches that set uses.
-Cliff Hanger has four banks (see [Cliff Hanger](#cliff-hanger)), and Esh's
-Aurunmilla has no DIP switches at all.
+Cliff Hanger has four banks (see [Cliff Hanger](#cliff-hanger)), Badlands
+two of its own (see [Badlands](#badlands)), and Esh's Aurunmilla has no DIP
+switches at all.
 
 ## Space Ace
 
@@ -393,6 +395,64 @@ clear bit):
 
 laser-vault starts set 1 with DSW1 `C7`, DSW2 `FF`, DSW3 `3F` and DSW4
 `FF`, MAME's defaults.
+
+## Badlands
+
+Badlands (Konami/Centuri, 1984) runs on Konami's own board: a Motorola 6809
+driving an LD-V1000, with tiles drawn over the picture for the score and
+the hero's name, and an SN76496 sound chip for the gunshots. You need:
+
+- **The video:** the Daphne-style clip `badlands-pc.m2v` with its
+  soundtrack, and the framefile `badlands.txt`. Its first line is often a
+  placeholder instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** `badlands.zip`, MAME's set 1 (`badlands.a13`,
+  `badlands.a14`, `badlands.c8`, `badlands.c4`). MAME's set 2 has its
+  devices at other addresses and isn't supported.
+
+```
+laser-vault path/to/badlands.txt --video-dir path/to/mpeg/badlands --roms path/to/badlands.zip
+```
+
+The start-up checks take a few seconds; then the attract mode plays. Press 5
+to insert a coin, then 1 to start: the game begins with the story (the
+title, then Buck's family and the wanted posters, about half a minute; it
+looks much like the attract mode). Press 2 instead to skip the story and go
+straight to the first gunfight.
+
+There's one button, the fire button (Space), and the timing is everything.
+Each outlaw squares up, then draws. The moment to fire opens as his hand
+goes for the gun and closes just after his shot, about half a second (16
+frames) in all. His muzzle flash comes a third of the way in, so if you
+wait to see it you'll be too late: fire as he draws. Fire while he's still
+squaring up and it's too early, and Buck falls. After each shot the gun
+takes about half a second to reload, so an early shot also leaves you
+unable to fire when it counts. (For the first gunman, the window is disc
+frames 3236 to 3251, as the game's own scene table has it.)
+
+MAME lists the game as not working. Reading the game's code gave the
+missing pieces: the interrupts (the NMI at vertical blank sends the
+player's next command, and the player's strobe starts the game's work for
+the field), the DIP switch banks (MAME has them the other way round), and
+how the sound chip is wired (its data lines are reversed, so the game
+reverses each byte's bits before sending it). Badlands' player also ran
+Konami's own version of the player's software: a digit leaves it ready
+for the next byte, so the game sends a frame number one digit a field, and
+it has a command to skip back 16 frames. The sound effects run from a timer
+interrupt whose rate isn't known for sure; laser-vault uses eight a field,
+which gives notes of sensible lengths.
+
+Its DIP switches (a switch on reads as a clear bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | all  | coinage: `FF` 1 coin 1 credit, `EE` 1 coin 2 credits, `88` 2 coins 1 credit, `00` free play (`--free-play`); MAME's `konblands.cpp` lists the rest |
+| DSW2 | `01`, `02` | lives: both set 2, `02` alone 3, `01` alone 5, neither 7 |
+| DSW2 | `80` | set: no sound in the attract mode (`--attract-sound` clears it) |
+
+The other switches in DSW2 are unused (the manual says to leave them off,
+that is, set). laser-vault starts with DSW1 `FF` and DSW2 `7E`: 1 coin 1
+credit, 3 lives, sound in the attract mode. Hold both start buttons as the
+game powers on for its service mode.
 
 ## Screenshots
 

@@ -198,6 +198,10 @@ z80-zex path/to/zexall.com
 All 67 tests should print `OK`. A full run is about 47 billion clock cycles
 and takes a minute or two.
 
+The 6809 emulator (`src/cpu/m6809.c`) has no exerciser of its own yet. So
+far it's checked by Badlands itself, whose start-up code tests its RAM and
+checksums both program ROMs, and which then plays.
+
 ## Source map
 
 - `src/main.c`: window, keyboard, main loop, drawing.
@@ -206,6 +210,7 @@ and takes a minute or two.
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
+- `src/cpu/m6809.c`: the Motorola 6809 CPU emulator, with a disassembler.
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
@@ -216,6 +221,8 @@ and takes a minute or two.
 - `src/video/tms9928.c`: the TMS9918/9928 video chip that draws over Cliff Hanger's picture.
 - `src/games/funai/board.c`: Funai's board that runs Esh's Aurunmilla (memory map, I/O,
   the laserdisc interrupt, the tiles drawn over the picture, the beeper).
+- `src/games/konami/board.c`: Konami's board that runs Badlands (memory map, the three
+  interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.
@@ -224,7 +231,7 @@ and takes a minute or two.
 - `src/video/decomb.c`: finding and repairing combing (mixed fields), pixel by pixel.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics board.
-- `src/audio/sn76496.c`: the SN76496 sound chip on the Universal board.
+- `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).
@@ -238,8 +245,8 @@ and takes a minute or two.
 
 ### How a game fits together
 
-Each game runs on its board, in `src/games/<maker>/board.c`: the Z80, the
-memory map, the I/O ports, the interrupts and whatever the board draws or
+Each game runs on its board, in `src/games/<maker>/board.c`: the CPU (a
+Z80, or Konami's 6809), the memory map, the I/O ports, the interrupts and whatever the board draws or
 plays. The board drives a laserdisc player model (`src/ldp/`), which drives
 the plain player in `src/ldp/ldp.c`, whose frame number the main program
 shows. `src/games/machine.c` is the common ground: the main program asks it

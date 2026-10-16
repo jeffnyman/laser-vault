@@ -44,6 +44,7 @@ enum {
     STATUS_SEARCH = 0x50,
     STATUS_SEARCH_FINISH = 0xD0,
     STATUS_AUTOSTOP = 0x54,
+    STATUS_FORWARD = 0x2E,  // playing at a set speed (FORWARD x1/4 to x5)
 };
 
 // Digits are sent as these bytes, in order 0 to 9.
@@ -187,7 +188,7 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
             if (ldp->state != LDP_PLAYING) ld->muted = true;
             ldp_play(ldp);
             ld->autostop_frame = -1;
-            ld->status = STATUS_PLAY;
+            ld->status = STATUS_FORWARD;
         } else if (byte >= CMD_SKIP_10 && byte <= CMD_SKIP_100) {
             // Jump ahead and carry on as before. The player can move the
             // laser this far during one vertical blank, so the picture
@@ -214,10 +215,19 @@ void ldv1000_write(Ldv1000 *ld, uint64_t now, uint8_t byte)
     if (!(ld->status & STATUS_READY)) return;  // busy with the last command
     ld->status &= ~STATUS_READY;
 
+    uint8_t previous = ld->last_command;
+    ld->last_command = byte;
     int digit = digit_value(byte);
     if (digit >= 0) {
         if (ld->digit_count < (int)sizeof ld->digits) ld->digits[ld->digit_count++] = (uint8_t)digit;
+        if (ld->konami_rom) ld->status |= STATUS_READY;
         return;
+    }
+    if (ld->konami_rom && previous == 0x20 && byte == 0x31) {
+        // Konami's skip back, for the moments that loop (the twirling axe,
+        // the bats' red eyes): like SKIP FORWARD, a jump the player makes
+        // within a vertical blank.
+        ld->ldp->frame = ld->ldp->frame > 16 ? ld->ldp->frame - 16 : 0;
     }
     execute(ld, now, byte);
     ld->digit_count = 0;  // any non-digit ends the number

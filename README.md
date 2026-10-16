@@ -3,8 +3,8 @@
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
-The original game code runs on an emulated Z80 CPU and drives an emulated
-Pioneer laserdisc player, just as on the arcade board: the attract mode
+The original game code runs on an emulated CPU (a Z80, or Badlands' 6809)
+and drives an emulated Pioneer laserdisc player, just as on the arcade board: the attract mode
 plays, coins and start work, and you can play the game, with the
 laserdisc's soundtrack, the board's own sounds, and whatever the board draws
 over the picture. The code is meant to be read: each part explains how the
@@ -24,6 +24,7 @@ real hardware works.
 | [Cliff Hanger](#cliff-hanger) | 1983 | Stern | Stern | PR-8210 |
 | [Super Don Quix-ote](#super-don-quix-ote) | 1984 | Universal | Universal System 1 | LD-V1000 |
 | [Esh's Aurunmilla](#eshs-aurunmilla) | 1984 | Funai / Gakken | Funai | LD-V1000 |
+| [Badlands](#badlands) | 1984 | Konami / Centuri | Konami | LD-V1000 |
 
 ### Dragon's Lair
 
@@ -88,6 +89,20 @@ code supplied the missing pieces, and it plays.
   <a href="assets/esh-title-1310.png"><img src="assets/esh-title-1310.png" width="32%" alt="Esh's Aurunmilla title screen, frame 1310"></a>
   <a href="assets/esh-3495-3760.gif"><img src="assets/esh-3495-3760.gif" width="32%" alt="Esh's Aurunmilla: the jump to hyperspace and the asteroid fortress, frames 3495 to 3760"></a>
   <a href="assets/esh-play-1.png"><img src="assets/esh-play-1.png" width="32%" alt="Playing Esh's Aurunmilla, with the score drawn over the picture"></a>
+</p>
+
+### Badlands
+
+Buck rides into town after the gang that killed his family, with one button:
+wait for the outlaw to draw, then fire. Konami's board runs on a Motorola
+6809, and its laserdisc player had Konami's own changes to the player's
+software. Like Esh's Aurunmilla, it doesn't run in MAME; reading the game's
+code filled in the rest.
+
+<p align="center">
+  <a href="assets/bl-title-2066.png"><img src="assets/bl-title-2066.png" width="32%" alt="Badlands title screen, frame 2066"></a>
+  <a href="assets/bl-3840-4100.gif"><img src="assets/bl-3840-4100.gif" width="32%" alt="Badlands: through a bullet hole to the gunman, who falls, frames 3840 to 4100"></a>
+  <a href="assets/bl-play-1.png"><img src="assets/bl-play-1.png" width="32%" alt="Playing Badlands: the score, the lives and Buck's name over the picture"></a>
 </p>
 
 ## What's planned

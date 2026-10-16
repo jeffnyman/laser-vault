@@ -14,8 +14,8 @@
 //
 // With --roms (a ROM set such as lair.zip, sae.zip or cliff.zip, or a
 // folder of ROM files), it runs the game: Dragon's Lair, Space Ace, Super
-// Don Quix-ote, Esh's Aurunmilla or Cliff Hanger, whichever the ROMs hold
-// (see games/machine.h). The game's CPU drives its laserdisc player, and the
+// Don Quix-ote, Esh's Aurunmilla, Cliff Hanger or Badlands, whichever the
+// ROMs hold (see games/machine.h). The game's CPU drives its laserdisc player, and the
 // keyboard is the control panel. --fast-boot skips the wait while the game spins up the disc,
 // starting straight in the attract mode. --attract-sound plays sound in
 // every attract cycle (by default, as on the real machine, Dragon's Lair

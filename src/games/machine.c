@@ -27,6 +27,11 @@ bool machine_load_roms(Machine *m, const char *path)
         m->funai = calloc(1, sizeof *m->funai);
         return funai_load_roms(m->funai, path);
     }
+    if (konami_recognizes(path)) {
+        m->kind = MACHINE_KONAMI;
+        m->konami = calloc(1, sizeof *m->konami);
+        return konami_load_roms(m->konami, path);
+    }
     if (cine_recognizes(path)) {
         m->kind = MACHINE_CINEMATRONICS;
         m->cine = calloc(1, sizeof *m->cine);
@@ -35,8 +40,9 @@ bool machine_load_roms(Machine *m, const char *path)
     fprintf(stderr, "ROMs: found no ROMs laser-vault knows in %s. It plays Dragon's Lair\n"
                     "(lair.zip: revs D, E, F and F2, and the Dragon's Lair Enhancement 1.1 and\n"
                     "2.0 sets), Space Ace (ace.zip: rev A3, and the Space Ace Enhancement,\n"
-                    "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip) and\n"
-                    "Cliff Hanger (cliff.zip). A folder of the ROM files works too.\n", path);
+                    "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip),\n"
+                    "Cliff Hanger (cliff.zip) and Badlands (badlands.zip). A folder of the ROM\n"
+                    "files works too.\n", path);
     return false;
 }
 
@@ -44,10 +50,12 @@ void machine_free(Machine *m)
 {
     if (m->uni) sn76496_free(&m->uni->sound);
     if (m->cine) ay8910_free(&m->cine->ay);
+    if (m->konami) sn76496_free(&m->konami->sound);
     free(m->cine);
     free(m->uni);
     free(m->funai);
     free(m->stern);
+    free(m->konami);
     *m = (Machine){0};
 }
 
@@ -56,6 +64,7 @@ const char *machine_game_name(const Machine *m)
     if (m->kind == MACHINE_UNIVERSAL) return uni_game_name(m->uni);
     if (m->kind == MACHINE_FUNAI) return funai_game_name(m->funai);
     if (m->kind == MACHINE_STERN) return stern_game_name(m->stern);
+    if (m->kind == MACHINE_KONAMI) return konami_game_name(m->konami);
     return cine_game_name(m->cine->game);
 }
 
@@ -64,6 +73,7 @@ double machine_cpu_hz(const Machine *m)
     if (m->kind == MACHINE_UNIVERSAL) return UNI_CPU_HZ;
     if (m->kind == MACHINE_FUNAI) return FUNAI_CPU_HZ;
     if (m->kind == MACHINE_STERN) return STERN_CPU_HZ;
+    if (m->kind == MACHINE_KONAMI) return KONAMI_CPU_HZ;
     return CINE_CPU_HZ;
 }
 
@@ -72,6 +82,7 @@ uint64_t machine_cycles(const Machine *m)
     if (m->kind == MACHINE_UNIVERSAL) return m->uni->cycles;
     if (m->kind == MACHINE_FUNAI) return m->funai->cycles;
     if (m->kind == MACHINE_STERN) return m->stern->cycles;
+    if (m->kind == MACHINE_KONAMI) return m->konami->cycles;
     return m->cine->cycles;
 }
 
@@ -92,6 +103,10 @@ void machine_reset(Machine *m, Ldp *ldp)
     if (m->kind == MACHINE_UNIVERSAL) uni_reset(m->uni, &m->ldv1000);
     else if (m->kind == MACHINE_FUNAI) funai_reset(m->funai, &m->ldv1000);
     else if (m->kind == MACHINE_STERN) stern_reset(m->stern, &m->pr8210);
+    else if (m->kind == MACHINE_KONAMI) {
+        m->ldv1000.konami_rom = true;
+        konami_reset(m->konami, &m->ldv1000);
+    }
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
 
@@ -104,6 +119,7 @@ void machine_update_player(Machine *m)
 bool machine_audio_on(const Machine *m, int channel)
 {
     if (machine_uses_pr8210(m)) return pr8210_audio_on(&m->pr8210, channel);
+    if (m->kind == MACHINE_KONAMI && !konami_disc_audio_on(m->konami)) return false;
     return ldv1000_audio_on(&m->ldv1000, channel);
 }
 
@@ -112,6 +128,7 @@ void machine_run(Machine *m, uint64_t cycles)
     if (m->kind == MACHINE_UNIVERSAL) uni_run(m->uni, cycles);
     else if (m->kind == MACHINE_FUNAI) funai_run(m->funai, cycles);
     else if (m->kind == MACHINE_STERN) stern_run(m->stern, cycles);
+    else if (m->kind == MACHINE_KONAMI) konami_run(m->konami, cycles);
     else cine_run(m->cine, cycles);
 }
 
@@ -123,6 +140,10 @@ void machine_set_controls(Machine *m, const Controls *c)
             .up = c->up, .down = c->down, .left = c->left, .right = c->right,
             .hand = c->button, .feet = c->button2,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
+        };
+    } else if (m->kind == MACHINE_KONAMI) {
+        m->konami->inputs = (KonamiInputs){
+            .fire = button, .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
     } else if (m->kind == MACHINE_FUNAI) {
         m->funai->inputs = (FunaiInputs){
@@ -148,6 +169,7 @@ uint8_t *machine_dsw(Machine *m, int bank)
 {
     if (m->kind == MACHINE_STERN) return bank >= 1 && bank <= 4 ? &m->stern->dsw[bank - 1] : NULL;
     if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI) return NULL;
+    if (m->kind == MACHINE_KONAMI) return bank == 1 ? &m->konami->dsw1 : &m->konami->dsw2;
     if (m->kind == MACHINE_UNIVERSAL) return bank == 1 ? &m->uni->dsw1 : &m->uni->dsw2;
     return bank == 1 ? &m->cine->dsw1 : &m->cine->dsw2;
 }
@@ -173,6 +195,8 @@ void machine_set(Machine *m, MachineSetting setting, bool on)
 {
     if (m->kind == MACHINE_UNIVERSAL) uni_set(m->uni, uni_settings[setting], on);
     else if (m->kind == MACHINE_STERN) stern_set(m->stern, stern_settings[setting], on);
+    else if (m->kind == MACHINE_KONAMI && setting != MACHINE_UNLIMITED_LIVES)
+        konami_set(m->konami, setting == MACHINE_FREE_PLAY ? KONAMI_FREE_PLAY : KONAMI_QUIET_ATTRACT, on);
     else if (m->kind == MACHINE_CINEMATRONICS) cine_set(m->cine, cine_settings[setting], on);
 }
 
@@ -181,6 +205,10 @@ bool machine_get(const Machine *m, MachineSetting setting)
     if (m->kind == MACHINE_UNIVERSAL) return uni_get(m->uni, uni_settings[setting]);
     if (m->kind == MACHINE_FUNAI) return false;
     if (m->kind == MACHINE_STERN) return stern_get(m->stern, stern_settings[setting]);
+    if (m->kind == MACHINE_KONAMI) {
+        if (setting == MACHINE_UNLIMITED_LIVES) return false;
+        return konami_get(m->konami, setting == MACHINE_FREE_PLAY ? KONAMI_FREE_PLAY : KONAMI_QUIET_ATTRACT);
+    }
     return cine_get(m->cine, cine_settings[setting]);
 }
 
@@ -189,6 +217,7 @@ int machine_sample_rate(const Machine *m)
     if (m->kind == MACHINE_UNIVERSAL) return UNI_SAMPLE_RATE;
     if (m->kind == MACHINE_FUNAI) return FUNAI_SAMPLE_RATE;
     if (m->kind == MACHINE_STERN) return STERN_SAMPLE_RATE;
+    if (m->kind == MACHINE_KONAMI) return KONAMI_SAMPLE_RATE;
     return CINE_SAMPLE_RATE;
 }
 
@@ -197,6 +226,7 @@ void machine_start_sound(Machine *m)
     if (m->kind == MACHINE_UNIVERSAL) sn76496_set_rendering(&m->uni->sound, true, m->uni->cycles);
     else if (m->kind == MACHINE_FUNAI) funai_start_sound(m->funai);
     else if (m->kind == MACHINE_STERN) stern_start_sound(m->stern);
+    else if (m->kind == MACHINE_KONAMI) sn76496_set_rendering(&m->konami->sound, true, m->konami->cycles);
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -208,6 +238,10 @@ int machine_take_samples(Machine *m, const float **samples)
     }
     if (m->kind == MACHINE_FUNAI) return funai_take_samples(m->funai, samples);
     if (m->kind == MACHINE_STERN) return stern_take_samples(m->stern, samples);
+    if (m->kind == MACHINE_KONAMI) {
+        sn76496_run(&m->konami->sound, m->konami->cycles);
+        return sn76496_take_samples(&m->konami->sound, samples);
+    }
     ay8910_run(&m->cine->ay, m->cine->cycles);
     return ay8910_take_samples(&m->cine->ay, samples);
 }
@@ -217,6 +251,11 @@ bool machine_overlay_layout(const Machine *m, OverlayLayout *layout)
     if (m->kind == MACHINE_STERN) {
         // The video chip's picture and border, as much as a TV shows.
         *layout = (OverlayLayout){.width = TMS9928_W, .height = TMS9928_H, .x = 0, .y = 0, .w = 1, .h = 1};
+        return true;
+    }
+    if (m->kind == MACHINE_KONAMI) {
+        // The visible part of the tile grid covers the picture.
+        *layout = (OverlayLayout){.width = KONAMI_OVERLAY_W, .height = KONAMI_OVERLAY_H, .x = 0, .y = 0, .w = 1, .h = 1};
         return true;
     }
     if (m->kind == MACHINE_FUNAI) {
@@ -241,6 +280,7 @@ unsigned machine_overlay_serial(const Machine *m)
     if (m->kind == MACHINE_UNIVERSAL) return m->uni->overlay_serial;
     if (m->kind == MACHINE_FUNAI) return m->funai->overlay_serial;
     if (m->kind == MACHINE_STERN) return m->stern->vdp.serial;
+    if (m->kind == MACHINE_KONAMI) return m->konami->overlay_serial;
     return 0;
 }
 
@@ -249,4 +289,5 @@ void machine_draw_overlay(const Machine *m, uint32_t *pixels)
     if (m->kind == MACHINE_UNIVERSAL) uni_draw_overlay(m->uni, pixels);
     else if (m->kind == MACHINE_FUNAI) funai_draw_overlay(m->funai, pixels);
     else if (m->kind == MACHINE_STERN) stern_draw_overlay(m->stern, pixels);
+    else if (m->kind == MACHINE_KONAMI) konami_draw_overlay(m->konami, pixels);
 }

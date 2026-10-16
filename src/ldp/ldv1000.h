@@ -42,6 +42,13 @@ typedef struct {
     bool muted;           // playing at a set speed, started from a standstill: no sound
     int reply_frame;      // GET FRAME NUMBER: the frame being reported
     int64_t reply_field;  // and the field its first digit is in, or -1
+    uint8_t last_command; // the last byte taken (not NO ENTRY)
+
+    // Badlands' player runs Konami's own version of the player's ROM. In
+    // it a digit leaves the player ready (so a frame number can be sent a
+    // digit a field, with no NO ENTRY between), and 20 then 31 skips back
+    // 16 frames. Set after ldv1000_init.
+    bool konami_rom;
 } Ldv1000;
 
 // Attach to a player model (already set up with ldp_init) and park it,
