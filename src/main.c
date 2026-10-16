@@ -3,7 +3,7 @@
 // Usage: laser-vault FRAMEFILE [--video-dir DIR]
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
 //                                 [--unlimited-lives] [--free-play]
-//                                 [--dsw1 HEX] [--dsw2 HEX] [--autoplay]]
+//                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //
 // The window icons are built in (icons/); --icon uses a
@@ -12,11 +12,11 @@
 // (a PNG of the picture, and the score panel if it's shown) in the current
 // folder.
 //
-// With --roms (a ROM set such as lair.zip, sae.zip or superdq.zip, or a
-// folder of ROM files), it runs the game: Dragon's Lair, Space Ace or Super
-// Don Quix-ote, whichever the ROMs hold (see games/machine.h). The game's
-// CPU drives an LD-V1000 laserdisc player, and the keyboard is the control
-// panel. --fast-boot skips the wait while the game spins up the disc,
+// With --roms (a ROM set such as lair.zip, sae.zip or cliff.zip, or a
+// folder of ROM files), it runs the game: Dragon's Lair, Space Ace, Super
+// Don Quix-ote, Esh's Aurunmilla or Cliff Hanger, whichever the ROMs hold
+// (see games/machine.h). The game's CPU drives its laserdisc player, and the
+// keyboard is the control panel. --fast-boot skips the wait while the game spins up the disc,
 // starting straight in the attract mode. --attract-sound plays sound in
 // every attract cycle (by default, as on the real machine, Dragon's Lair
 // and Space Ace only do every few cycles). --scores shows Dragon's Lair's
@@ -24,8 +24,9 @@
 // bezel, beside the picture. --unlimited-lives turns on the game's own
 // unlimited lives setting: the hero still dies, but never loses a life.
 // --free-play needs no coins. --dsw1 and --dsw2 set the game's DIP switches
-// directly (each bank as a hex byte, replacing the ROM set's defaults); the
-// options above then change their own switches on top. --autoplay lets the
+// directly (each bank as a hex byte, replacing the ROM set's defaults; Cliff
+// Hanger also has --dsw3 and --dsw4); the options above then change their
+// own switches on top. --autoplay lets the
 // program play Dragon's Lair or Space Ace (see
 // games/cinematronics/autoplay.h); A switches it on and off during a game.
 //
@@ -90,10 +91,9 @@ typedef struct {
     SDL_AudioStream *chip_sound;  // the game board's sound chip, or NULL
     Ldp ldp;
 
-    // Game mode: the machine and its LD-V1000, which drive ldp.
+    // Game mode: the machine, whose laserdisc player drives ldp.
     bool game;
     Machine machine;
-    Ldv1000 player;
     Controls controls; // the control panel, as last read
     bool show_scores;  // the score display panel beside the picture (Cinematronics)
     bool paused;       // game mode: everything frozen
@@ -136,7 +136,7 @@ static void usage(void)
 {
     fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
-                    "                   [--free-play] [--dsw1 HEX] [--dsw2 HEX] [--autoplay]\n"
+                    "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n");
 }
 
@@ -459,7 +459,7 @@ static void run_board(App *app, uint64_t cycles)
         uint64_t stop = end;
         if (app->autoplaying) {
             finish_autoplay_thread(app, false, true);
-            CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, m->cine, &app->ldp, &app->player);
+            CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, m->cine, &app->ldp, &m->ldv1000);
             if (job) {
                 app->autoplay_job = job;
                 app->autoplay_thread = SDL_CreateThread(autoplay_thread, "autoplay", app);
@@ -473,7 +473,7 @@ static void run_board(App *app, uint64_t cycles)
             if (next > m->cine->cycles && next < stop) stop = next;
         }
         machine_run(m, stop - machine_cycles(m));
-        ldv1000_update(&app->player, machine_cycles(m));
+        machine_update_player(m);
     }
 }
 
@@ -517,9 +517,10 @@ static void read_game_inputs(App *app)
     if (in->left && !before.left) printf("%6.1f s  stick: left\n", t);
     if (in->right && !before.right) printf("%6.1f s  stick: right\n", t);
     const char *button = app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button";
-    if (app->machine.kind == MACHINE_FUNAI) {
-        if (in->button && !before.button) printf("%6.1f s  button 1\n", t);
-        if (in->button2 && !before.button2) printf("%6.1f s  button 2\n", t);
+    if (app->machine.kind == MACHINE_FUNAI || app->machine.kind == MACHINE_STERN) {
+        bool stern = app->machine.kind == MACHINE_STERN;
+        if (in->button && !before.button) printf("%6.1f s  %s\n", t, stern ? "hands" : "button 1");
+        if (in->button2 && !before.button2) printf("%6.1f s  %s\n", t, stern ? "feet" : "button 2");
     } else if ((in->button || in->button2) && !(before.button || before.button2)) {
         printf("%6.1f s  %s\n", t, button);
     }
@@ -543,7 +544,7 @@ static void fast_boot(App *app)
     bool searched = false;
     while (machine_cycles(m) < limit) {
         machine_run(m, (uint64_t)(hz / 100));  // 10 ms; searches take longer
-        ldv1000_update(&app->player, machine_cycles(m));
+        machine_update_player(m);
         if (app->ldp.state == LDP_SEARCHING) searched = true;
         else if (searched && app->ldp.state == LDP_PLAYING) break;
     }
@@ -661,7 +662,7 @@ int main(int argc, char **argv)
     bool unlimited_lives = false;
     bool free_play = false;
     bool autoplay = false;
-    int dsw1 = -1, dsw2 = -1;  // DIP switch banks, -1 = the ROM set's defaults
+    int dsw[4] = {-1, -1, -1, -1};  // DIP switch banks, -1 = the ROM set's defaults
     bool show_scores = false;
     bool fullscreen = false;
     const char *icon_path = NULL;
@@ -687,10 +688,14 @@ int main(int argc, char **argv)
             autoplay = true;
         } else if (strcmp(argv[i], "--free-play") == 0) {
             free_play = true;
-        } else if (strcmp(argv[i], "--dsw1") == 0 && i + 1 < argc) {
-            dsw1 = parse_hex_byte(argv[++i]);
-        } else if (strcmp(argv[i], "--dsw2") == 0 && i + 1 < argc) {
-            dsw2 = parse_hex_byte(argv[++i]);
+        } else if (strncmp(argv[i], "--dsw", 5) == 0 && argv[i][5] >= '1' && argv[i][5] <= '4' &&
+                   argv[i][6] == '\0' && i + 1 < argc) {
+            int bank = argv[i][5] - '1';
+            dsw[bank] = parse_hex_byte(argv[++i]);
+            if (dsw[bank] == -2) {
+                usage();
+                return 1;
+            }
         } else if (strcmp(argv[i], "--fast-boot") == 0) {
             want_fast_boot = true;
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
@@ -711,7 +716,7 @@ int main(int argc, char **argv)
         usage();
         return 1;
     }
-    if (disc_fps < 0 || dsw1 == -2 || dsw2 == -2) {
+    if (disc_fps < 0) {
         usage();
         return 1;
     }
@@ -778,23 +783,30 @@ int main(int argc, char **argv)
     if (app.game) {
         Machine *m = &app.machine;
         bool cinematronics = m->kind == MACHINE_CINEMATRONICS;
-        // The LD-V1000 takes over the player model; the board talks to it.
-        ldv1000_init(&app.player, &app.ldp, machine_cpu_hz(m));
-        machine_reset(m, &app.player);
+        // The board's laserdisc player takes over the player model.
+        machine_reset(m, &app.ldp);
         // DIP switch settings, as an operator would set them in the cabinet.
         // First any banks given whole, then the named options.
+        bool dsw_given = false;
+        for (int bank = 0; bank < 4; bank++) {
+            if (dsw[bank] < 0) continue;
+            dsw_given = true;
+            if (machine_dsw(m, bank + 1)) *machine_dsw(m, bank + 1) = (uint8_t)dsw[bank];
+            else printf("%s has no DIP switch bank %d; --dsw%d does nothing.\n", machine_game_name(m), bank + 1,
+                        bank + 1);
+        }
         if (machine_dsw(m, 1)) {
-            if (dsw1 >= 0) *machine_dsw(m, 1) = (uint8_t)dsw1;
-            if (dsw2 >= 0) *machine_dsw(m, 2) = (uint8_t)dsw2;
             // (Each ROM set knows which switch each named option is.)
             if (attract_sound) machine_set(m, MACHINE_QUIET_ATTRACT, false);
             if (unlimited_lives) machine_set(m, MACHINE_UNLIMITED_LIVES, true);
             if (free_play) machine_set(m, MACHINE_FREE_PLAY, true);
-            printf("DIP switches: DSW1 %02X, DSW2 %02X\n", *machine_dsw(m, 1), *machine_dsw(m, 2));
-        } else if (dsw1 >= 0 || dsw2 >= 0 || attract_sound || unlimited_lives || free_play) {
+            printf("DIP switches:");
+            for (int bank = 1; bank <= 4 && machine_dsw(m, bank); bank++)
+                printf("%s DSW%d %02X", bank > 1 ? "," : "", bank, *machine_dsw(m, bank));
+            printf("\n");
+        } else if (attract_sound || unlimited_lives || free_play) {
             printf("%s has no DIP switches (it keeps its settings in memory), so\n"
-                   "--dsw1, --dsw2, --free-play, --unlimited-lives and --attract-sound do nothing.\n",
-                   machine_game_name(m));
+                   "--free-play, --unlimited-lives and --attract-sound do nothing.\n", machine_game_name(m));
         }
         if (want_fast_boot) {
             fast_boot(&app);
@@ -808,7 +820,7 @@ int main(int argc, char **argv)
         }
         if (machine_get(m, MACHINE_FREE_PLAY))
             printf("With the game window active, press 1 to start (free play).\n");
-        else if (dsw1 >= 0 || dsw2 >= 0)  // the coinage may not be the default
+        else if (dsw_given)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");
         else if (cinematronics)
             printf("With the game window active, press 5 twice (two coins make one credit),\n"
@@ -817,6 +829,8 @@ int main(int argc, char **argv)
             printf("With the game window active, press 5 to insert a coin, then 1 to start.\n");
         if (cinematronics && m->cine->game == CINE_SPACE_ACE)
             printf("Then choose a skill level: F1 Cadet, F2 Captain or F3 Ace.\n");
+        if (m->kind == MACHINE_STERN)
+            printf("Space is Cliff's hands, Shift his feet, the arrow keys the joystick.\n");
         if (cinematronics) {
             cine_autoplay_init(&app.autoplay, true);
             app.autoplaying = autoplay;
@@ -876,10 +890,10 @@ int main(int argc, char **argv)
 
         // Sound plays only while the disc plays at normal speed. In game
         // mode the game can switch the disc's two audio channels on and off,
-        // or play the disc silently (see ldv1000_audio_on).
+        // or play the disc silently (see machine_audio_on).
         if (app.audio) {
-            bool channel1 = app.game ? ldv1000_audio_on(&app.player, 0) : true;
-            bool channel2 = app.game ? ldv1000_audio_on(&app.player, 1) : true;
+            bool channel1 = app.game ? machine_audio_on(&app.machine, 0) : true;
+            bool channel2 = app.game ? machine_audio_on(&app.machine, 1) : true;
             disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING && !app.paused,
                               app.ldp.frame, channel1, channel2);
         }

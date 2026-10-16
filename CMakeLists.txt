@@ -34,6 +34,7 @@ endif()
 add_library(lv_ldp STATIC
     src/ldp/ldp.c
     src/ldp/ldv1000.c
+    src/ldp/pr8210.c
 )
 target_include_directories(lv_ldp PUBLIC src)
 if(NOT WIN32)
@@ -72,7 +73,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -126,13 +127,20 @@ add_library(lv_funai STATIC
 )
 target_link_libraries(lv_funai PUBLIC lv_cpu lv_ldp lv_roms)
 
+# Stern's laserdisc board, which runs Cliff Hanger, with its video chip.
+add_library(lv_stern STATIC
+    src/games/stern/board.c
+    src/video/tms9928.c
+)
+target_link_libraries(lv_stern PUBLIC lv_cpu lv_ldp lv_roms)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_cine lv_universal lv_funai lv_png laser-vault disc-gif z80-zex cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_cine lv_universal lv_funai lv_stern lv_png laser-vault disc-gif z80-zex cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

@@ -2,10 +2,11 @@
 
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg. It plays *Dragon's Lair*, *Space Ace*, *Super Don
-Quix-ote* and *Esh's Aurunmilla*.
+Quix-ote*, *Esh's Aurunmilla* and *Cliff Hanger*.
 
 The original game code runs on an emulated Z80 CPU and drives an emulated
-Pioneer LD-V1000 laserdisc player, just as on the arcade board: the attract
+Pioneer laserdisc player (an LD-V1000, or for Cliff Hanger a PR-8210),
+just as on the arcade board: the attract
 mode plays, coins and start work, and you can play the game, with the
 laserdisc's soundtrack and the board's own sound chip. The code is meant to
 be read: each part explains how the real hardware works.
@@ -160,8 +161,8 @@ You need your own copy of the game:
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
   [Other ROM sets](#other-rom-sets). For the other games, see
-  [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote) and
-  [Esh's Aurunmilla](#eshs-aurunmilla).
+  [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
+  [Esh's Aurunmilla](#eshs-aurunmilla) and [Cliff Hanger](#cliff-hanger).
 
 Then:
 
@@ -177,7 +178,7 @@ flashing, and move or use the sword at the right moment.
 |-----------------------|-------------------------------------------|
 | Arrow keys            | joystick                                  |
 | Space / Ctrl          | sword (the action button)                 |
-| Shift                 | Esh's Aurunmilla: button 2 (other games: the action button) |
+| Shift                 | Esh's Aurunmilla: button 2; Cliff Hanger: feet (other games: the action button) |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
@@ -216,18 +217,18 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game     |
 | `--free-play`         | no coins needed: press 1 to start                              |
 | `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
-| `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches)) |
+| `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--frame N`           | without `--roms`: the frame to start on                        |
-| `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for Super Don Quix-ote and Esh's Aurunmilla; 23.976 without `--roms`; see `src/video/disc_video.h`) |
+| `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for the others; 23.976 without `--roms`; see `src/video/disc_video.h`) |
 
 ### What to expect
 
@@ -347,7 +348,8 @@ and give physical positions, where OFF means the bit is set. The original
 Space Ace and Super Don Quix-ote have layouts of their own (see
 [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote)). In
 every set, the three named options flip whichever switches that set uses.
-Esh's Aurunmilla has no DIP switches at all.
+Cliff Hanger has four banks (see [Cliff Hanger](#cliff-hanger)), and Esh's
+Aurunmilla has no DIP switches at all.
 
 ### Space Ace
 
@@ -474,6 +476,56 @@ switched on. The board's settings live in battery-backed memory instead of
 on DIP switches, so `--free-play` and the other switch options do nothing.
 The beeper's pitch isn't known; laser-vault uses MAME's guess of 2 kHz.
 
+### Cliff Hanger
+
+Cliff Hanger (Stern, 1983), made from the Lupin III films *The Castle of
+Cagliostro* and *Mystery of Mamo*, runs on Stern's own board, with a
+different player: the Pioneer PR-8210, a home player the board drives
+through its remote-control socket. The player never answers; the game
+knows where the disc is by reading the frame numbers recorded in the
+picture itself. A TMS9128 video chip draws the score, lives, hints and
+messages over the picture. You need:
+
+- **The video:** the Daphne-style clip `ch.m2v` with its soundtrack, and
+  the framefile `cliffhanger.txt`. Its first line is often a placeholder
+  instead of a folder, so give the folder with `--video-dir`.
+- **The ROMs:** `cliff.zip`, MAME's set 1 (`cliff_u1.bin` to `cliff_u5.bin`).
+  Sets 2 (`cliffalt.zip`, `cliff_alt_0.bin` to `cliff_alt_3.bin`) and 3
+  should work too, but haven't been tested; MAME says set 3 fails a
+  start-up check.
+
+```
+laser-vault path/to/cliffhanger.txt --video-dir path/to/mpeg/cliffhanger --roms path/to/cliff.zip --fast-boot
+```
+
+Press 5 to insert a coin, then 1 to start. Watch for danger: the game shows
+a hint at the bottom of the picture, "STICK" (push the joystick the way
+Cliff should go) or "ACTION" (a button). There are two buttons, Cliff's
+hands (Space) and his feet (Shift), and after a mistake the game tells you
+which you should have used. The board's two tones beep for a right move
+and boop for a wrong one.
+
+The control panel's feet buttons double as the start buttons, which is how
+the game reads them (MAME calls them player 1's and 2's second buttons).
+The PR-8210's remote codes, and the way the game sends each one three
+times, are described in `src/ldp/pr8210.h`.
+
+Its DIP switches, from MAME's `cliffhgr.cpp` (set 1; a switch on reads as a
+clear bit):
+
+| Bit    | DSW1                          | DSW2               | DSW3                         | DSW4            |
+|--------|-------------------------------|--------------------|------------------------------|-----------------|
+| `01`, `02` | lives: both set 3, then 4, 5, 6 | coin slot 1      | service index, switch test   | move difficulty |
+| `04`   | clear: no hanging scene       | unknown            | clear: free play (`--free-play`) | (with `01`-`08`) |
+| `08`   | clear: regular-length scenes  | unknown            | clear: immortal (`--unlimited-lives`) | (with `01`-`04`) |
+| `10`   | clear: score and lives shown during the animation | coin slot 2 (with `20`) | clear: disc test | unknown |
+| `20`   | clear: hints for the stick and buttons | (with `10`) | set: demo sounds (`--attract-sound` sets it) | unknown |
+| `40`   | hints after mistakes (with `80`: both set never, `80` only after the first, `40` only after the second, neither after the third) | unknown | set: short scenes | unknown |
+| `80`   | (with `40`)                   | unknown            | clear: continues allowed     | unknown         |
+
+laser-vault starts set 1 with DSW1 `C7`, DSW2 `FF`, DSW3 `3F` and DSW4
+`FF`, MAME's defaults.
+
 ### Driving the laserdisc player yourself
 
 Leave out `--roms` and you take the game's place: the keyboard controls the
@@ -584,12 +636,16 @@ and takes a minute or two.
 - `src/games/machine.c`: what the main program needs from a game board, passed on to the right one.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
+- `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
 - `src/games/universal/board.c`: Universal's System 1 board that runs Super Don Quix-ote
   (memory map, I/O, the tiles drawn over the picture, ROM sets).
+- `src/games/stern/board.c`: Stern's board that runs Cliff Hanger (memory map, I/O, the
+  frame-number reader, the tones, ROM sets).
+- `src/video/tms9928.c`: the TMS9918/9928 video chip that draws over Cliff Hanger's picture.
 - `src/games/funai/board.c`: Funai's board that runs Esh's Aurunmilla (memory map, I/O,
   the laserdisc interrupt, the tiles drawn over the picture, the beeper).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
