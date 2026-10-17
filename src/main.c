@@ -773,11 +773,12 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
 }
 
 // Recorded sound effects, for a board that uses them: from dir if given,
-// else from a "sounds" folder beside the ROMs' folder, or inside it.
+// else from a "sounds" folder beside the ROMs' folder (or "sound", Daphne's
+// name for it), or inside it.
 static void load_samples(Machine *m, const char *roms, const char *dir)
 {
     bool wanted = false;
-    char tried[2][1024];
+    char tried[3][1024];
     int found = 0, tries = 0;
     if (dir) {
         snprintf(tried[tries++], sizeof tried[0], "%s", dir);
@@ -788,6 +789,7 @@ static void load_samples(Machine *m, const char *roms, const char *dir)
         const char *folder = slash ? roms : ".";
         snprintf(tried[tries++], sizeof tried[0], "%.*s/../sounds", base, folder);
         snprintf(tried[tries++], sizeof tried[0], "%.*s/sounds", base, folder);
+        snprintf(tried[tries++], sizeof tried[0], "%.*s/../sound", base, folder);
     }
     for (int i = 0; i < tries && !found; i++) {
         found = machine_load_samples(m, tried[i], &wanted);
