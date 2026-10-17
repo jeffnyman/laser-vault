@@ -80,9 +80,9 @@ typedef struct {
 // The DIP switches start as the factory set them: 2 coins a credit, 5
 // lives, sound in every 8th attract cycle, LD-V1000 player. The DLE sets give two switches
 // new meanings. B:8 must be off (bit set) for the enhanced game in 1.1, and
-// for the standard game in 2.0 (on, it plays prototype scenes found only on
-// a disc pressed in 2002). In 2.0, B:5 on (bit clear) keeps the narrator in
-// the attract mode, as in the original game.
+// for the standard game in 2.0 and 2.1 (on, it plays prototype scenes found
+// only on a disc pressed in 2002). In 2.x, B:5 on (bit clear) keeps the
+// narrator in the attract mode, as in the original game.
 //
 // SAE uses Dragon's Lair's switches too, except that B:6 and B:7 choose the
 // skill level (both on, bits clear: the player picks with the skill
@@ -118,6 +118,13 @@ static const RomSet rom_sets[] = {
         {"dle20_u2.bin", 0x2000, 0x1CEA7622},
         {"dle20_u3.bin", 0x4000, 0x21A7E7CA},
         {"dle20_u4.bin", 0x6000, 0x4AE26073},
+    }},
+    // 2.0 on three chips (U4 and U5 empty), with one prototype scene fixed;
+    // the same switches. (Checksums from the set as distributed.)
+    {"Dragon's Lair Enhancement 2.1", CINE_DRAGONS_LAIR, &dragons_lair_switches, false, 0x20, 0xE9, {
+        {"dle21_u1.bin", 0x0000, 0x4F8AF481},
+        {"dle21_u2.bin", 0x2000, 0x5FCA04C5},
+        {"dle21_u3.bin", 0x4000, 0xC14F36B3},
     }},
     {"Dragon's Lair Enhancement 1.1", CINE_DRAGONS_LAIR, &dragons_lair_switches, true, 0x20, 0xF9, {
         {"dle11u1l.bin", 0x0000, 0x9E65B33D},

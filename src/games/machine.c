@@ -66,13 +66,14 @@ bool machine_load_roms(Machine *m, const char *path)
         return cine_load_roms(m->cine, path);
     }
     fprintf(stderr, "ROMs: found no ROMs laser-vault knows in %s. It plays Dragon's Lair\n"
-                    "(lair.zip: revs D, E, F and F2, and the Dragon's Lair Enhancement 1.1 and\n"
-                    "2.0 sets), Space Ace (ace.zip: rev A3, and the Space Ace Enhancement,\n"
+                    "(lair.zip: revs D, E, F and F2, and the Dragon's Lair Enhancement 1.1, 2.0\n"
+                    "and 2.1 sets), Space Ace (ace.zip: rev A3, and the Space Ace Enhancement,\n"
                     "sae.zip), Super Don Quix-ote (superdq.zip), Esh's Aurunmilla (esh.zip),\n"
                     "Cliff Hanger (cliff.zip), Badlands (badlands.zip), Astron Belt\n"
                     "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
-                    "sblazerp.zip), Cobra Command (Sega's version, cobraab.zip), Thayer's\n"
-                    "Quest (tq.zip), Bega's Battle (bega.zip) and Dragon's Lair II\n"
+                    "sblazerp.zip), Cobra Command (cobra.zip, or Sega's version,\n"
+                    "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip) and\n"
+                    "Dragon's Lair II\n"
                     "(lair2.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
