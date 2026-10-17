@@ -384,7 +384,7 @@ switched on. The board's settings live in battery-backed memory instead of
 on DIP switches, so `--free-play` and the other switch options do nothing.
 The beeper's pitch isn't known; laser-vault uses MAME's guess of 2 kHz.
 
-## Cliff Hanger
+<h2 id="cliff-hanger"><img src="./assets/cliff-logo.png" width="400" height="175" alt="Cliff Hanger"></h2>
 
 Cliff Hanger (Stern, 1983), made from the Lupin III films *The Castle of
 Cagliostro* and *Mystery of Mamo*, runs on Stern's own board, with a
@@ -394,17 +394,42 @@ knows where the disc is by reading the frame numbers recorded in the
 picture itself. A TMS9128 video chip draws the score, lives, hints and
 messages over the picture. You need:
 
-- **The video:** the Daphne-style clip `ch.m2v` with its soundtrack, and
-  the framefile `cliffhanger.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
+- **The video:** a Daphne-style clip of the whole disc with its
+  soundtrack, and a framefile that names it.
 - **The ROMs:** `cliff.zip`, MAME's set 1 (`cliff_u1.bin` to `cliff_u5.bin`).
-  Sets 2 (`cliffalt.zip`, `cliff_alt_0.bin` to `cliff_alt_3.bin`) and 3
-  should work too, but haven't been tested; MAME says set 3 fails a
-  start-up check.
+  Set 2 (`cliffalt.zip`, `cliff_alt_0.bin` to `cliff_alt_3.bin`) plays too.
+  It's a different version: it shows no
+  hints or score during play, and a credit always costs at least two coins
+  (its code has no 1 coin 1 credit setting), so press 5 twice. MAME says
+  set 3 fails a start-up check; it hasn't been tried.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
 
 ```
-laser-vault path/to/cliffhanger.txt --video-dir path/to/mpeg/cliffhanger --roms path/to/cliff.zip --fast-boot
+cliff.daphne/
+    cliff.txt                  the framefile, for the 24p clip
+    cliff24p_letterbox.txt     a framefile for the letterboxed 24p clip
+    ch_640x480_24p.m2v, .ogg   the disc at 23.976 frames a second
+    ch_640x480_24p_letterbox.m2v, .ogg
+    ch_640x480_30i.m2v, .ogg   the disc at 29.97 frames a second, interlaced
+    roms/cliff.zip, roms/cliffalt.zip
+    ram/cliff.gz               Daphne's saved high scores and settings
 ```
+
+```
+laser-vault path/to/cliff.daphne --fast-boot
+```
+
+It picks `cliff.txt` and `cliff.zip`, the ones named like the folder. The
+three clips are the same film (it's widescreen on the disc itself, so
+all three have black bars), encoded three ways; laser-vault works out
+each one's frame rate and finds the same picture in any of them. To play
+another, name its framefile: `laser-vault path/to/cliff.daphne/cliff24p_letterbox.txt
+--roms path/to/cliff.daphne/roms/cliff.zip`. The 30i clip has no
+framefile, but one is two lines: `.`, then `6 ch_640x480_30i.m2v`. The `ram`
+folder is ignored: laser-vault doesn't keep the board's memory between
+runs yet, so the game starts with its own default scores and settings.
 
 Press 5 to insert a coin, then 1 to start. Watch for danger: the game shows
 a hint at the bottom of the picture, "STICK" (push the joystick the way
