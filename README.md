@@ -29,7 +29,7 @@ real hardware works.
 | [Badlands](#badlands) | 1984 | Konami / Centuri | Konami | LD-V1000 |
 | [Astron Belt](#astron-belt) | 1983 | Sega / Bally Midway | Sega | LD-V1000 or Sega's own |
 | [Galaxy Ranger](#galaxy-ranger) (Star Blazer) | 1984 | Sega / Bally Midway | Sega | LD-V1000 or Sega's own |
-| [Cobra Command](#cobra-command) | 1984 | Data East (Sega's version) | Sega | Sega's own |
+| [Cobra Command](#cobra-command) | 1984 | Data East | Data East or Sega | Sony LDP-1000 or Sega's own |
 | [Thayer's Quest](#thayers-quest) | 1984 | RDI Video Systems | RDI | LD-V1000 |
 | [Bega's Battle](#begas-battle) | 1983 | Data East | Data East | Sony LDP-1000 |
 | [Dragon's Lair II: Time Warp](#dragons-lair-ii-time-warp) | 1991 | Leland / Sullivan Bluth | Leland | Sony LDP-1450 |
@@ -142,11 +142,12 @@ Japanese release, which plays the same disc.
 
 ### Cobra Command
 
-Data East's helicopter game, in the version Sega made for its own board:
-from the cockpit of an attack helicopter you fight through New York, the
-desert and the sea, with the board drawing the cockpit, the radar and the
-gun sight over Data East's film. It drives Sega's own laserdisc player, over
-a serial line.
+Data East's helicopter game: from the cockpit of an attack helicopter you
+fight through New York, the desert and the sea, with the board drawing the
+cockpit, the radar and the gun sight over the film. laser-vault runs both
+versions: Data East's own, on Bega's Battle's board with Sony's player, and
+the one Sega made for its own board, driving Sega's player over a serial
+line.
 
 <p align="center">
   <a href="assets/cc-title-700.png"><img src="assets/cc-title-700.png" width="32%" alt="Cobra Command title, frame 700"></a>
@@ -202,8 +203,8 @@ and, on the first level, hints for the moves) over the picture itself.
 
 Ideas rather than promises:
 
-- **More games:** Data East's own versions of *Cobra Command* and *Road
-  Blaster*, on Bega's Battle's board; Space Ace on Dragon's Lair II's board
+- **More games:** Data East's *Road Blaster*, on Bega's Battle's board;
+  Space Ace on Dragon's Lair II's board
   (Leland's 1991 conversion).
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been

@@ -642,30 +642,68 @@ Its sound effects are recordings too, as for Astron Belt: `gr_fire.wav`,
 `--samples` names. Without them it plays with the soundtrack alone. Its DIP
 switches are taken to be Astron Belt's, which hasn't been checked.
 
-## Cobra Command
+<h2 id="cobra-command"><img src="./assets/cobra-logo.png" width="400" height="167" alt="Cobra Command"></h2>
 
-Cobra Command (Data East, 1984) came in two versions: Data East's own, on
-its own board, and Sega's, on the board Astron Belt and Galaxy Ranger use,
-driving Sega's own laserdisc player. laser-vault runs Sega's. From the
-cockpit of an attack helicopter you fight through New York, the desert and
-the sea; the board draws the cockpit, the radar, the lives and fuel, and the
-gun sight over Data East's film. You need:
+Cobra Command (Data East, 1984) came in two versions, and laser-vault runs
+both: Data East's own, on the board Bega's Battle uses, driving Sony's
+LDP-1000, and Sega's, on the board Astron Belt and Galaxy Ranger use,
+driving Sega's own laserdisc player. From the cockpit of an attack
+helicopter you fight through New York, the desert and the sea; the board
+draws the cockpit, the radar, the score and lives, and the gun sight over
+the film. You need:
 
-- **The video:** the Daphne-style clip `cc.m2v` with its soundtrack, and
-  the framefile `cobracommand.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
-- **The ROMs:** Sega's version, as `cobraab.zip` (MAME's `cobraseg`:
-  `ic-1.bin`, `ic-2.bin`, and its own graphics and colour chips `ic-7`,
-  `ic-8`, `ic-11`, `ic-12`, `ic-13`).
+- **The video:** the Daphne-style clip of the disc with its soundtrack
+  (`cobra.m2v` in the usual set), and the framefile (`cobra.txt`).
+- **The ROMs:** either version. `cobra.zip` is Data East's (MAME's
+  `cobra`: program chips `au00-2` to `au03-2`, the sound CPU's `au06`, and
+  the graphics chips `au07` to `au09` and `au0a` to `au0c`). `cobraab.zip`
+  is Sega's (MAME's `cobraseg`: `ic-1.bin`, `ic-2.bin`, and its own
+  graphics and colour chips `ic-7`, `ic-8`, `ic-11`, `ic-12`, `ic-13`).
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
 
 ```
-laser-vault path/to/cobracommand.txt --video-dir path/to/mpeg/cobracommand --roms path/to/cobraab.zip
+cobra.daphne/
+    cobra.txt, cobra.m2v, cobra.ogg
+    roms/cobra.zip
 ```
+
+```
+laser-vault path/to/cobra.daphne
+```
+
+For Sega's version, add `--roms path/to/cobraab.zip`.
 
 Press 5 to insert a coin, then 1 to start. The arrow keys move the gun
-sight, Space fires the guns and Shift the missiles. No recordings of its
-sound effects are known, so it plays with the disc's soundtrack alone. Its
-DIP switches are taken to be Astron Belt's, which hasn't been checked.
+sight, Space fires the guns and Shift the missiles.
+
+**Data East's version** waits about 21 s for the disc to spin up
+(`--fast-boot` skips that); its attract mode is the film alone, with nothing
+drawn over it. Its sound effects come from the board's two sound chips, as in
+Bega's Battle. The canopy's two struts are drawn the way the game's tiles
+fit together, which isn't how the board is thought to lay them out (see
+`src/games/dataeast/board.c`); tell us if you know how the real screen
+looks. Its DIP switches, as the game's code reads them (MAME lists
+them as unknown; a switch on reads as a clear bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | `03` | coin slot 1: `03` 1 coin 1 credit, `02` 3 coins 1 credit, `01` 1 coin 2 credits, `00` 2 coins 1 credit |
+| DSW1 | `0C` | coin slot 2, the same way |
+| DSW2 | `01` | set: 3 lives; clear: 5 |
+| DSW2 | `06` | the score for a bonus life |
+| DSW2 | `18` | two tables of settings, perhaps the difficulty |
+| DSW2 | `20` | set: the disc's sound in the attract mode (`--attract-sound` sets it) |
+| DSW2 | `40` | read at start-up; what it does isn't known |
+| DSW2 | `80` | set: the game; clear: the board's test program |
+
+laser-vault starts it with DSW1 `0F` and DSW2 `FF`. There's no free play
+setting, so `--free-play` does nothing.
+
+**Sega's version**: no recordings of its sound effects are known, so it
+plays with the disc's soundtrack alone. Its DIP switches are taken to be
+Astron Belt's, which hasn't been checked.
 
 ## Thayer's Quest
 
