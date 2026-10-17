@@ -434,21 +434,29 @@ clear bit):
 laser-vault starts set 1 with DSW1 `C7`, DSW2 `FF`, DSW3 `3F` and DSW4
 `FF`, MAME's defaults.
 
-## Badlands
+<h2 id="badlands"><img src="./assets/badlands-logo.png" width="400" height="81" alt="Badlands"></h2>
 
 Badlands (Konami/Centuri, 1984) runs on Konami's own board: a Motorola 6809
 driving an LD-V1000, with tiles drawn over the picture for the score and
 the hero's name, and an SN76496 sound chip for the gunshots. You need:
 
 - **The video:** the Daphne-style clip `badlands-pc.m2v` with its
-  soundtrack, and the framefile `badlands.txt`. Its first line is often a
-  placeholder instead of a folder, so give the folder with `--video-dir`.
+  soundtrack, and the framefile `badlands.txt`.
 - **The ROMs:** `badlands.zip`, MAME's set 1 (`badlands.a13`,
   `badlands.a14`, `badlands.c8`, `badlands.c4`). MAME's set 2 has its
   devices at other addresses and isn't supported.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/badlands.txt --video-dir path/to/mpeg/badlands --roms path/to/badlands.zip
+badlands.daphne/
+    badlands.txt, badlands-pc.m2v, badlands-pc.ogg
+    roms/badlands.zip
+```
+
+```
+laser-vault path/to/badlands.daphne
 ```
 
 The start-up checks take a few seconds; then the attract mode plays. Press 5
