@@ -280,14 +280,13 @@ and Astron Belt two of their own (see [Badlands](#badlands) and
 [Astron Belt](#astron-belt)), and Esh's Aurunmilla has no DIP switches at
 all.
 
-## Space Ace
+<h2 id="space-ace"><img src="./assets/space-ace-logo.png" width="400" height="175" alt="Space Ace"></h2>
 
 Space Ace (1983) came from the same team and runs on the same Cinematronics
 board, so laser-vault plays it the same way. You need:
 
-- **The video:** Daphne-style clips and their framefile, `spaceace.txt`. Its
-  first line is often a placeholder instead of a folder, so give the folder
-  with `--video-dir`.
+- **The video:** Daphne-style clips and their framefile (`sae.txt` in the
+  usual set; both ROM sets play the same disc).
 - **The ROMs:** either of these.
   - **`ace.zip`, rev A3:** the arcade original, chips `sa_a3_u1.bin` to
     `sa_a3_u5.bin`. (Revs A and A2 aren't supported; A3 replaced them.)
@@ -296,9 +295,21 @@ board, so laser-vault plays it the same way. You need:
     animation on the disc, smooths the transitions and fixes problems in
     the original program; its readme describes the changes.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/spaceace.txt --video-dir path/to/mpeg/spaceace --roms path/to/ace.zip --fast-boot
+sae.daphne/
+    sae.txt, sa-slates.m2v, spa00.vob.m2v, ... (and their .ogg files)
+    roms/ace.zip, roms/sae.zip
 ```
+
+```
+laser-vault path/to/sae.daphne --fast-boot
+```
+
+With the folder named `sae`, that plays `sae.zip`, the Enhancement. For the
+arcade original, add `--roms path/to/sae.daphne/roms/ace.zip`.
 
 Insert two coins and press 1, then choose a skill level within a few seconds
 with F1, F2 or F3 (on a controller: left shoulder, right shoulder, right
