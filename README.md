@@ -4,8 +4,9 @@ A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
 The original game code runs on emulated CPUs (a Z80, Badlands' 6809, Bega's
-Battle's two 6502s, and Thayer's Quest's COP421 microcontroller) and drives
-an emulated laserdisc player, just as on the arcade board: the attract mode
+Battle's two 6502s, Dragon's Lair II's 8088, and Thayer's Quest's COP421
+microcontroller) and drives an emulated laserdisc player, just as on the
+arcade board: the attract mode
 plays, coins and start work, and you can play the game, with the
 laserdisc's soundtrack, the board's own sounds, and whatever the board draws
 over the picture. The code is meant to be read: each part explains how the
@@ -31,6 +32,7 @@ real hardware works.
 | [Cobra Command](#cobra-command) | 1984 | Data East (Sega's version) | Sega | Sega's own |
 | [Thayer's Quest](#thayers-quest) | 1984 | RDI Video Systems | RDI | LD-V1000 |
 | [Bega's Battle](#begas-battle) | 1983 | Data East | Data East | Sony LDP-1000 |
+| [Dragon's Lair II: Time Warp](#dragons-lair-ii-time-warp) | 1991 | Leland / Sullivan Bluth | Leland | Sony LDP-1450 |
 
 ### Dragon's Lair
 
@@ -182,17 +184,32 @@ LDP-1000 player over a serial line.
   <a href="assets/bb-play-1.png"><img src="assets/bb-play-1.png" width="32%" alt="Playing Bega's Battle: Bega fires up past a skyscraper at night, with Luna beside him and an enemy exploding"></a>
 </p>
 
+### Dragon's Lair II: Time Warp
+
+Dirk the Daring chases the wizard Mordroc through time, in a time machine,
+to rescue Daphne. The sequel came out eight years after the first game, on
+a board from Leland built much like an IBM PC: an 8088 runs the game, and
+Sony's LDP-1450 player draws the game's words (the level, lives, credits
+and, on the first level, hints for the moves) over the picture itself.
+
+<p align="center">
+  <a href="assets/dl2-title-2050.png"><img src="assets/dl2-title-2050.png" width="32%" alt="Dragon's Lair II: Time Warp title, frame 2050"></a>
+  <a href="assets/dl2-1300-1560.gif"><img src="assets/dl2-1300-1560.gif" width="32%" alt="Dragon's Lair II: scenes from the attract mode, frames 1300 to 1560"></a>
+  <a href="assets/dl2-play-1.png"><img src="assets/dl2-play-1.png" width="32%" alt="Playing Dragon's Lair II: the player's LEVEL 1 text over Mordroc's tower at night"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
 - **More games:** Data East's own versions of *Cobra Command* and *Road
-  Blaster*, on Bega's Battle's board.
+  Blaster*, on Bega's Battle's board; Space Ace on Dragon's Lair II's board
+  (Leland's 1991 conversion).
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been
   dumped.)
 - **Keeping high scores and settings** between runs, for the boards that
-  kept them in battery-backed memory.
+  kept them in battery-backed memory or an EEPROM.
 - **A list of the ROM sets' checksums**, to check your copies against.
 
 ## License

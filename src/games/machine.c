@@ -48,6 +48,11 @@ bool machine_load_roms(Machine *m, const char *path)
         m->deco = calloc(1, sizeof *m->deco);
         return deco_load_roms(m->deco, path);
     }
+    if (leland_recognizes(path)) {
+        m->kind = MACHINE_LELAND;
+        m->leland = calloc(1, sizeof *m->leland);
+        return leland_load_roms(m->leland, path);
+    }
     if (cine_recognizes(path)) {
         m->kind = MACHINE_CINEMATRONICS;
         m->cine = calloc(1, sizeof *m->cine);
@@ -60,8 +65,8 @@ bool machine_load_roms(Machine *m, const char *path)
                     "Cliff Hanger (cliff.zip), Badlands (badlands.zip), Astron Belt\n"
                     "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
                     "sblazerp.zip), Cobra Command (Sega's version, cobraab.zip), Thayer's\n"
-                    "Quest (tq.zip) and Bega's Battle (bega.zip). A folder of the ROM files\n"
-                    "works too.\n", path);
+                    "Quest (tq.zip), Bega's Battle (bega.zip) and Dragon's Lair II\n"
+                    "(lair2.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -76,6 +81,7 @@ void machine_free(Machine *m)
         for (int i = 0; i < 2; i++) ay8910_free(&m->deco->ay[i]);
         free(m->deco->samples);
     }
+    if (m->leland) leland_free(m->leland);
     free(m->cine);
     free(m->uni);
     free(m->funai);
@@ -84,6 +90,7 @@ void machine_free(Machine *m)
     free(m->sega);
     free(m->rdi);
     free(m->deco);
+    free(m->leland);
     *m = (Machine){0};
 }
 
@@ -117,6 +124,7 @@ const char *machine_game_name(const Machine *m)
     if (m->kind == MACHINE_SEGA) return sega_game_name(m->sega);
     if (m->kind == MACHINE_RDI) return rdi_game_name(m->rdi);
     if (m->kind == MACHINE_DATAEAST) return deco_game_name(m->deco);
+    if (m->kind == MACHINE_LELAND) return leland_game_name(m->leland);
     return cine_game_name(m->cine->game);
 }
 
@@ -129,6 +137,7 @@ double machine_cpu_hz(const Machine *m)
     if (m->kind == MACHINE_SEGA) return SEGA_CPU_HZ;
     if (m->kind == MACHINE_RDI) return RDI_CPU_HZ;
     if (m->kind == MACHINE_DATAEAST) return DECO_CPU_HZ;
+    if (m->kind == MACHINE_LELAND) return LELAND_CPU_HZ;
     return CINE_CPU_HZ;
 }
 
@@ -141,6 +150,7 @@ uint64_t machine_cycles(const Machine *m)
     if (m->kind == MACHINE_SEGA) return m->sega->cycles;
     if (m->kind == MACHINE_RDI) return m->rdi->cycles;
     if (m->kind == MACHINE_DATAEAST) return m->deco->cycles;
+    if (m->kind == MACHINE_LELAND) return m->leland->cycles;
     return m->cine->cycles;
 }
 
@@ -165,6 +175,7 @@ void machine_reset(Machine *m, Ldp *ldp)
     if (machine_uses_pr8210(m)) pr8210_init(&m->pr8210, ldp, machine_cpu_hz(m));
     else if (uses_vip(m)) vip9500sg_init(&m->vip, ldp, machine_cpu_hz(m));
     else if (m->kind == MACHINE_DATAEAST) ldp1000_init(&m->ldp1000, ldp, machine_cpu_hz(m));
+    else if (m->kind == MACHINE_LELAND) ldp1450_init(&m->ldp1000, ldp, machine_cpu_hz(m));
     else ldv1000_init(&m->ldv1000, ldp, machine_cpu_hz(m));
     if (m->kind == MACHINE_UNIVERSAL) uni_reset(m->uni, &m->ldv1000);
     else if (m->kind == MACHINE_FUNAI) funai_reset(m->funai, &m->ldv1000);
@@ -176,6 +187,7 @@ void machine_reset(Machine *m, Ldp *ldp)
     else if (m->kind == MACHINE_SEGA) sega_reset(m->sega, &m->ldv1000, &m->vip);
     else if (m->kind == MACHINE_RDI) rdi_reset(m->rdi, &m->ldv1000);
     else if (m->kind == MACHINE_DATAEAST) deco_reset(m->deco, &m->ldp1000);
+    else if (m->kind == MACHINE_LELAND) leland_reset(m->leland, &m->ldp1000);
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
 
@@ -183,7 +195,7 @@ void machine_update_player(Machine *m)
 {
     if (machine_uses_pr8210(m)) pr8210_update(&m->pr8210, machine_cycles(m));
     else if (uses_vip(m)) vip9500sg_update(&m->vip, machine_cycles(m));
-    else if (m->kind == MACHINE_DATAEAST) ldp1000_update(&m->ldp1000, machine_cycles(m));
+    else if (m->kind == MACHINE_DATAEAST || m->kind == MACHINE_LELAND) ldp1000_update(&m->ldp1000, machine_cycles(m));
     else ldv1000_update(&m->ldv1000, machine_cycles(m));
 }
 
@@ -191,7 +203,7 @@ bool machine_audio_on(const Machine *m, int channel)
 {
     if (machine_uses_pr8210(m)) return pr8210_audio_on(&m->pr8210, channel);
     if (uses_vip(m)) return vip9500sg_audio_on(&m->vip, channel);
-    if (m->kind == MACHINE_DATAEAST) return ldp1000_audio_on(&m->ldp1000, channel);
+    if (m->kind == MACHINE_DATAEAST || m->kind == MACHINE_LELAND) return ldp1000_audio_on(&m->ldp1000, channel);
     if (m->kind == MACHINE_KONAMI && !konami_disc_audio_on(m->konami)) return false;
     return ldv1000_audio_on(&m->ldv1000, channel);
 }
@@ -205,6 +217,7 @@ void machine_run(Machine *m, uint64_t cycles)
     else if (m->kind == MACHINE_SEGA) sega_run(m->sega, cycles);
     else if (m->kind == MACHINE_RDI) rdi_run(m->rdi, cycles);
     else if (m->kind == MACHINE_DATAEAST) deco_run(m->deco, cycles);
+    else if (m->kind == MACHINE_LELAND) leland_run(m->leland, cycles);
     else cine_run(m->cine, cycles);
 }
 
@@ -234,6 +247,11 @@ void machine_set_controls(Machine *m, const Controls *c)
             .button1 = c->button, .button2 = c->button2, .button3 = c->button3,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
+    } else if (m->kind == MACHINE_LELAND) {
+        m->leland->inputs = (LelandInputs){
+            .up = c->up, .down = c->down, .left = c->left, .right = c->right, .sword = button,
+            .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
+        };
     } else if (m->kind == MACHINE_KONAMI) {
         m->konami->inputs = (KonamiInputs){
             .fire = button, .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
@@ -261,7 +279,7 @@ void machine_set_controls(Machine *m, const Controls *c)
 uint8_t *machine_dsw(Machine *m, int bank)
 {
     if (m->kind == MACHINE_STERN) return bank >= 1 && bank <= 4 ? &m->stern->dsw[bank - 1] : NULL;
-    if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI) return NULL;
+    if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI || m->kind == MACHINE_LELAND) return NULL;
     if (m->kind == MACHINE_KONAMI) return bank == 1 ? &m->konami->dsw1 : &m->konami->dsw2;
     if (m->kind == MACHINE_SEGA) return bank == 1 ? &m->sega->dsw1 : &m->sega->dsw2;
     if (m->kind == MACHINE_RDI) return bank == 1 ? &m->rdi->dswa : &m->rdi->dswb;
@@ -305,7 +323,7 @@ void machine_set(Machine *m, MachineSetting setting, bool on)
 bool machine_get(const Machine *m, MachineSetting setting)
 {
     if (m->kind == MACHINE_UNIVERSAL) return uni_get(m->uni, uni_settings[setting]);
-    if (m->kind == MACHINE_FUNAI) return false;
+    if (m->kind == MACHINE_FUNAI || m->kind == MACHINE_LELAND) return false;
     if (m->kind == MACHINE_STERN) return stern_get(m->stern, stern_settings[setting]);
     if (m->kind == MACHINE_RDI) {
         if (setting == MACHINE_UNLIMITED_LIVES) return false;
@@ -335,6 +353,7 @@ int machine_sample_rate(const Machine *m)
     if (m->kind == MACHINE_SEGA) return SEGA_SAMPLE_RATE;
     if (m->kind == MACHINE_RDI) return RDI_SAMPLE_RATE;
     if (m->kind == MACHINE_DATAEAST) return DECO_SAMPLE_RATE;
+    if (m->kind == MACHINE_LELAND) return LELAND_SAMPLE_RATE;
     return CINE_SAMPLE_RATE;
 }
 
@@ -347,6 +366,7 @@ void machine_start_sound(Machine *m)
     else if (m->kind == MACHINE_SEGA) samples_start(&m->sega->sound, m->sega->cycles);
     else if (m->kind == MACHINE_RDI) ssi263_start(&m->rdi->speech, m->rdi->cycles);
     else if (m->kind == MACHINE_DATAEAST) deco_start_sound(m->deco);
+    else if (m->kind == MACHINE_LELAND) leland_start_sound(m->leland);
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -359,6 +379,7 @@ int machine_take_samples(Machine *m, const float **samples)
     if (m->kind == MACHINE_FUNAI) return funai_take_samples(m->funai, samples);
     if (m->kind == MACHINE_STERN) return stern_take_samples(m->stern, samples);
     if (m->kind == MACHINE_DATAEAST) return deco_take_samples(m->deco, samples);
+    if (m->kind == MACHINE_LELAND) return leland_take_samples(m->leland, samples);
     if (m->kind == MACHINE_RDI) {
         ssi263_run(&m->rdi->speech, m->rdi->cycles);
         return ssi263_take_samples(&m->rdi->speech, samples);
@@ -388,6 +409,11 @@ bool machine_overlay_layout(const Machine *m, OverlayLayout *layout)
     }
     if (m->kind == MACHINE_DATAEAST) {
         *layout = (OverlayLayout){.width = DECO_OVERLAY_W, .height = DECO_OVERLAY_H, .x = 0, .y = 0, .w = 1, .h = 1};
+        return true;
+    }
+    if (m->kind == MACHINE_LELAND) {
+        // The player's text, over the whole picture.
+        *layout = (OverlayLayout){.width = LDP1450_TEXT_W, .height = LDP1450_TEXT_H, .x = 0, .y = 0, .w = 1, .h = 1};
         return true;
     }
     if (m->kind == MACHINE_KONAMI) {
@@ -420,6 +446,7 @@ unsigned machine_overlay_serial(const Machine *m)
     if (m->kind == MACHINE_KONAMI) return m->konami->overlay_serial;
     if (m->kind == MACHINE_SEGA) return m->sega->overlay_serial;
     if (m->kind == MACHINE_DATAEAST) return m->deco->overlay_serial;
+    if (m->kind == MACHINE_LELAND) return m->ldp1000.text_serial;
     return 0;
 }
 
@@ -431,4 +458,5 @@ void machine_draw_overlay(const Machine *m, uint32_t *pixels)
     else if (m->kind == MACHINE_KONAMI) konami_draw_overlay(m->konami, pixels);
     else if (m->kind == MACHINE_SEGA) sega_draw_overlay(m->sega, pixels);
     else if (m->kind == MACHINE_DATAEAST) deco_draw_overlay(m->deco, pixels);
+    else if (m->kind == MACHINE_LELAND) ldp1450_draw_text(&m->ldp1000, pixels);
 }

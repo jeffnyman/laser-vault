@@ -957,6 +957,10 @@ int main(int argc, char **argv)
         } else if (m->kind == MACHINE_DATAEAST) {
             printf("%s is starting. Like the real machine, it waits about 16 s for the\n"
                    "disc to spin up. (Use --fast-boot to skip the wait.)\n", machine_game_name(m));
+        } else if (m->kind == MACHINE_LELAND) {
+            printf("%s is starting. Like the real machine, it checks itself for about\n"
+                   "10 s, then sets up the player; the attract mode starts after about 18 s.\n"
+                   "(Use --fast-boot to skip the wait.)\n", machine_game_name(m));
         } else {
             printf("%s is starting. (Use --fast-boot to start straight in the attract\n"
                    "mode.)\n", machine_game_name(m));
@@ -970,7 +974,7 @@ int main(int argc, char **argv)
             printf("With the game window active, press 1 to start (free play).\n");
         else if (dsw_given)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");
-        else if (cinematronics)
+        else if (cinematronics || m->kind == MACHINE_LELAND)
             printf("With the game window active, press 5 twice (two coins make one credit),\n"
                    "then 1 to start.\n");
         else
@@ -982,6 +986,7 @@ int main(int argc, char **argv)
         if (m->kind == MACHINE_DATAEAST)
             printf("The arrow keys move Bega, Space fires; Shift and Z are the buttons for\n"
                    "the friends you rescue.\n");
+        if (m->kind == MACHINE_LELAND) printf("The arrow keys move Dirk, Space is his sword.\n");
         if (cinematronics) {
             cine_autoplay_init(&app.autoplay, true);
             app.autoplaying = autoplay;

@@ -75,7 +75,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_png SDL3::SDL3)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -84,12 +84,13 @@ add_executable(disc-gif
 )
 target_link_libraries(disc-gif PRIVATE lv_video lv_png)
 
-# The CPUs: Z80, 6809, COP421 and 6502.
+# The CPUs: Z80, 6809, COP421, 6502 and 8088.
 add_library(lv_cpu STATIC
     src/cpu/z80.c
     src/cpu/m6809.c
     src/cpu/cop421.c
     src/cpu/m6502.c
+    src/cpu/i8088.c
 )
 target_include_directories(lv_cpu PUBLIC src)
 
@@ -104,6 +105,12 @@ add_executable(m6502-test
     tests/m6502_test.c
 )
 target_link_libraries(m6502-test PRIVATE lv_cpu)
+
+# Test: run the SingleStepTests 8088 tests (recorded from a real chip).
+add_executable(i8088-test
+    tests/i8088_test.c
+)
+target_link_libraries(i8088-test PRIVATE lv_cpu ZLIB::ZLIB)
 
 # Reading ROM sets, from zips or folders.
 add_library(lv_roms STATIC
@@ -176,13 +183,19 @@ add_library(lv_dataeast STATIC
 )
 target_link_libraries(lv_dataeast PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
+# Leland's laserdisc board, which runs Dragon's Lair II.
+add_library(lv_leland STATIC
+    src/games/leland/board.c
+)
+target_link_libraries(lv_leland PUBLIC lv_cpu lv_ldp lv_roms)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_png laser-vault disc-gif z80-zex m6502-test cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_png laser-vault disc-gif z80-zex m6502-test i8088-test cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)

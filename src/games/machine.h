@@ -14,6 +14,7 @@
 //     Sega (games/sega)                    Astron Belt, Galaxy Ranger  LD-V1000
 //     RDI (games/rdi)                      Thayer's Quest              LD-V1000
 //     Data East (games/dataeast)           Bega's Battle               LDP-1000
+//     Leland (games/leland)                Dragon's Lair II            LDP-1450
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -25,6 +26,7 @@
 #include "games/dataeast/board.h"
 #include "games/funai/board.h"
 #include "games/konami/board.h"
+#include "games/leland/board.h"
 #include "games/rdi/board.h"
 #include "games/sega/board.h"
 #include "games/stern/board.h"
@@ -46,6 +48,7 @@ typedef enum {
     MACHINE_SEGA,
     MACHINE_RDI,
     MACHINE_DATAEAST,
+    MACHINE_LELAND,
 } MachineKind;
 
 typedef struct {
@@ -58,12 +61,13 @@ typedef struct {
     SegaBoard *sega;      // when kind is MACHINE_SEGA
     RdiBoard *rdi;        // when kind is MACHINE_RDI
     DecoBoard *deco;      // when kind is MACHINE_DATAEAST
+    LelandBoard *leland;  // when kind is MACHINE_LELAND
 
     // The laserdisc player the board drives, which drives the player model.
     Ldv1000 ldv1000;  // most boards
     Pr8210 pr8210;    // Stern's board
     Vip9500sg vip;    // the Sega board, in its versions for Sega's player
-    Ldp1000 ldp1000;  // Data East's board
+    Ldp1000 ldp1000;  // Data East's board; as an LDP-1450, Leland's
 } Machine;
 
 // The control panel: true means pressed. Games use what they have: some

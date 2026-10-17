@@ -215,6 +215,25 @@ It should print `passed`, after about 96 million clock cycles (a second or
 so). A failure prints the address the test stopped at; the `.lst` file
 beside the binary shows which check that is.
 
+## Testing the 8088
+
+The 8088 emulator (`src/cpu/i8088.c`) is checked with Daniel Balsom's
+SingleStepTests, recorded from a real 8088: for each opcode, thousands of
+single instructions run from random registers and memory, with the
+registers and memory they left. They're MIT-licensed and not included here
+(about 500 MB). Get the `v2_binary` folder (the `.MOO.gz` files) from
+[SingleStepTests/8088](https://github.com/SingleStepTests/8088), then run:
+
+```
+i8088-test path/to/v2_binary
+```
+
+It should print `passed: all 322 files`, after half a minute or so. Add
+opcodes in hex (`i8088-test path/to/v2_binary F6.7 D4`) to run just those;
+failures print the test's name and the first register or byte that differs.
+The flags Intel leaves undefined for an instruction aren't compared, nor
+the cycle counts.
+
 ## The other CPUs
 
 The 6809 emulator (`src/cpu/m6809.c`) has no exerciser of its own yet. So
@@ -230,11 +249,13 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
 - `src/ldp/vip9500sg.c`: Sega's laserdisc player (the VIP9500SG) and its serial commands.
-- `src/ldp/ldp1000.c`: Sony's LDP-1000 and its serial commands.
+- `src/ldp/ldp1000.c`: Sony's LDP-1000 and its serial commands, and the LDP-1450's (with its text display).
+- `src/ldp/font8x8.h`: the PC's 8x8 font, for the LDP-1450's text.
 - `src/cpu/z80.c`: the Z80 CPU emulator.
 - `src/cpu/m6809.c`: the Motorola 6809 CPU emulator, with a disassembler.
 - `src/cpu/cop421.c`: the National Semiconductor COP421 microcontroller (Thayer's Quest's keyboard).
 - `src/cpu/m6502.c`: the MOS 6502 CPU emulator, with a disassembler.
+- `src/cpu/i8088.c`: the Intel 8088 CPU emulator, with a disassembler.
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
 - `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
@@ -254,6 +275,8 @@ checksums both program ROMs, and which then plays. The COP421
   the laserdisc latches, the sprites and characters drawn over the picture).
 - `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle (two 6502s, the
   serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture).
+- `src/games/leland/board.c`: Leland's board that runs Dragon's Lair II (the PC's interrupt
+  controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.
@@ -272,6 +295,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/tools/cine_trace.c`: the `cine-trace` tool.
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
 - `tests/m6502_test.c`: runs Klaus Dormann's functional test on the 6502.
+- `tests/i8088_test.c`: runs the SingleStepTests on the 8088.
 - `icons/`: the window icons (`dlair.ico`, `astron.ico`, and `laser.ico` for
   the other games). CMake builds them into the program
   (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
@@ -280,7 +304,7 @@ checksums both program ROMs, and which then plays. The COP421
 ### How a game fits together
 
 Each game runs on its board, in `src/games/<maker>/board.c`: the CPU (a
-Z80, Konami's 6809, or Data East's 6502s), the memory map, the I/O ports, the interrupts and whatever the board draws or
+Z80, Konami's 6809, Data East's 6502s, or Leland's 8088), the memory map, the I/O ports, the interrupts and whatever the board draws or
 plays. The board drives a laserdisc player model (`src/ldp/`), which drives
 the plain player in `src/ldp/ldp.c`, whose frame number the main program
 shows. `src/games/machine.c` is the common ground: the main program asks it

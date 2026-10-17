@@ -10,7 +10,8 @@ How to run the games, the keys, the options, and what each game needs.
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
-  [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle)
+  [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
+  [Dragon's Lair II](#dragons-lair-ii)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -30,7 +31,8 @@ You need your own copy of the game:
   [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
   [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
-  [Thayer's Quest](#thayers-quest) and [Bega's Battle](#begas-battle).
+  [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle) and
+  [Dragon's Lair II](#dragons-lair-ii).
 
 Then:
 
@@ -87,7 +89,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | Option                | Meaning                                                        |
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
-| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `galaxy.zip`, `cobraab.zip`, `tq.zip`, `bega.zip`, ...) or a folder of ROM files |
+| `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `galaxy.zip`, `cobraab.zip`, `tq.zip`, `bega.zip`, `lair2.zip`, ...) or a folder of ROM files |
 | `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
 | `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
@@ -704,6 +706,42 @@ as unknown; a switch on reads as a clear bit):
 There's no free play setting, so `--free-play` does nothing; nor a switch
 for the attract mode's sound. laser-vault starts with DSW1 `0F` and DSW2
 `BB` (3 lives, continues, one or two players).
+
+## Dragon's Lair II
+
+Dragon's Lair II: Time Warp (Leland, 1991) runs on Leland's board, which is
+built much like an IBM PC XT: an 8088 at 10 MHz, the PC's interrupt
+controller, timer and speaker, and Sony's LDP-1450 player on its second
+serial port. The board has no graphics of its own: the player draws the
+game's words over the picture. You need:
+
+- **The video:** the Daphne-style clips `dl2-00001.m2v` to `dl2-44550.m2v`
+  with their `.ogg` soundtracks, and the framefile `dragonslair2.txt`. Some
+  copies leave the last clip, `dl2-44550.m2v`, out of the framefile; add the
+  line `44550  dl2-44550.m2v` at the end if so. The clips must be plain
+  MPEG and Ogg files: some copies come scrambled (as `.m2v.bf` and `.ogg.bf`
+  files), and laser-vault can't read those.
+- **The ROMs:** `lair2.zip` holding `dl2_319.bin`, the US version 3.19 (MAME's
+  `dlair2`). Versions 3.18, 3.15, 3.14 and 3.00 are recognized too, but
+  haven't been tried. The 2.xx versions need the disc's first pressing, and
+  the European versions drive a Philips player instead: those don't run.
+
+```
+laser-vault path/to/dragonslair2.txt --video-dir path/to/mpeg --roms path/to/lair2.zip
+```
+
+At power on the board checks itself for about 10 s, with a beep part way
+(this ROM always fails its own checksum test, and carries on), then sets up
+the player and puts the title and copyright on the screen; the attract mode
+starts after about 18 s (`--fast-boot` skips all that). Press 5 twice (two
+coins make a credit, as the game comes set), then 1 to start. The arrow keys
+move Dirk and Space is his sword. On the first level the game names the
+moves as they're due ("LEFT").
+
+The game keeps its settings (coinage, difficulty, free play) and its
+bookkeeping in an EEPROM, set from its service mode. laser-vault doesn't
+save the EEPROM yet, so each run starts blank and the game sets up its
+factory settings; `--free-play` and the other setting options do nothing.
 
 ## Screenshots
 
