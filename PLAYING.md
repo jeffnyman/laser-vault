@@ -750,7 +750,7 @@ setting, so `--free-play` does nothing.
 plays with the disc's soundtrack alone. Its DIP switches are taken to be
 Astron Belt's, which hasn't been checked.
 
-## Thayer's Quest
+<h2 id="thayers-quest"><img src="./assets/thayers-logo.png" width="400" height="175" alt="Thayer's Quest"></h2>
 
 Thayer's Quest (RDI Video Systems, 1984), from Rick Dyer, who designed
 Dragon's Lair, runs on RDI's own board: a Z80 driving an LD-V1000, with a
@@ -759,17 +759,30 @@ the narrator. A row of LED digits on the cabinet shows the time and score;
 laser-vault shows them in the window's title. You need:
 
 - **The video:** the Daphne-style clip `tq.m2v` with its soundtrack, and
-  the framefile `thayersquest.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
+  the framefile (`tq.txt` in the usual set). They must be plain MPEG and Ogg
+  files: some copies also carry scrambled ones (`tq.m2v.bf`, `tq.ogg.bf`),
+  which laser-vault can't read and doesn't need.
 - **The ROMs:** `tq.zip`, MAME's set 1 (`tq_u33.bin`, `tq_u1.bin` and the
   COP421's `tq_cop.bin`). Set 2 (`tqalt.zip`, with `thayers.u1`) should
   work too but hasn't been tested; so should the fans' `tq_swear.zip`,
   whose U33 lets the narrator say the words the original won't. A set
   holding only its changed chip takes the rest from `tq.zip` beside it.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/thayersquest.txt --video-dir path/to/mpeg/thayersquest --roms path/to/tq.zip
+tq.daphne/
+    tq.txt, tq.m2v, tq.ogg
+    roms/tq.zip, roms/tqalt.zip, roms/tq_swear.zip
 ```
+
+```
+laser-vault path/to/tq.daphne
+```
+
+That plays `tq.zip`, the one named like the folder. For the others, add
+`--roms path/to/tq.daphne/roms/tqalt.zip` (or `tq_swear.zip`).
 
 Wait for the disc to spin up (the narrator says so), press 5 to insert a
 coin, then any key; type your name and press Enter, and answer the
