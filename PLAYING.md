@@ -350,23 +350,35 @@ switch on reads as a clear bit, and the factory setting is every switch off.
 With demo sounds off, the game plays the attract mode's video in a way the
 player keeps silent; `src/ldp/ldv1000.c` explains.
 
-## Esh's Aurunmilla
+<h2 id="eshs-aurunmilla"><img src="./assets/esh-logo.png" width="400" height="163" alt="Esh's Aurunmilla"></h2>
 
 Esh's Aurunmilla (Funai/Gakken, 1984) runs on Funai's own board: another Z80
 driving an LD-V1000, with tiles drawn over the picture for the score and
 the menus. You need:
 
 - **The video:** the Daphne-style clip `esh.m2v` with its soundtrack, and
-  the framefile `eshsaurunmilla.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
+  the framefile (`esh.txt` in the usual set).
 - **The ROMs:** `esh.zip`, MAME's set 1, under MAME's chip names (`is1.h8`,
   `is2.f8`, `a.m3`, `b.l3`, `c.k3`, `rgb.j1`, ...) or Daphne's (`h8_is1.bin`,
   `f8_is2.bin`, `m3_a.bin`, ...). Sets 2 and 3, with other program chips,
   should work too, but haven't been tested.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/eshsaurunmilla.txt --video-dir path/to/mpeg/eshsaurunmilla --roms path/to/esh.zip --fast-boot
+esh.daphne/
+    esh.txt, esh.m2v, esh.ogg
+    roms/esh.zip
+    ram/esh.gz       Daphne's saved copy of the board's memory
 ```
+
+```
+laser-vault path/to/esh.daphne --fast-boot
+```
+
+The `ram` folder is ignored: laser-vault doesn't keep the board's memory
+between runs yet, so the game starts with its own defaults.
 
 Press 5 to insert a coin, then 1 to start. Choose a level (LOW, MIDDLE or
 HIGH: push the stick left or right, and the chosen one flickers), and press
