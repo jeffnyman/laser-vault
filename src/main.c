@@ -634,7 +634,7 @@ static void read_game_inputs(App *app)
     if (in->right && !before.right) printf("%6.1f s  stick: right\n", t);
     const char *button = app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button";
     if (app->machine.kind == MACHINE_FUNAI || app->machine.kind == MACHINE_STERN ||
-        app->machine.kind == MACHINE_DATAEAST) {
+        app->machine.kind == MACHINE_DATAEAST || app->machine.kind == MACHINE_GOTTLIEB) {
         bool stern = app->machine.kind == MACHINE_STERN;
         if (in->button && !before.button) printf("%6.1f s  %s\n", t, stern ? "hands" : "button 1");
         if (in->button2 && !before.button2) printf("%6.1f s  %s\n", t, stern ? "feet" : "button 2");
@@ -1028,6 +1028,9 @@ int main(int argc, char **argv)
             printf("The arrow keys move Bega, Space fires; Shift and Z are the buttons for\n"
                    "the friends you rescue.\n");
         if (m->kind == MACHINE_LELAND) printf("The arrow keys move Dirk, Space is his sword.\n");
+        if (m->kind == MACHINE_GOTTLIEB)
+            printf("The arrow keys fly, Space fires (and starts, as 1 does; fire again to\n"
+                   "pick the skill level); Shift and Z are the other two buttons.\n");
         if (cinematronics) {
             cine_autoplay_init(&app.autoplay, true);
             app.autoplaying = autoplay;

@@ -15,6 +15,7 @@
 //     RDI (games/rdi)                      Thayer's Quest              LD-V1000
 //     Data East (games/dataeast)           Bega's Battle               LDP-1000
 //     Leland (games/leland)                Dragon's Lair II            LDP-1450
+//     Gottlieb (games/gottlieb)            Us vs. Them                 PR-8210
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -25,6 +26,7 @@
 #include "games/cinematronics/board.h"
 #include "games/dataeast/board.h"
 #include "games/funai/board.h"
+#include "games/gottlieb/board.h"
 #include "games/konami/board.h"
 #include "games/leland/board.h"
 #include "games/rdi/board.h"
@@ -49,6 +51,7 @@ typedef enum {
     MACHINE_RDI,
     MACHINE_DATAEAST,
     MACHINE_LELAND,
+    MACHINE_GOTTLIEB,
 } MachineKind;
 
 typedef struct {
@@ -62,10 +65,11 @@ typedef struct {
     RdiBoard *rdi;        // when kind is MACHINE_RDI
     DecoBoard *deco;      // when kind is MACHINE_DATAEAST
     LelandBoard *leland;  // when kind is MACHINE_LELAND
+    GottliebBoard *gottlieb;  // when kind is MACHINE_GOTTLIEB
 
     // The laserdisc player the board drives, which drives the player model.
     Ldv1000 ldv1000;  // most boards
-    Pr8210 pr8210;    // Stern's board
+    Pr8210 pr8210;    // Stern's and Gottlieb's boards
     Vip9500sg vip;    // the Sega board, in its versions for Sega's player
     Ldp1000 ldp1000;  // Data East's board; as an LDP-1450, Leland's
 } Machine;

@@ -4,8 +4,8 @@ A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
 The original game code runs on emulated CPUs (a Z80, Badlands' 6809, Bega's
-Battle's two 6502s, Dragon's Lair II's 8088, and Thayer's Quest's COP421
-microcontroller) and drives an emulated laserdisc player, just as on the
+Battle's two 6502s, the 8088s of Dragon's Lair II and Us vs. Them, and
+Thayer's Quest's COP421 microcontroller) and drives an emulated laserdisc player, just as on the
 arcade board: the attract mode
 plays, coins and start work, and you can play the game, with the
 laserdisc's soundtrack, the board's own sounds, and whatever the board draws
@@ -33,6 +33,7 @@ real hardware works.
 | [Thayer's Quest](#thayers-quest) | 1984 | RDI Video Systems | RDI | LD-V1000 |
 | [Bega's Battle](#begas-battle) | 1983 | Data East | Data East | Sony LDP-1000 |
 | [Dragon's Lair II: Time Warp](#dragons-lair-ii-time-warp) | 1991 | Leland / Sullivan Bluth | Leland | Sony LDP-1450 |
+| [Us vs. Them](#us-vs-them) | 1984 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
 
 ### Dragon's Lair
 
@@ -197,6 +198,22 @@ and, on the first level, hints for the moves) over the picture itself.
   <a href="assets/dl2-title-2050.png"><img src="assets/dl2-title-2050.png" width="32%" alt="Dragon's Lair II: Time Warp title, frame 2050"></a>
   <a href="assets/dl2-1300-1560.gif"><img src="assets/dl2-1300-1560.gif" width="32%" alt="Dragon's Lair II: scenes from the attract mode, frames 1300 to 1560"></a>
   <a href="assets/dl2-play-1.png"><img src="assets/dl2-play-1.png" width="32%" alt="Playing Dragon's Lair II: the player's LEVEL 1 text over Mordroc's tower at night"></a>
+</p>
+
+### Us vs. Them
+
+Earth under attack from the air: you fly a fighter over live-action film of
+cities, deserts and coasts, shooting alien ships and their walls of
+energy, with mission control and the other pilots cut in between. Mylstar
+(Gottlieb, by then) built it on its arcade board of the time with a
+laserdisc interface added: an 8088 runs the game and drives Pioneer's
+PR-8210, the board draws the ships, the shots and the shield gauge over the
+picture, and a sound board of two 6502s makes the effects.
+
+<p align="center">
+  <a href="assets/uvt-title-1060.png"><img src="assets/uvt-title-1060.png" width="32%" alt="Us vs. Them title over a city seen from the air, frame 1060"></a>
+  <a href="assets/uvt-950-1090.gif"><img src="assets/uvt-950-1090.gif" width="32%" alt="Us vs. Them: the title builds up over the city, frames 950 to 1090"></a>
+  <a href="assets/uvt-play-1.png"><img src="assets/uvt-play-1.png" width="32%" alt="Playing Us vs. Them: the fighter over a desert lake, with an alien hedron, an energy wall and the shield gauge"></a>
 </p>
 
 ## What's planned

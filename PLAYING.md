@@ -11,7 +11,7 @@ How to run the games, the keys, the options, and what each game needs.
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
-  [Dragon's Lair II](#dragons-lair-ii)
+  [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -31,8 +31,8 @@ You need your own copy of the game:
   [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
   [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
-  [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle) and
-  [Dragon's Lair II](#dragons-lair-ii).
+  [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
+  [Dragon's Lair II](#dragons-lair-ii) and [Us vs. Them](#us-vs-them).
 
 Daphne and Singe sets usually come as one folder per game, laid out like
 this:
@@ -961,6 +961,61 @@ The game keeps its settings (coinage, difficulty, free play) and its
 bookkeeping in an EEPROM, set from its service mode. laser-vault doesn't
 save the EEPROM yet, so each run starts blank and the game sets up its
 factory settings; `--free-play` and the other setting options do nothing.
+
+<h2 id="us-vs-them"><img src="./assets/uvt-logo.png" width="400" height="104" alt="Us vs. Them"></h2>
+
+Us vs. Them (Mylstar, 1984; Mylstar was Gottlieb by then) runs on Gottlieb's
+arcade board of the time with a laserdisc interface added: an 8088 driving a
+Pioneer PR-8210, with tiles and sprites drawn over the picture, and a sound
+board of two 6502s with a DAC, two AY-3-8913s and an SP0250 speech chip. You
+need:
+
+- **The video:** the Daphne-style clip `uvt-170606.m2v` with its
+  soundtrack, and the framefile (`uvt.txt`).
+- **The ROMs:** `uvt.zip`, MAME's `usvsthem`: the program chips `usvs.rm0`
+  to `usvs.rm4`, the sound CPUs' `usvsdrom.1` and `usvsyrom.1`, the tiles
+  `usvs.bg0` and `usvs.bg1`, and the sprites `usvs.fg0` to `usvs.fg3`.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
+```
+uvt.daphne/
+    uvt.txt, uvt-170606.m2v, uvt-170606.ogg
+    roms/uvt.zip
+    ram/uvt.gz       Daphne's saved copy of the board's battery-backed memory
+```
+
+```
+laser-vault path/to/uvt.daphne
+```
+
+At power on the game checks the disc player for itself ("DISC
+INITIALIZATION": stop, start, seek), which takes about half a minute
+(`--fast-boot` skips most of it), then the attract mode
+plays: the title, the scores, the instructions. Press 5 to insert a coin,
+then 1 or Space to start: the game starts on the fire button (it never reads
+the cabinet's start buttons), and the fire button picks the skill level
+too. The arrow keys fly the fighter and Space fires; Shift and Z are the
+other two buttons.
+
+The board waits for the player's picture to drop out after each search,
+as a real PR-8210's does for a second or more; the player model finds a
+frame faster than that, so the board counts the picture as lost for a
+second after each search, as Hypseus does (`src/games/gottlieb/board.c`
+explains). The speech chip isn't emulated yet, so the game's voice is
+silent; the other sound effects play. The board keeps the high scores in
+battery-backed memory, which laser-vault doesn't save yet (the `ram` folder
+is ignored).
+
+Its DIP switches (from MAME; a switch on reads as a set bit):
+
+| Bits | Meaning |
+|------|---------|
+| `09` | coinage: `00` 1 coin 1 credit, `08` 2 coins 1 credit, `01` free play (`--free-play`) |
+| `04` | set: hard |
+
+laser-vault starts it with `00`.
 
 ## Screenshots
 

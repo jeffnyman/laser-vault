@@ -9,7 +9,8 @@ bool machine_recognizes(const char *path)
 {
     return uni_recognizes(path) || stern_recognizes(path) || funai_recognizes(path) ||
            konami_recognizes(path) || sega_recognizes(path) || rdi_recognizes(path) ||
-           deco_recognizes(path) || leland_recognizes(path) || cine_recognizes(path);
+           deco_recognizes(path) || leland_recognizes(path) || gottlieb_recognizes(path) ||
+           cine_recognizes(path);
 }
 
 bool machine_load_roms(Machine *m, const char *path)
@@ -60,6 +61,11 @@ bool machine_load_roms(Machine *m, const char *path)
         m->leland = calloc(1, sizeof *m->leland);
         return leland_load_roms(m->leland, path);
     }
+    if (gottlieb_recognizes(path)) {
+        m->kind = MACHINE_GOTTLIEB;
+        m->gottlieb = calloc(1, sizeof *m->gottlieb);
+        return gottlieb_load_roms(m->gottlieb, path);
+    }
     if (cine_recognizes(path)) {
         m->kind = MACHINE_CINEMATRONICS;
         m->cine = calloc(1, sizeof *m->cine);
@@ -72,9 +78,9 @@ bool machine_load_roms(Machine *m, const char *path)
                     "Cliff Hanger (cliff.zip), Badlands (badlands.zip), Astron Belt\n"
                     "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
                     "sblazerp.zip), Cobra Command (cobra.zip, or Sega's version,\n"
-                    "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip) and\n"
-                    "Dragon's Lair II\n"
-                    "(lair2.zip). A folder of the ROM files works too.\n", path);
+                    "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip),\n"
+                    "Dragon's Lair II (lair2.zip) and Us vs. Them (uvt.zip). A folder of the\n"
+                    "ROM files works too.\n", path);
     return false;
 }
 
@@ -90,6 +96,7 @@ void machine_free(Machine *m)
         free(m->deco->samples);
     }
     if (m->leland) leland_free(m->leland);
+    if (m->gottlieb) gottlieb_free(m->gottlieb);
     free(m->cine);
     free(m->uni);
     free(m->funai);
@@ -99,6 +106,7 @@ void machine_free(Machine *m)
     free(m->rdi);
     free(m->deco);
     free(m->leland);
+    free(m->gottlieb);
     *m = (Machine){0};
 }
 
@@ -140,6 +148,7 @@ const char *machine_game_name(const Machine *m)
     if (m->kind == MACHINE_RDI) return rdi_game_name(m->rdi);
     if (m->kind == MACHINE_DATAEAST) return deco_game_name(m->deco);
     if (m->kind == MACHINE_LELAND) return leland_game_name(m->leland);
+    if (m->kind == MACHINE_GOTTLIEB) return gottlieb_game_name(m->gottlieb);
     return cine_game_name(m->cine->game);
 }
 
@@ -156,6 +165,7 @@ const char *machine_icon_name(const Machine *m)
     case MACHINE_RDI: return "thayers";
     case MACHINE_DATAEAST: return m->deco->game == DECO_COBRA ? "cobra" : "bega";
     case MACHINE_LELAND: return "dlair2";
+    case MACHINE_GOTTLIEB: return "uvt";
     default: return m->cine->game == CINE_SPACE_ACE ? "spaceace" : "dlair";
     }
 }
@@ -170,6 +180,7 @@ double machine_cpu_hz(const Machine *m)
     if (m->kind == MACHINE_RDI) return RDI_CPU_HZ;
     if (m->kind == MACHINE_DATAEAST) return DECO_CPU_HZ;
     if (m->kind == MACHINE_LELAND) return LELAND_CPU_HZ;
+    if (m->kind == MACHINE_GOTTLIEB) return GOTTLIEB_CPU_HZ;
     return CINE_CPU_HZ;
 }
 
@@ -183,6 +194,7 @@ uint64_t machine_cycles(const Machine *m)
     if (m->kind == MACHINE_RDI) return m->rdi->cycles;
     if (m->kind == MACHINE_DATAEAST) return m->deco->cycles;
     if (m->kind == MACHINE_LELAND) return m->leland->cycles;
+    if (m->kind == MACHINE_GOTTLIEB) return m->gottlieb->cycles;
     return m->cine->cycles;
 }
 
@@ -193,7 +205,7 @@ double machine_disc_fps(const Machine *m)
 
 bool machine_uses_pr8210(const Machine *m)
 {
-    return m->kind == MACHINE_STERN;
+    return m->kind == MACHINE_STERN || m->kind == MACHINE_GOTTLIEB;
 }
 
 // Sega's player, for the Sega board's versions made for it.
@@ -220,6 +232,7 @@ void machine_reset(Machine *m, Ldp *ldp)
     else if (m->kind == MACHINE_RDI) rdi_reset(m->rdi, &m->ldv1000);
     else if (m->kind == MACHINE_DATAEAST) deco_reset(m->deco, &m->ldp1000);
     else if (m->kind == MACHINE_LELAND) leland_reset(m->leland, &m->ldp1000);
+    else if (m->kind == MACHINE_GOTTLIEB) gottlieb_reset(m->gottlieb, &m->pr8210);
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
 
@@ -250,6 +263,7 @@ void machine_run(Machine *m, uint64_t cycles)
     else if (m->kind == MACHINE_RDI) rdi_run(m->rdi, cycles);
     else if (m->kind == MACHINE_DATAEAST) deco_run(m->deco, cycles);
     else if (m->kind == MACHINE_LELAND) leland_run(m->leland, cycles);
+    else if (m->kind == MACHINE_GOTTLIEB) gottlieb_run(m->gottlieb, cycles);
     else cine_run(m->cine, cycles);
 }
 
@@ -284,6 +298,14 @@ void machine_set_controls(Machine *m, const Controls *c)
             .up = c->up, .down = c->down, .left = c->left, .right = c->right, .sword = button,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
+    } else if (m->kind == MACHINE_GOTTLIEB) {
+        // Us vs. Them starts a game on the fire button, not the start
+        // buttons (which it never reads), so the start key fires too.
+        m->gottlieb->inputs = (GottliebInputs){
+            .up = c->up, .down = c->down, .left = c->left, .right = c->right,
+            .button1 = c->button || c->start1, .button2 = c->button2, .button3 = c->button3,
+            .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
+        };
     } else if (m->kind == MACHINE_KONAMI) {
         m->konami->inputs = (KonamiInputs){
             .fire = button, .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
@@ -311,6 +333,7 @@ void machine_set_controls(Machine *m, const Controls *c)
 uint8_t *machine_dsw(Machine *m, int bank)
 {
     if (m->kind == MACHINE_STERN) return bank >= 1 && bank <= 4 ? &m->stern->dsw[bank - 1] : NULL;
+    if (m->kind == MACHINE_GOTTLIEB) return bank == 1 ? &m->gottlieb->dsw : NULL;
     if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI || m->kind == MACHINE_LELAND) return NULL;
     if (m->kind == MACHINE_KONAMI) return bank == 1 ? &m->konami->dsw1 : &m->konami->dsw2;
     if (m->kind == MACHINE_SEGA) return bank == 1 ? &m->sega->dsw1 : &m->sega->dsw2;
@@ -349,6 +372,8 @@ void machine_set(Machine *m, MachineSetting setting, bool on)
         sega_set(m->sega, setting == MACHINE_FREE_PLAY ? SEGA_FREE_PLAY : SEGA_QUIET_ATTRACT, on);
     else if (m->kind == MACHINE_DATAEAST && setting != MACHINE_UNLIMITED_LIVES)
         deco_set(m->deco, setting == MACHINE_FREE_PLAY ? DECO_FREE_PLAY : DECO_QUIET_ATTRACT, on);
+    else if (m->kind == MACHINE_GOTTLIEB && setting == MACHINE_FREE_PLAY)
+        gottlieb_set(m->gottlieb, GOTTLIEB_FREE_PLAY, on);
     else if (m->kind == MACHINE_CINEMATRONICS) cine_set(m->cine, cine_settings[setting], on);
 }
 
@@ -356,6 +381,8 @@ bool machine_get(const Machine *m, MachineSetting setting)
 {
     if (m->kind == MACHINE_UNIVERSAL) return uni_get(m->uni, uni_settings[setting]);
     if (m->kind == MACHINE_FUNAI || m->kind == MACHINE_LELAND) return false;
+    if (m->kind == MACHINE_GOTTLIEB)
+        return setting == MACHINE_FREE_PLAY && gottlieb_get(m->gottlieb, GOTTLIEB_FREE_PLAY);
     if (m->kind == MACHINE_STERN) return stern_get(m->stern, stern_settings[setting]);
     if (m->kind == MACHINE_RDI) {
         if (setting == MACHINE_UNLIMITED_LIVES) return false;
@@ -386,6 +413,7 @@ int machine_sample_rate(const Machine *m)
     if (m->kind == MACHINE_RDI) return RDI_SAMPLE_RATE;
     if (m->kind == MACHINE_DATAEAST) return DECO_SAMPLE_RATE;
     if (m->kind == MACHINE_LELAND) return LELAND_SAMPLE_RATE;
+    if (m->kind == MACHINE_GOTTLIEB) return GOTTLIEB_SAMPLE_RATE;
     return CINE_SAMPLE_RATE;
 }
 
@@ -399,6 +427,7 @@ void machine_start_sound(Machine *m)
     else if (m->kind == MACHINE_RDI) ssi263_start(&m->rdi->speech, m->rdi->cycles);
     else if (m->kind == MACHINE_DATAEAST) deco_start_sound(m->deco);
     else if (m->kind == MACHINE_LELAND) leland_start_sound(m->leland);
+    else if (m->kind == MACHINE_GOTTLIEB) gottlieb_start_sound(m->gottlieb);
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -412,6 +441,7 @@ int machine_take_samples(Machine *m, const float **samples)
     if (m->kind == MACHINE_STERN) return stern_take_samples(m->stern, samples);
     if (m->kind == MACHINE_DATAEAST) return deco_take_samples(m->deco, samples);
     if (m->kind == MACHINE_LELAND) return leland_take_samples(m->leland, samples);
+    if (m->kind == MACHINE_GOTTLIEB) return gottlieb_take_samples(m->gottlieb, samples);
     if (m->kind == MACHINE_RDI) {
         ssi263_run(&m->rdi->speech, m->rdi->cycles);
         return ssi263_take_samples(&m->rdi->speech, samples);
@@ -448,6 +478,10 @@ bool machine_overlay_layout(const Machine *m, OverlayLayout *layout)
         *layout = (OverlayLayout){.width = LDP1450_TEXT_W, .height = LDP1450_TEXT_H, .x = 0, .y = 0, .w = 1, .h = 1};
         return true;
     }
+    if (m->kind == MACHINE_GOTTLIEB) {
+        *layout = (OverlayLayout){.width = GOTTLIEB_OVERLAY_W, .height = GOTTLIEB_OVERLAY_H, .x = 0, .y = 0, .w = 1, .h = 1};
+        return true;
+    }
     if (m->kind == MACHINE_KONAMI) {
         // The visible part of the tile grid covers the picture.
         *layout = (OverlayLayout){.width = KONAMI_OVERLAY_W, .height = KONAMI_OVERLAY_H, .x = 0, .y = 0, .w = 1, .h = 1};
@@ -479,6 +513,7 @@ unsigned machine_overlay_serial(const Machine *m)
     if (m->kind == MACHINE_SEGA) return m->sega->overlay_serial;
     if (m->kind == MACHINE_DATAEAST) return m->deco->overlay_serial;
     if (m->kind == MACHINE_LELAND) return m->ldp1000.text_serial;
+    if (m->kind == MACHINE_GOTTLIEB) return m->gottlieb->overlay_serial;
     return 0;
 }
 
@@ -491,4 +526,5 @@ void machine_draw_overlay(const Machine *m, uint32_t *pixels)
     else if (m->kind == MACHINE_SEGA) sega_draw_overlay(m->sega, pixels);
     else if (m->kind == MACHINE_DATAEAST) deco_draw_overlay(m->deco, pixels);
     else if (m->kind == MACHINE_LELAND) ldp1450_draw_text(&m->ldp1000, pixels);
+    else if (m->kind == MACHINE_GOTTLIEB) gottlieb_draw_overlay(m->gottlieb, pixels);
 }

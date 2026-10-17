@@ -55,7 +55,7 @@ target_link_libraries(lv_png PUBLIC ZLIB::ZLIB)
 # The window icons are built into the program (as a C array generated
 # from the .ico file), so it never has to find the file at run time. Each
 # game's board names its icon (machine_icon_name); laser is for the rest.
-set(EMBEDDED_ICONS dlair spaceace cliff superdq esh badlands astron galaxy cobra thayers bega dlair2 laser)
+set(EMBEDDED_ICONS dlair spaceace cliff superdq esh badlands astron galaxy cobra thayers bega dlair2 uvt laser)
 set(EMBEDDED_ICON_SOURCES ${CMAKE_BINARY_DIR}/generated/icon_table.c)
 set(icon_declarations "")
 set(icon_entries "")
@@ -97,7 +97,7 @@ add_executable(laser-vault
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}
 )
-target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_png SDL3::SDL3)
+target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_gottlieb lv_png SDL3::SDL3)
 add_dependencies(laser-vault version)
 
 # Tool: turn a range of disc frames into an animated GIF.
@@ -212,13 +212,19 @@ add_library(lv_leland STATIC
 )
 target_link_libraries(lv_leland PUBLIC lv_cpu lv_ldp lv_roms)
 
+# Gottlieb's laserdisc board, which runs Us vs. Them.
+add_library(lv_gottlieb STATIC
+    src/games/gottlieb/board.c
+)
+target_link_libraries(lv_gottlieb PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
+
 # Tool: run a game on that board headless and print what it does.
 add_executable(cine-trace
     src/tools/cine_trace.c
 )
 target_link_libraries(cine-trace PRIVATE lv_cine)
 
-foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_png laser-vault disc-gif z80-zex m6502-test i8088-test cine-trace)
+foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_gottlieb lv_png laser-vault disc-gif z80-zex m6502-test i8088-test cine-trace)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
