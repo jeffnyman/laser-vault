@@ -336,7 +336,7 @@ reached the digits; `src/games/cinematronics/board.c` describes it. Space
 Ace also uses a letter code for a blank digit, so the panel shows only
 digits; the window title shows the raw codes.
 
-## Super Don Quix-ote
+<h2 id="super-don-quix-ote"><img src="./assets/sdq-logo.png" width="400" height="174" alt="Super Don Quix-ote"></h2>
 
 Super Don Quix-ote (Universal, 1984) runs on Universal's own board, the
 System 1. Like the Cinematronics board, it has a Z80 that drives an LD-V1000
@@ -345,16 +345,26 @@ credits, the messages, and the arrows that tell you which way to move. You
 need:
 
 - **The video:** the Daphne-style clip `sdq.m2v` with its soundtrack, and
-  the framefile `superdonquixote.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
-- **The ROMs:** `superdq.zip`, the "long scenes" version: `sdq-prog.bin`
-  (the program), `sdq-char.bin` (the letters and arrows drawn over the
-  picture) and `sdq-cprm.bin` (their colours). The two "short scenes" sets
-  (`sdq_c45.rom` or `sdq_c45a.rom`, with `sdq_a8.rom`) should work too, but
-  haven't been tested.
+  the framefile (`sdq.txt` in the usual set).
+- **The ROMs:** `superdq.zip` (or `sdq.zip`), the "long scenes" version:
+  `sdq-prog.bin` (the program), `sdq-char.bin` (the letters and arrows drawn
+  over the picture) and `sdq-cprm.bin` (their colours). The two "short
+  scenes" sets (`sdq_c45.rom` or `sdq_c45a.rom`, with their own letters,
+  `sdq_a8.rom`) should work too, but haven't been tested; a zip holding only
+  the program chip takes the colours from the long set's zip beside it, but
+  needs `sdq_a8.rom` too.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
 
 ```
-laser-vault path/to/superdonquixote.txt --video-dir path/to/mpeg/superdonquixote --roms path/to/superdq.zip --fast-boot
+sdq.daphne/
+    sdq.txt, sdq.m2v, sdq.ogg (and the test clips sdq-blank, sdq-colorbars, sdq-crosshairs)
+    roms/sdq.zip
+```
+
+```
+laser-vault path/to/sdq.daphne --fast-boot
 ```
 
 Press 5 to insert a coin (one coin per credit at the factory setting), then
