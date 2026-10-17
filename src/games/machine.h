@@ -114,6 +114,9 @@ const char *machine_icon_name(const Machine *m);
 // it rather than reaching the program's own keys?
 bool machine_has_keyboard(const Machine *m);
 
+// How many coins make a credit at the ROM set's factory DIP settings.
+int machine_coins_per_credit(const Machine *m);
+
 // What the game's narrator is saying, as text to show (Thayer's Quest), or
 // NULL.
 const char *machine_subtitle(Machine *m);

@@ -117,6 +117,13 @@ bool machine_has_keyboard(const Machine *m)
     return m->kind == MACHINE_RDI;
 }
 
+int machine_coins_per_credit(const Machine *m)
+{
+    if (m->kind == MACHINE_CINEMATRONICS || m->kind == MACHINE_LELAND) return 2;
+    if (m->kind == MACHINE_STERN) return m->stern->coins_per_credit;
+    return 1;
+}
+
 const char *machine_subtitle(Machine *m)
 {
     return m->kind == MACHINE_RDI ? rdi_subtitle(m->rdi) : NULL;

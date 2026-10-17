@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <dirent.h>
+#include <strings.h>
+#include <sys/stat.h>
+#endif
 
 static char *join_path(const char *dir, const char *name)
 {
@@ -28,6 +33,31 @@ static char *dir_of(const char *path)
     memcpy(out, path, len);
     out[len] = '\0';
     return out;
+}
+
+// The path to a clip. Framefiles are often made on Windows, where a name's
+// capitals don't matter, and don't always match the files
+// ("CH_640x480_24p.m2v" for ch_640x480_24p.m2v); elsewhere, if the name
+// as written isn't there, use the file whose name differs only in case.
+static char *clip_path(const char *dir, const char *name)
+{
+    char *path = join_path(dir, name);
+#ifndef _WIN32
+    struct stat st;
+    if (!path || stat(path, &st) == 0 || strchr(name, '/')) return path;
+    DIR *d = opendir(*dir ? dir : ".");
+    if (!d) return path;
+    struct dirent *e;
+    while ((e = readdir(d))) {
+        if (strcasecmp(e->d_name, name) == 0) {
+            free(path);
+            path = join_path(dir, e->d_name);
+            break;
+        }
+    }
+    closedir(d);
+#endif
+    return path;
 }
 
 static char *trim(char *s)
@@ -81,7 +111,7 @@ bool framefile_load(Framefile *ff, const char *path, const char *video_dir)
             ff->clips = realloc(ff->clips, (size_t)capacity * sizeof *ff->clips);
         }
         ff->clips[ff->clip_count].start_frame = (int)start;
-        ff->clips[ff->clip_count].path = join_path(dir, name);
+        ff->clips[ff->clip_count].path = clip_path(dir, name);
         ff->clip_count++;
     }
 

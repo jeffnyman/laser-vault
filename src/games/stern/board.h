@@ -65,6 +65,7 @@ typedef struct {
     uint8_t rom[0xC000];
     uint8_t ram[0x1000];        // E000-EFFF
     uint8_t dsw[4];             // DIP switch banks 1-4
+    int coins_per_credit;       // at the factory coinage (set 2 has no 1 coin 1 credit)
 
     SternInputs inputs;
     Pr8210 *player;

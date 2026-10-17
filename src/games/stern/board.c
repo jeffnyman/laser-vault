@@ -23,6 +23,7 @@ typedef struct {
     bool tested;           // known to work with laser-vault
     RomChip chips[5];      // 8 KB each, from address 0; unused ones NULL
     uint8_t dsw[4];        // the factory DIP settings
+    int coins_per_credit;  // at those settings
 } RomSet;
 
 // DIP switches: a switch on reads as 0. In set 1, bank 1 holds the hints
@@ -31,20 +32,23 @@ typedef struct {
 // continues (7), short scenes (6), demo sounds (5, set = on), the disc and
 // switch tests (4, 1), immortality (3), free play (2); bank 4 the
 // difficulty of the moves (0-3). Sets 2 and 3 use fewer of them. (From
-// MAME.)
+// MAME.) Set 2's code reads banks 1, 3 and 4 much as set 1 does, but its
+// bank 2 picks each coin slot's price from a table (bits 0-1 slot 1, bits
+// 4-5 slot 2) whose cheapest entry, with the switches off, is 2 coins a
+// credit: it has no 1 coin 1 credit. (Set 3 isn't checked.)
 static const RomSet rom_sets[] = {
     {"Cliff Hanger (set 1)", true,
      {{"cliff_u1.bin", 0xA86EC38F}, {"cliff_u2.bin", 0xB8D33B6B}, {"cliff_u3.bin", 0x75A64CD2},
       {"cliff_u4.bin", 0x906B2AF1}, {"cliff_u5.bin", 0x5922E710}},
-     {0xC7, 0xFF, 0x3F, 0xFF}},
-    {"Cliff Hanger (set 2)", false,
+     {0xC7, 0xFF, 0x3F, 0xFF}, 1},
+    {"Cliff Hanger (set 2)", true,
      {{"cliff_alt_0.bin", 0x27CAA67C}, {"cliff_alt_1.bin", 0x6E5F1515}, {"cliff_alt_2.bin", 0x045F895D},
       {"cliff_alt_3.bin", 0x54CDB4A1}},
-     {0xFF, 0xFF, 0xFF, 0xFF}},
+     {0xFF, 0xFF, 0xFF, 0xFF}, 2},
     {"Cliff Hanger (set 3)", false,
      {{"cliff_alt2_0.bin", 0x598D57FC}, {"cliff_alt2_1.bin", 0x7BCE618E}, {"cliff_alt2_2.bin", 0x65D2B984},
       {"cliff_alt2_3.bin", 0xF43A5269}},
-     {0xFF, 0xFF, 0xFF, 0xFF}},
+     {0xFF, 0xFF, 0xFF, 0xFF}, 1},
 };
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
@@ -95,6 +99,7 @@ bool stern_load_roms(SternBoard *b, const char *path)
         free(data);
     }
     memcpy(b->dsw, set->dsw, sizeof b->dsw);
+    b->coins_per_credit = set->coins_per_credit;
     printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
     return true;
 }

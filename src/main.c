@@ -1009,7 +1009,7 @@ int main(int argc, char **argv)
             printf("With the game window active, press 1 to start (free play).\n");
         else if (dsw_given)  // the coinage may not be the default
             printf("With the game window active, press 5 to insert coins, then 1 to start.\n");
-        else if (cinematronics || m->kind == MACHINE_LELAND)
+        else if (machine_coins_per_credit(m) == 2)
             printf("With the game window active, press 5 twice (two coins make one credit),\n"
                    "then 1 to start.\n");
         else
