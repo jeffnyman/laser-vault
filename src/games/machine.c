@@ -128,6 +128,23 @@ const char *machine_game_name(const Machine *m)
     return cine_game_name(m->cine->game);
 }
 
+const char *machine_icon_name(const Machine *m)
+{
+    switch (m->kind) {
+    case MACHINE_UNIVERSAL: return "superdq";
+    case MACHINE_FUNAI: return "esh";
+    case MACHINE_STERN: return "cliff";
+    case MACHINE_KONAMI: return "badlands";
+    case MACHINE_SEGA:
+        if (m->sega->game == SEGA_COBRA_COMMAND) return "cobra";
+        return m->sega->game == SEGA_ASTRON_BELT ? "astron" : "galaxy";  // Star Blazer too
+    case MACHINE_RDI: return "thayers";
+    case MACHINE_DATAEAST: return "bega";
+    case MACHINE_LELAND: return "dlair2";
+    default: return m->cine->game == CINE_SPACE_ACE ? "spaceace" : "dlair";
+    }
+}
+
 double machine_cpu_hz(const Machine *m)
 {
     if (m->kind == MACHINE_UNIVERSAL) return UNI_CPU_HZ;

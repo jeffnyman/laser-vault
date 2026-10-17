@@ -17,13 +17,19 @@ SDL_Surface *icon_load(const char *path);
 // The same, for .ico data already in memory.
 SDL_Surface *icon_load_memory(const void *data, size_t size);
 
-// Icons built into the program from icons/ (see CMakeLists.txt): Dragon's
-// Lair's and Astron Belt's own, and the one the other games share.
-extern const unsigned char icon_dlair[];
-extern const unsigned long icon_dlair_size;
-extern const unsigned char icon_astron[];
-extern const unsigned long icon_astron_size;
-extern const unsigned char icon_laser[];
-extern const unsigned long icon_laser_size;
+// Icons built into the program from icons/, each called by its file's name
+// ("dlair" for icons/dlair.ico); CMakeLists.txt lists them in
+// EMBEDDED_ICONS and makes the table.
+typedef struct {
+    const char *name;
+    const unsigned char *data;
+    const unsigned long *size;
+} EmbeddedIcon;
+
+extern const EmbeddedIcon embedded_icons[];
+extern const int embedded_icon_count;
+
+// Load the built-in icon called name. Returns NULL if there's none.
+SDL_Surface *icon_load_embedded(const char *name);
 
 #endif

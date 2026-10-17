@@ -160,9 +160,9 @@ game should look like at the moment it's made; if the game has strayed
 from the plan (you pressed something too, say), the plans are thrown away
 and planning starts again from where the game is.
 
-**Window icon.** Dragon's Lair and Astron Belt have their own icons; the
-other games share one (most laserdisc game packs come with the same icon).
-All are built into the program from `icons/`.
+**Window icon.** Each game has its own icon (Galaxy Ranger and Star Blazer
+share one), built into the program from `icons/`. `--icon FILE.ico` uses
+another.
 
 ## Dragon's Lair ROM sets
 

@@ -296,10 +296,12 @@ checksums both program ROMs, and which then plays. The COP421
 - `tests/z80_zex.c`: runs ZEXDOC/ZEXALL on the Z80 (a tiny stand-in for CP/M).
 - `tests/m6502_test.c`: runs Klaus Dormann's functional test on the 6502.
 - `tests/i8088_test.c`: runs the SingleStepTests on the 8088.
-- `icons/`: the window icons (`dlair.ico`, `astron.ico`, and `laser.ico` for
-  the other games). CMake builds them into the program
-  (`cmake/embed_file.cmake` turns a file into a C array); to add one, put
-  `name.ico` there and add `name` to `EMBEDDED_ICONS` in `CMakeLists.txt`.
+- `icons/`: the window icons, one for each game (named in its board's case in
+  `machine_icon_name`, `src/games/machine.c`), and `laser.ico` for a game
+  without one. CMake builds them into the program (`cmake/embed_file.cmake`
+  turns a file into a C array) with a table of their names; to add one, put
+  `name.ico` there, add `name` to `EMBEDDED_ICONS` in `CMakeLists.txt`, and
+  return it from `machine_icon_name`.
 
 ### How a game fits together
 

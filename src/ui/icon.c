@@ -116,3 +116,11 @@ SDL_Surface *icon_load(const char *path)
     SDL_free(file);
     return surface;
 }
+
+SDL_Surface *icon_load_embedded(const char *name)
+{
+    for (int i = 0; i < embedded_icon_count; i++)
+        if (strcmp(embedded_icons[i].name, name) == 0)
+            return icon_load_memory(embedded_icons[i].data, *embedded_icons[i].size);
+    return NULL;
+}

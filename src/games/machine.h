@@ -103,6 +103,9 @@ const char *machine_sample_example(const Machine *m);
 
 const char *machine_game_name(const Machine *m);
 
+// The name of the game's window icon, in icons/ ("dlair" for dlair.ico).
+const char *machine_icon_name(const Machine *m);
+
 // Does the game have a keyboard (Thayer's Quest), so typing letters plays
 // it rather than reaching the program's own keys?
 bool machine_has_keyboard(const Machine *m);

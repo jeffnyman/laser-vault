@@ -893,16 +893,15 @@ int main(int argc, char **argv)
     if (app.game && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
         fprintf(stderr, "No gamepads: %s\n", SDL_GetError());
 
-    // The window icon, built into the program: Dragon's Lair and Astron Belt
-    // have their own, and other games share one (most laserdisc game packs
-    // come with the same icon). --icon names another.
+    // The window icon, built into the program: each game has its own, and
+    // a game without one would get the shared laserdisc icon. --icon names
+    // another.
     SDL_Surface *icon = NULL;
     if (icon_path) icon = icon_load(icon_path);
-    else if (app.game && app.machine.kind == MACHINE_CINEMATRONICS && app.machine.cine->game == CINE_DRAGONS_LAIR)
-        icon = icon_load_memory(icon_dlair, icon_dlair_size);
-    else if (app.game && app.machine.kind == MACHINE_SEGA && app.machine.sega->game == SEGA_ASTRON_BELT)
-        icon = icon_load_memory(icon_astron, icon_astron_size);
-    else if (app.game) icon = icon_load_memory(icon_laser, icon_laser_size);
+    else if (app.game) {
+        icon = icon_load_embedded(machine_icon_name(&app.machine));
+        if (!icon) icon = icon_load_embedded("laser");
+    }
     if (icon) {
         SDL_SetWindowIcon(app.window, icon);
         SDL_DestroySurface(icon);
