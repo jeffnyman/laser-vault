@@ -666,16 +666,17 @@ game):
 laser-vault starts with DSW1 `FF` and DSW2 `FF`. There's no free play
 setting, so `--free-play` does nothing.
 
-## Galaxy Ranger
+<h2 id="galaxy-ranger"><img src="./assets/galaxy-logo.png" width="400" height="100" alt="Galaxy Ranger"></h2>
 
 Galaxy Ranger (Sega, 1984; Bally Midway in America; Star Blazer in Japan)
 is Astron Belt's sequel on the same board: through tunnels, over alien
 deserts and cities, and into dogfights, to the enemy's battle cruiser. It
 plays the same way (see [Astron Belt](#astron-belt)). You need:
 
-- **The video:** the Daphne-style clip `galaxy.m2v` with its soundtrack,
-  and the framefile `galaxyranger.txt`. Its first line is often a
-  placeholder instead of a folder, so give the folder with `--video-dir`.
+- **The video:** a Daphne-style clip of the disc with its soundtrack
+  (`galaxyr.m2v` in the usual set), and the framefile that names it
+  (`galaxy.txt`). An older encoding, `galaxy.m2v` (1.5 GB, interlaced, its
+  framefile starting `41 galaxy.m2v`), plays the same.
 - **The ROMs:** Galaxy Ranger's `galaxy.zip` (`gr5633.bin` and
   `gr5634.bin`, MAME's `galaxyr`), the version for Sega's own laserdisc
   player; or Star Blazer's (`epr-5590.bin` and `epr-5591.bin`, MAME's
@@ -687,14 +688,30 @@ plays the same way (see [Astron Belt](#astron-belt)). You need:
   `5279`) takes them from the parent set, `galaxyr.zip`, or any other zip
   in the same folder.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/galaxyranger.txt --video-dir path/to/mpeg/galaxyranger --roms path/to/galaxy.zip
+galaxyr.daphne/
+    galaxy.txt, galaxyr.m2v, galaxyr.ogg
+    roms/galaxy.zip, roms/starblazer.zip
+    sounds/gr_*.wav
 ```
+
+```
+laser-vault path/to/galaxyr.daphne
+```
+
+Neither zip is named like the folder, so it takes the first one it knows,
+`galaxy.zip` (the version for Sega's player, borrowing its colour PROM from
+`starblazer.zip`). For Star Blazer, add
+`--roms path/to/galaxyr.daphne/roms/starblazer.zip`.
 
 Its sound effects are recordings too, as for Astron Belt: `gr_fire.wav`,
 `gr_cannon.wav`, `gr_attack.wav`, `gr_mineon.wav` and `gr_alarm1.wav` to
-`gr_alarm4.wav`, in a `sounds` folder beside the ROMs' folder or the folder
-`--samples` names. Without them it plays with the soundtrack alone. Its DIP
+`gr_alarm4.wav`, in a `sounds` (or `sound`) folder beside the ROMs' folder
+or the folder `--samples` names. Without them it plays with the soundtrack
+alone. Its DIP
 switches are taken to be Astron Belt's, which hasn't been checked.
 
 <h2 id="cobra-command"><img src="./assets/cobra-logo.png" width="400" height="167" alt="Cobra Command"></h2>
