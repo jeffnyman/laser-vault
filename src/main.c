@@ -1,6 +1,7 @@
 // laser-vault: a laserdisc arcade game emulator.
 //
-// Usage: laser-vault FRAMEFILE [--video-dir DIR]
+// Usage: laser-vault GAME_FOLDER [options below]
+//        laser-vault FRAMEFILE [--video-dir DIR]
 //                    [--roms ROMS [--fast-boot] [--attract-sound] [--scores]
 //                                 [--unlimited-lives] [--free-play]
 //                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]
@@ -8,6 +9,8 @@
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
 //        laser-vault --version
 //
+// Given a game's folder, it finds the framefile, the video and the ROMs in
+// it (see games/game_folder.h); --roms and --video-dir still override.
 // It prints its version (and the git commit it was built from) when it
 // starts, and --version prints just that. The window icons are built in (icons/); --icon uses a
 // Windows .ico file instead. F11 or Alt+Enter switches fullscreen on and
@@ -65,6 +68,7 @@
 
 #include "audio/disc_audio.h"
 #include "games/cinematronics/autoplay.h"
+#include "games/game_folder.h"
 #include "games/machine.h"
 #include "ldp/ldp.h"
 #include "ldp/ldv1000.h"
@@ -141,9 +145,20 @@ static int parse_hex_byte(const char *s)
     return (*s && *end == '\0' && v >= 0 && v <= 0xFF) ? (int)v : -2;
 }
 
+// path's name inside the folder dir ("roms\astron.zip"), for saying what
+// was found there without repeating the folder.
+static const char *in_folder(const char *dir, const char *path)
+{
+    size_t n = strlen(dir);
+    if (strncmp(path, dir, n) != 0) return path;
+    while (path[n] == '/' || path[n] == '\\') n++;
+    return path + n;
+}
+
 static void usage(void)
 {
-    fprintf(stderr, "usage: laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
+    fprintf(stderr, "usage: laser-vault GAME_FOLDER [options]\n"
+                    "       laser-vault FRAMEFILE [--video-dir DIR] [--roms ROMS]\n"
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
                     "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
                     "                   [--samples DIR] [--no-subtitles]\n"
@@ -854,17 +869,29 @@ int main(int argc, char **argv)
         }
     }
     if (!framefile_path) {
-        fprintf(stderr, "laser-vault needs a framefile: the list that maps disc frame numbers\n"
-                        "to video clips (for Dragon's Lair, dragonslair.txt).\n\n");
+        fprintf(stderr, "laser-vault needs a game's folder, or its framefile: the list that maps\n"
+                        "disc frame numbers to video clips (for Dragon's Lair, dragonslair.txt).\n\n");
         usage();
         return 1;
+    }
+    // A game's folder: find the framefile and the ROMs in it, unless the
+    // options name them.
+    printf("laser-vault %s\n", laser_vault_version);
+    char folder_framefile[1024], folder_roms[1024];
+    if (game_folder_is_folder(framefile_path)) {
+        if (!game_folder_find(framefile_path, folder_framefile, sizeof folder_framefile, folder_roms,
+                              sizeof folder_roms))
+            return 1;
+        if (!roms && folder_roms[0]) roms = folder_roms;
+        printf("Game folder: %s (framefile %s, ROMs %s)\n", framefile_path,
+               in_folder(framefile_path, folder_framefile), roms ? in_folder(framefile_path, roms) : "none");
+        if (!roms) printf("There's no roms folder, so this plays the disc without the game.\n");
+        framefile_path = folder_framefile;
     }
     if (disc_fps < 0) {
         usage();
         return 1;
     }
-
-    printf("laser-vault %s\n", laser_vault_version);
 
     App app = {0};
     app.subtitles = !no_subtitles;

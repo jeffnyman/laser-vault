@@ -34,11 +34,35 @@ You need your own copy of the game:
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle) and
   [Dragon's Lair II](#dragons-lair-ii).
 
-Then:
+Daphne and Singe sets usually come as one folder per game, laid out like
+this:
+
+```
+dragonslair/
+    dragonslair.txt     the framefile
+    *.m2v, *.ogg        the video clips and their soundtracks
+    roms/lair.zip       the ROMs
+    sounds/             recorded sound effects (Astron Belt, Galaxy Ranger)
+```
+
+Then give laser-vault the folder, and it finds the rest:
+
+```
+laser-vault path/to/dragonslair --fast-boot
+```
+
+It works out which `.txt` file is the framefile (one that lists clips,
+preferring one named like the folder) and which zip in `roms` holds a game
+it knows, and the console says what it chose. Without a `roms` folder, it
+plays the disc without the game. If your files are laid out differently,
+name them yourself; the options also override what the folder lookup finds:
 
 ```
 laser-vault path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --roms path/to/lair.zip --fast-boot
 ```
+
+The game sections below show this long form; the folder form works for
+every game.
 
 Press 5 twice to insert two coins (the factory setting is two coins per
 credit), then 1 to start (or add `--free-play` and skip the coins). Watch the animation for danger or for something

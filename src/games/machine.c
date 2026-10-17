@@ -5,6 +5,13 @@
 #include <string.h>
 #include <sys/stat.h>
 
+bool machine_recognizes(const char *path)
+{
+    return uni_recognizes(path) || stern_recognizes(path) || funai_recognizes(path) ||
+           konami_recognizes(path) || sega_recognizes(path) || rdi_recognizes(path) ||
+           deco_recognizes(path) || leland_recognizes(path) || cine_recognizes(path);
+}
+
 bool machine_load_roms(Machine *m, const char *path)
 {
     *m = (Machine){0};

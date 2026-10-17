@@ -93,6 +93,10 @@ typedef enum {
 bool machine_load_roms(Machine *m, const char *path);
 void machine_free(Machine *m);
 
+// Whether some board can run the ROMs at path, without loading them or
+// printing anything (for choosing a ROM set out of a game's folder).
+bool machine_recognizes(const char *path);
+
 // Load recordings of sound effects the board can't make itself (Astron
 // Belt's sound board) from dir. Sets *wanted if the board uses any; returns
 // how many were found.

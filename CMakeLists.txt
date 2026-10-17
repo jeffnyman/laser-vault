@@ -91,6 +91,7 @@ add_executable(laser-vault
     src/main.c
     ${VERSION_SOURCE}
     src/games/machine.c
+    src/games/game_folder.c
     src/audio/disc_audio.c
     src/ui/bezel.c
     src/ui/icon.c

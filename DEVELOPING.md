@@ -275,6 +275,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/main.c`: window, keyboard, main loop, drawing.
 - `src/version.h`: the version text (written by `cmake/version.cmake`; see [Making a release](#making-a-release)).
 - `src/games/machine.c`: what the main program needs from a game board, passed on to the right one.
+- `src/games/game_folder.c`: finding the framefile and the ROM set in a game's folder.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
