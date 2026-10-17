@@ -122,7 +122,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game     |
 | `--free-play`         | no coins needed: press 1 to start                              |
 | `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
-| `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` folder beside the ROMs' folder) |
+| `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` or `sound` folder beside the ROMs' folder) |
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
@@ -619,7 +619,8 @@ instead, laser-vault plays recordings of its sounds, the ones made for the
 Daphne emulator (`ab_ship.wav`, `ab_fire.wav`, `ab_enemy.wav` and
 `ab_alarm1.wav` to `ab_alarm4.wav`), when the game asks the sound board for
 each one. It looks for them in a `sounds` folder beside the ROMs' folder
-(`astron.daphne/roms/` and `astron.daphne/sounds/`, as in the usual set), or in the folder
+(`astron.daphne/roms/` and `astron.daphne/sounds/`, as in the usual set;
+`sound`, Daphne's own name for the folder, works too), or in the folder
 `--samples` names, and says at start-up what it found. Without them the
 game plays with the soundtrack alone.
 
@@ -872,7 +873,7 @@ There's no free play setting, so `--free-play` does nothing; nor a switch
 for the attract mode's sound. laser-vault starts with DSW1 `0F` and DSW2
 `BB` (3 lives, continues, one or two players).
 
-## Dragon's Lair II
+<h2 id="dragons-lair-ii"><img src="./assets/dragon2-logo.png" width="400" height="65" alt="Dragon's Lair II"></h2>
 
 Dragon's Lair II: Time Warp (Leland, 1991) runs on Leland's board, which is
 built much like an IBM PC XT: an 8088 at 10 MHz, the PC's interrupt
@@ -881,9 +882,9 @@ serial port. The board has no graphics of its own: the player draws the
 game's words over the picture. You need:
 
 - **The video:** the Daphne-style clips `dl2-00001.m2v` to `dl2-44550.m2v`
-  with their `.ogg` soundtracks, and the framefile `dragonslair2.txt`. Some
-  copies leave the last clip, `dl2-44550.m2v`, out of the framefile; add the
-  line `44550  dl2-44550.m2v` at the end if so. The clips must be plain
+  with their `.ogg` soundtracks, and the framefile (`lair2.txt` in the usual
+  set). Some copies leave the last clip, `dl2-44550.m2v`, out of the
+  framefile; add the line `44550  dl2-44550.m2v` at the end if so. The clips must be plain
   MPEG and Ogg files: some copies come scrambled (as `.m2v.bf` and `.ogg.bf`
   files), and laser-vault can't read those.
 - **The ROMs:** `lair2.zip` holding `dl2_319.bin`, the US version 3.19 (MAME's
@@ -891,9 +892,22 @@ game's words over the picture. You need:
   haven't been tried. The 2.xx versions need the disc's first pressing, and
   the European versions drive a Philips player instead: those don't run.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/dragonslair2.txt --video-dir path/to/mpeg --roms path/to/lair2.zip
+lair2.daphne/
+    lair2.txt, dl2-00001.m2v ... dl2-44550.m2v (and their .ogg files)
+    roms/lair2.zip
+    ram/lair2_319.gz     Daphne's saved copy of the game's EEPROM
+    sound/               Daphne's recordings for many games (this one needs none)
 ```
+
+```
+laser-vault path/to/lair2.daphne
+```
+
+The `ram` folder is ignored for now (see below).
 
 At power on the board checks itself for about 10 s, with a beep part way
 (this ROM always fails its own checksum test, and carries on), then sets up
