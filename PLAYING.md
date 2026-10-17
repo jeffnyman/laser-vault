@@ -707,7 +707,7 @@ bit):
 
 laser-vault starts with DSW1 `FF` and DSW2 `0F`.
 
-## Bega's Battle
+<h2 id="begas-battle"><img src="./assets/begas-logo.png" width="400" height="106" alt="Bega's Battle"></h2>
 
 Bega's Battle (Data East, 1983) runs on Data East's own board: two 6502s,
 one running the game and one its sound (two AY-3-8910s), driving Sony's
@@ -716,17 +716,28 @@ film *Harmagedon*, and the board draws Bega, his enemies, the shots and the
 score over them. You need:
 
 - **The video:** the Daphne-style clip `bega.m2v` with its soundtrack, and
-  the framefile `begasbattle.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
+  the framefile (`bega.txt` in the usual set).
 - **The ROMs:** `bega.zip`, MAME's `begas` (revision 3: `an00-3` to
   `an05-3`, and `an01`, `an06` to `an09`, `an0a` to `an0c`). Revision 1
   (`begar1.zip`, MAME's `begas1`) works too; it holds only its five changed
   chips and takes the rest from `bega.zip` beside it. The colour PROM
   `af-8.bpr` isn't needed: the game sets its colours itself.
 
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
 ```
-laser-vault path/to/begasbattle.txt --video-dir path/to/mpeg/begasbattle --roms path/to/bega.zip
+bega.daphne/
+    bega.txt, bega.m2v, bega.ogg
+    roms/bega.zip, roms/begar1.zip
 ```
+
+```
+laser-vault path/to/bega.daphne
+```
+
+With both zips there, it picks `bega.zip` (revision 3), the one named like
+the folder. For revision 1, add `--roms path/to/bega.daphne/roms/begar1.zip`.
 
 Like the real machine it waits about 16 s for the disc to spin up before
 the attract mode starts (`--fast-boot` skips that). Press 5 to insert a
