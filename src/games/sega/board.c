@@ -80,7 +80,7 @@ static const RomSet rom_sets[] = {
      {{{"ic-7.bin", NULL, NULL}, 0x2000, 0x9E12B19C}, NO_CHIP, {{"ic-8.bin", NULL, NULL}, 0x2000, 0x201041C0}, NO_CHIP},
      cobra_chars, &cobra_prom, 8, true},
     // The versions for Sega's player.
-    {SEGA_ASTRON_BELT, "Astron Belt (Sega laserdisc player version)", false, "astron.zip",
+    {SEGA_ASTRON_BELT, "Astron Belt (Sega laserdisc player version)", true, "astron.zip",
      {{{"5473c", NULL, NULL}, 0x4000, 0x0F24BAAA}, {{"5474a", NULL, NULL}, 0x4000, 0x5D44603D}},
      {{{"5284", NULL, NULL}, 0x4000, 0xEEC6DB27}, {{"5285", NULL, NULL}, 0x4000, 0x820E154E}},
      {{{"5286", NULL, NULL}, 0x4000, 0x8EB1C28E}, NO_CHIP, {{"5338", NULL, NULL}, 0x4000, 0x94CA5F9A}, NO_CHIP},

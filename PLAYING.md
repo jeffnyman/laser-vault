@@ -492,16 +492,15 @@ that is, set). laser-vault starts with DSW1 `FF` and DSW2 `7E`: 1 coin 1
 credit, 3 lives, sound in the attract mode. Hold both start buttons as the
 game powers on for its service mode.
 
-## Astron Belt
+<h2 id="astron-belt"><img src="./assets/astron-logo.png" width="400" height="45" alt="Astron Belt"></h2>
 
 Astron Belt (Sega, 1983; Bally Midway in America) runs on Sega's own board:
 a Z80 driving a laserdisc player, with sprites (your fighter, the enemy ships and
 their shots) and characters (the score, the timer, the messages) drawn over
 film of space battles. You need:
 
-- **The video:** the Daphne-style clip `abelt.m2v` with its soundtrack, and
-  the framefile `astronbelt.txt`. Its first line is often a placeholder
-  instead of a folder, so give the folder with `--video-dir`.
+- **The video:** the Daphne-style clip (`astron512.m2v` in the usual set)
+  with its soundtrack, and the framefile (`astron.txt`).
 - **The ROMs:** either version. `astron.zip` (MAME's `astron`, program
   chips `5473c` and `5474a`) is the version for Sega's own laserdisc player,
   which the board drives over a serial line. `astronp.zip` (MAME's
@@ -509,12 +508,25 @@ film of space battles. You need:
   program chips (`abp-ic03.bin`, `abp-ic10.bin`), with the rest in
   `astron.zip` beside it; laser-vault looks there too, as MAME does, and
   then in any other zip in the same folder. A folder holding all the chips
-  works as well. The two play the same; the version for Sega's player
-  hasn't been played as much.
+  works as well. The two play the same.
+- **The sound effects** (optional): see **Sound** below.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
 
 ```
-laser-vault path/to/astronbelt.txt --video-dir path/to/mpeg/astronbelt --roms path/to/astronp.zip
+astron.daphne/
+    astron.txt, astron512.m2v, astron512.ogg
+    roms/astron.zip, roms/astronp.zip
+    sounds/ab_*.wav
 ```
+
+```
+laser-vault path/to/astron.daphne
+```
+
+With both zips there, it picks `astron.zip`, the one named like the
+folder. For the LD-V1000 version, add `--roms path/to/astron.daphne/roms/astronp.zip`.
 
 Press 5 to insert a coin, then 1 to start. The arrow keys fly the fighter
 (up is up the screen) and Space fires. The game starts on a timer (60
@@ -530,7 +542,7 @@ instead, laser-vault plays recordings of its sounds, the ones made for the
 Daphne emulator (`ab_ship.wav`, `ab_fire.wav`, `ab_enemy.wav` and
 `ab_alarm1.wav` to `ab_alarm4.wav`), when the game asks the sound board for
 each one. It looks for them in a `sounds` folder beside the ROMs' folder
-(`astron/roms/astronp.zip` and `astron/sounds/`, say), or in the folder
+(`astron.daphne/roms/` and `astron.daphne/sounds/`, as in the usual set), or in the folder
 `--samples` names, and says at start-up what it found. Without them the
 game plays with the soundtrack alone.
 
