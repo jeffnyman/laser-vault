@@ -40,7 +40,7 @@ Dirk the Daring goes into the dragon's castle to rescue Princess Daphne.
 On the cabinet the scores and lives are on LED displays in the bezel;
 laser-vault can show them beside the picture. It can also play the whole
 game for you, by reading the game's own list of moves. It runs the arcade
-rev F2 and the fan-made Dragon's Lair Enhancement 1.1 and 2.0.
+rev F2 and the fan-made Dragon's Lair Enhancement 1.1, 2.0 and 2.1.
 
 <p align="center">
   <a href="assets/dl-title-1320.png"><img src="assets/dl-title-1320.png" width="32%" alt="Dragon's Lair title screen, frame 1320"></a>

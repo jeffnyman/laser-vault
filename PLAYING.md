@@ -5,7 +5,7 @@ How to run the games, the keys, the options, and what each game needs.
 
 - [Running](#running): what you need, the command, the keys and controllers
 - [Options](#options) and [what to expect](#what-to-expect)
-- The games: [Dragon's Lair ROM sets](#dragons-lair-rom-sets) and
+- The games: [Dragon's Lair](#dragons-lair) and its
   [DIP switches](#dip-switches), [Space Ace](#space-ace),
   [Super Don Quix-ote](#super-don-quix-ote), [Esh's Aurunmilla](#eshs-aurunmilla),
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
@@ -26,7 +26,7 @@ You need your own copy of the game:
   tool at the first part. There's no need to run a self-extracting `.exe`.
 - **The ROMs:** Dragon's Lair rev F2, as `lair.zip` or a folder holding
   `dl_f2_u1.bin` to `dl_f2_u4.bin`. Some other sets work too; see
-  [Dragon's Lair ROM sets](#dragons-lair-rom-sets). For the other games, see
+  [Dragon's Lair](#dragons-lair). For the other games, see
   [Space Ace](#space-ace), [Super Don Quix-ote](#super-don-quix-ote),
   [Esh's Aurunmilla](#eshs-aurunmilla), [Cliff Hanger](#cliff-hanger),
   [Badlands](#badlands), [Astron Belt](#astron-belt),
@@ -38,8 +38,8 @@ Daphne and Singe sets usually come as one folder per game, laid out like
 this:
 
 ```
-dragonslair/
-    dragonslair.txt     the framefile
+lair.daphne/
+    lair.txt            the framefile
     *.m2v, *.ogg        the video clips and their soundtracks
     roms/lair.zip       the ROMs
     sounds/             recorded sound effects (Astron Belt, Galaxy Ranger)
@@ -48,7 +48,7 @@ dragonslair/
 Then give laser-vault the folder, and it finds the rest:
 
 ```
-laser-vault path/to/dragonslair --fast-boot
+laser-vault path/to/lair.daphne --fast-boot
 ```
 
 It works out which `.txt` file is the framefile (one that lists clips,
@@ -191,7 +191,24 @@ and planning starts again from where the game is.
 share one), built into the program from `icons/`. `--icon FILE.ico` uses
 another.
 
-## Dragon's Lair ROM sets
+<h2 id="dragons-lair"><img src="./assets/dragon1-logo.png" width="400" height="175" alt="Dragon's Lair"></h2>
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)), with the two fan-made sets beside the original:
+
+```
+lair.daphne/
+    lair.txt, dl-slates.m2v, dls00.vob.m2v, ... (and their .ogg files)
+    roms/lair.zip, roms/dle11.zip, roms/dle20.zip, roms/dle21.zip
+```
+
+```
+laser-vault path/to/lair.daphne --fast-boot
+```
+
+That plays `lair.zip`, the one named like the folder. For another set, add
+`--roms path/to/lair.daphne/roms/dle11.zip` (or `dle20.zip`, `dle21.zip`).
+All the sets play the same disc, so they share the framefile.
 
 Give `--roms` a different set and the program works out which one it is,
 says so on the console, and sets the DIP switches the way that set expects.
@@ -214,6 +231,10 @@ says so on the console, and sets the DIP switches the way that set expects.
   the end of its section, and scores differently. Its prototype mode needs
   the scenes on a Limited Edition disc pressed in 2002, so laser-vault sets
   it to the standard game.
+- **`dle21.zip`, Dragon's Lair Enhancement 2.1** (2005): 2.0 fitted onto
+  three chips instead of four, with a fix to one of the prototype scenes;
+  the same switches. It plays, but hasn't been played through as much as
+  the others.
 - **Revs D, E and F:** earlier US revisions for the LD-V1000. They should
   work, but haven't been tested.
 
@@ -228,7 +249,7 @@ and the European board.
 The game board has two banks of eight DIP switches, DSW1 and DSW2, that
 the operator sets inside the cabinet: pricing, lives, difficulty and so on.
 Each ROM set starts with its usual settings (rev F2: DSW1 `20`, DSW2 `79`;
-DLE 1.1: `20`, `F9`; DLE 2.0: `20`, `E9`; Space Ace rev A3: `DD`, `FE`; SAE:
+DLE 1.1: `20`, `F9`; DLE 2.0 and 2.1: `20`, `E9`; Space Ace rev A3: `DD`, `FE`; SAE:
 `20`, `89`; Super Don Quix-ote: `FF`, `FF`), and the console shows the
 settings in use when the game starts.
 
