@@ -10,9 +10,10 @@
 // ROMs
 // ---------------------------------------------------------------------------
 //
-// Two revisions of Bega's Battle, which differ in five program chips. A
-// set may hold only those, with the rest in the other set's zip beside it.
-// (Names and checksums from MAME's deco_ld.cpp.)
+// Two revisions of Bega's Battle, which differ in five program chips (a
+// set may hold only those, with the rest in the other set's zip beside
+// it), and Data East's own Cobra Command. (Names and checksums from MAME's
+// deco_ld.cpp.)
 
 typedef struct {
     const char *name;
@@ -24,8 +25,9 @@ typedef struct {
 enum { MAIN, SOUND, GFX };
 
 typedef struct {
+    DecoGame game;
     const char *title;
-    RomChip chips[13];
+    RomChip chips[13];  // the unused ones at the end have no name
 } RomSet;
 
 #define COMMON_CHIPS                                                                              \
@@ -35,14 +37,22 @@ typedef struct {
     {"an0c", 0x0C127207, GFX, 0x8000}, {"an09", 0xB7375FD7, GFX, 0xA000}
 
 static const RomSet sets[] = {
-    {"Bega's Battle (Data East, revision 3)",
+    {DECO_BEGAS, "Bega's Battle (Data East, revision 3)",
      {{"an05-3", 0xC917A283, MAIN, 0x0000}, {"an04-3", 0x935B2B0A, MAIN, 0x2000},
       {"an03-3", 0x79438D80, MAIN, 0x4000}, {"an02-3", 0x98CE4CA0, MAIN, 0x6000},
       {"an00-3", 0x124A3A36, MAIN, 0xA000}, COMMON_CHIPS}},
-    {"Bega's Battle (Data East, revision 1)",
+    {DECO_BEGAS, "Bega's Battle (Data East, revision 1)",
      {{"an05", 0x91A05549, MAIN, 0x0000}, {"an04", 0x670966FE, MAIN, 0x2000},
       {"an03", 0xD2D85CDF, MAIN, 0x4000}, {"an02", 0x84D13C20, MAIN, 0x6000},
       {"an00", 0x184297F3, MAIN, 0xA000}, COMMON_CHIPS}},
+    // Its program starts at 8000.
+    {DECO_COBRA, "Cobra Command (Data East's version)",
+     {{"au03-2", 0x8F0A8FBA, MAIN, 0x4000}, {"au02-2", 0x7DB11ACF, MAIN, 0x6000},
+      {"au01-2", 0x523DD8F6, MAIN, 0x8000}, {"au00-2", 0x6C0F1F16, MAIN, 0xA000},
+      {"au06", 0xCCC94EB0, SOUND, 0x0000},
+      {"au0a", 0x6AAEDCF3, GFX, 0x0000}, {"au07", 0xD4BF12A5, GFX, 0x2000},
+      {"au0b", 0x92247877, GFX, 0x4000}, {"au08", 0x63158274, GFX, 0x6000},
+      {"au0c", 0xD00A2762, GFX, 0x8000}, {"au09", 0x74E93394, GFX, 0xA000}}},
 };
 #define SET_COUNT (int)(sizeof sets / sizeof sets[0])
 
@@ -60,7 +70,7 @@ bool deco_recognizes(const char *path)
 
 // Read and check one chip, from path or a zip beside it. A checksum that
 // doesn't match only warns.
-static bool load_chip(const char *path, const RomChip *chip, uint8_t *dest)
+static bool load_chip(const char *path, const char *title, const RomChip *chip, uint8_t *dest)
 {
     char nearby[1024];
     const char *from = path;
@@ -68,7 +78,7 @@ static bool load_chip(const char *path, const RomChip *chip, uint8_t *dest)
     uint8_t *data = NULL;
     size_t size = 0;
     if (!roms_read(from, chip->name, &data, &size)) {
-        fprintf(stderr, "ROMs: %s looks like Bega's Battle, but %s is missing\n", path, chip->name);
+        fprintf(stderr, "ROMs: %s looks like %s, but %s is missing\n", path, title, chip->name);
         return false;
     }
     if (size != 0x2000) {
@@ -89,11 +99,13 @@ bool deco_load_roms(DecoBoard *b, const char *path)
 {
     const RomSet *set = find_set(path);
     if (!set) return false;
-    for (int i = 0; i < 13; i++) {
+    memset(b->rom, 0xFF, sizeof b->rom);
+    for (int i = 0; i < 13 && set->chips[i].name; i++) {
         const RomChip *chip = &set->chips[i];
         uint8_t *region = chip->where == MAIN ? b->rom : chip->where == SOUND ? b->sound_rom : b->gfx;
-        if (!load_chip(path, chip, region + chip->at)) return false;
+        if (!load_chip(path, set->title, chip, region + chip->at)) return false;
     }
+    b->game = set->game;
     // The DIP switches, as the game's code reads them (a switch is on when
     // its bit is 0; MAME and Daphne list them as unknown):
     //
@@ -111,27 +123,41 @@ bool deco_load_roms(DecoBoard *b, const char *path)
     //
     // There's no free play setting, and no switch for the attract mode's
     // sound, that the code shows.
+    //
+    // Cobra Command reads DSW1 the same way. Its DSW2, from its code:
+    //
+    //     DSW2  bit 0     lives: 3 (1), 5 (0)
+    //           bits 1-2  the score for a bonus life
+    //           bits 3-4  pick from two tables of settings (the difficulty?)
+    //           bit 5     1: the disc's sound in the attract mode
+    //           bit 6     read at start-up; unknown
+    //           bit 7     1: the game; 0: the board's test program
     b->dsw1 = 0x0F;  // 1 coin 1 credit in both slots
-    b->dsw2 = 0xBB;  // 3 lives, continues, the first bonus setting, one or two players, the game
+    if (b->game == DECO_COBRA)
+        b->dsw2 = 0xFF;  // all off: 3 lives, the first bonus setting, sound in the attract mode, the game
+    else
+        b->dsw2 = 0xBB;  // 3 lives, continues, the first bonus setting, one or two players, the game
     printf("ROMs: %s\n", set->title);
     return true;
 }
 
 const char *deco_game_name(const DecoBoard *b)
 {
-    (void)b;
-    return "Bega's Battle";
+    return b->game == DECO_COBRA ? "Cobra Command" : "Bega's Battle";
 }
 
+// Only Cobra Command has one of these on its switches: the attract mode's
+// sound (DSW2 bit 5).
 void deco_set(DecoBoard *b, DecoSetting setting, bool on)
 {
-    (void)b, (void)setting, (void)on;  // neither setting is on the switches
+    if (b->game != DECO_COBRA || setting != DECO_QUIET_ATTRACT) return;
+    if (on) b->dsw2 &= (uint8_t)~0x20;
+    else b->dsw2 |= 0x20;
 }
 
 bool deco_get(const DecoBoard *b, DecoSetting setting)
 {
-    (void)b, (void)setting;
-    return false;
+    return b->game == DECO_COBRA && setting == DECO_QUIET_ATTRACT && !(b->dsw2 & 0x20);
 }
 
 // ---------------------------------------------------------------------------
@@ -191,11 +217,15 @@ static bool in_vblank(const DecoBoard *b)
     return (b->cycles - start) * 525 >= length * 2 * 240;
 }
 
-static uint8_t read_controls(const DecoInputs *in)
+// Cobra Command has up and down the other way round from Bega's Battle
+// (its gun sight moves up the screen on bit 0).
+static uint8_t read_controls(const DecoBoard *b)
 {
-    uint8_t v = 0xFF;  // bit 7: tilt
-    if (in->down) v &= ~0x01;
-    if (in->up) v &= ~0x02;
+    const DecoInputs *in = &b->inputs;
+    bool cobra = b->game == DECO_COBRA;
+    uint8_t v = 0xFF;  // bit 7: tilt (the game resets if it reads 0)
+    if (cobra ? in->up : in->down) v &= ~0x01;
+    if (cobra ? in->down : in->up) v &= ~0x02;
     if (in->left) v &= ~0x04;
     if (in->right) v &= ~0x08;
     if (in->button1) v &= ~0x40;
@@ -223,7 +253,7 @@ static uint8_t mem_read(void *ctx, uint16_t addr)
     if (addr >= 0x2000) return b->video[(addr - 0x2000) & ~0x0800];
     if (addr >= 0x1800) return b->colours[addr - 0x1800];
     switch (addr) {
-    case 0x1000: return read_controls(&b->inputs);
+    case 0x1000: return read_controls(b);
     case 0x1001: return read_dsw1(b);
     case 0x1002: return b->dsw2;
     case 0x1003: return in_vblank(b) ? 0x80 : 0x00;
@@ -444,18 +474,63 @@ static void draw_sprites(const DecoBoard *b, const uint8_t *layer, int bank, uin
     }
 }
 
-static void draw_tiles(const DecoBoard *b, const uint8_t *layer, int bank, uint32_t *pixels)
+// One tile at a layer's column and row (row 0 is the hidden top row).
+static void draw_tile(const DecoBoard *b, int tile, int col, int layer_row, uint32_t *pixels)
 {
-    for (int row = 0; row < DECO_OVERLAY_H / 8; row++) {
+    int top = layer_row * 8 - FIRST_LINE;
+    if (col < 0 || col >= 32 || top < 0 || top >= DECO_OVERLAY_H) return;
+    for (int y = 0; y < 8; y++) {
+        uint32_t *out = pixels + (top + y) * DECO_OVERLAY_W + col * 8;
+        for (int x = 0; x < 8; x++) {
+            int pen = gfx_pen(b, tile * 8 + 7 - y, x);
+            if (pen) out[x] = colour(b, TILE_COLOURS + pen);
+        }
+    }
+}
+
+static void draw_tiles(const DecoBoard *b, const uint8_t *layer, int bank, const bool *skip, uint32_t *pixels)
+{
+    for (int row = FIRST_LINE / 8; row < FIRST_LINE / 8 + DECO_OVERLAY_H / 8; row++) {
         for (int col = 0; col < 32; col++) {
-            int index = (row + FIRST_LINE / 8) * 32 + col;
-            int tile = bank + (layer[index] | (layer[0x400 + index] & 3) << 8);
-            for (int y = 0; y < 8; y++) {
-                uint32_t *out = pixels + (row * 8 + y) * DECO_OVERLAY_W + col * 8;
-                for (int x = 0; x < 8; x++) {
-                    int pen = gfx_pen(b, tile * 8 + 7 - y, x);
-                    if (pen) out[x] = colour(b, TILE_COLOURS + pen);
-                }
+            int index = row * 32 + col;
+            if (skip && skip[index]) continue;
+            draw_tile(b, bank + (layer[index] | (layer[0x400 + index] & 3) << 8), col, row, pixels);
+        }
+    }
+}
+
+// Cobra Command's canopy struts. With the cockpit, the game draws two
+// diagonal bars from the top corners, six tiles at a time from tables in
+// its ROM (at C8BF and C8C5), each run 0x23 (or -0x1D) on from the last in
+// layer 1. The tiles only join up if that part of the layer runs in
+// columns, 32 tiles each, though the cockpit and all the text run in rows;
+// read as rows, the left strut is a line of broken dashes and the right
+// one lands where the cockpit is drawn over it. So, while the left strut's
+// tiles are there, those cells are left out and both struts are drawn as
+// columns. Drawn that way, each strut runs from a top corner down to the
+// post on the cockpit's top edge that's there for it. (How the real board
+// manages this isn't known.)
+static const uint8_t strut_tiles[2][6] = {{0x5B, 0x5F, 0x5E, 0x59, 0x5D, 0x5C}, {0x29, 0x41, 0x40, 0x2B, 0x43, 0x42}};
+static const int strut_start[2] = {-0x001, 0x3DF};  // the first run, of which only tiles 2-5 are drawn
+static const int strut_step[2] = {0x23, -0x1D};
+
+static bool cobra_struts_shown(const DecoBoard *b)
+{
+    if (b->game != DECO_COBRA) return false;
+    for (int i = 0; i < 6; i++)
+        if (b->video[0x1000 + strut_start[0] + strut_step[0] + i] != strut_tiles[0][i]) return false;
+    return true;
+}
+
+static void draw_cobra_struts(const DecoBoard *b, bool *skip, uint32_t *pixels)
+{
+    for (int s = 0; s < 2; s++) {
+        for (int run = 0; run < 8; run++) {
+            int base = strut_start[s] + run * strut_step[s];
+            for (int i = run == 0 ? 2 : 0; i < 6; i++) {
+                int at = base + i;
+                draw_tile(b, 0x200 + strut_tiles[s][i], at >> 5, at & 31, pixels);
+                if (s == 0 && run > 0) skip[at] = true;
             }
         }
     }
@@ -466,6 +541,8 @@ void deco_draw_overlay(const DecoBoard *b, uint32_t *pixels)
     memset(pixels, 0, sizeof *pixels * DECO_OVERLAY_W * DECO_OVERLAY_H);
     draw_sprites(b, b->video + 0x1000, 0x000, pixels);
     draw_sprites(b, b->video, 0x100, pixels);
-    draw_tiles(b, b->video, 0x400, pixels);
-    draw_tiles(b, b->video + 0x1000, 0x000, pixels);
+    draw_tiles(b, b->video, 0x400, NULL, pixels);
+    bool skip[0x400] = {false};
+    if (cobra_struts_shown(b)) draw_cobra_struts(b, skip, pixels);
+    draw_tiles(b, b->video + 0x1000, 0x000, skip, pixels);
 }

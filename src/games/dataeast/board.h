@@ -1,5 +1,5 @@
 // board.h - Data East's laserdisc game board, which runs Bega's Battle
-// (1983).
+// (1983) and Data East's own version of Cobra Command (1984).
 //
 // Two 6502s, one for the game and one for its sound, driving Sony's
 // LDP-1000 over a serial line (see ldp/ldp1000.h), with two layers of
@@ -68,11 +68,17 @@ typedef struct {
 } DecoInputs;
 
 typedef enum {
+    DECO_BEGAS,
+    DECO_COBRA,
+} DecoGame;
+
+typedef enum {
     DECO_FREE_PLAY,
     DECO_QUIET_ATTRACT,
 } DecoSetting;
 
 typedef struct {
+    DecoGame game;
     M6502 cpu, sound_cpu;
     uint8_t rom[0xC000];        // 4000-FFFF
     uint8_t sound_rom[0x2000];  // E000-FFFF

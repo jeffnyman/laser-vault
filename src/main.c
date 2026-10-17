@@ -990,8 +990,9 @@ int main(int argc, char **argv)
                    "disc to spin up; the attract mode starts after about 35 s. (Use\n"
                    "--fast-boot to skip the wait.)\n", machine_game_name(m));
         } else if (m->kind == MACHINE_DATAEAST) {
-            printf("%s is starting. Like the real machine, it waits about 16 s for the\n"
-                   "disc to spin up. (Use --fast-boot to skip the wait.)\n", machine_game_name(m));
+            printf("%s is starting. Like the real machine, it waits about %d s for the\n"
+                   "disc to spin up. (Use --fast-boot to skip the wait.)\n", machine_game_name(m),
+                   m->deco->game == DECO_COBRA ? 21 : 16);
         } else if (m->kind == MACHINE_LELAND) {
             printf("%s is starting. Like the real machine, it checks itself for about\n"
                    "10 s, then sets up the player; the attract mode starts after about 18 s.\n"
@@ -1018,7 +1019,10 @@ int main(int argc, char **argv)
             printf("Then choose a skill level: F1 Cadet, F2 Captain or F3 Ace.\n");
         if (m->kind == MACHINE_STERN)
             printf("Space is Cliff's hands, Shift his feet, the arrow keys the joystick.\n");
-        if (m->kind == MACHINE_DATAEAST)
+        if (m->kind == MACHINE_DATAEAST && m->deco->game == DECO_COBRA)
+            printf("The arrow keys move the gun sight, Space fires the guns and Shift the\n"
+                   "missiles.\n");
+        else if (m->kind == MACHINE_DATAEAST)
             printf("The arrow keys move Bega, Space fires; Shift and Z are the buttons for\n"
                    "the friends you rescue.\n");
         if (m->kind == MACHINE_LELAND) printf("The arrow keys move Dirk, Space is his sword.\n");

@@ -153,7 +153,7 @@ const char *machine_icon_name(const Machine *m)
         if (m->sega->game == SEGA_COBRA_COMMAND) return "cobra";
         return m->sega->game == SEGA_ASTRON_BELT ? "astron" : "galaxy";  // Star Blazer too
     case MACHINE_RDI: return "thayers";
-    case MACHINE_DATAEAST: return "bega";
+    case MACHINE_DATAEAST: return m->deco->game == DECO_COBRA ? "cobra" : "bega";
     case MACHINE_LELAND: return "dlair2";
     default: return m->cine->game == CINE_SPACE_ACE ? "spaceace" : "dlair";
     }
