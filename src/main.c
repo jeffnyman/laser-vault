@@ -6,8 +6,10 @@
 //                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]
 //                                 [--samples DIR] [--no-subtitles]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
+//        laser-vault --version
 //
-// The window icons are built in (icons/); --icon uses a
+// It prints its version (and the git commit it was built from) when it
+// starts, and --version prints just that. The window icons are built in (icons/); --icon uses a
 // Windows .ico file instead. F11 or Alt+Enter switches fullscreen on and
 // off in either mode; --fullscreen starts that way. F12 saves a screenshot
 // (a PNG of the picture, and the score panel if it's shown) in the current
@@ -69,6 +71,7 @@
 #include "ui/bezel.h"
 #include "ui/icon.h"
 #include "util/png.h"
+#include "version.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
 
@@ -144,7 +147,8 @@ static void usage(void)
                     "                   [--fast-boot] [--attract-sound] [--scores] [--unlimited-lives]\n"
                     "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
                     "                   [--samples DIR] [--no-subtitles]\n"
-                    "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n");
+                    "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n"
+                    "       laser-vault --version\n");
 }
 
 static void update_title(App *app)
@@ -802,7 +806,10 @@ int main(int argc, char **argv)
     double disc_fps = 0;  // 0 = the game's own rate, or the default without ROMs
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--video-dir") == 0 && i + 1 < argc) {
+        if (strcmp(argv[i], "--version") == 0) {
+            printf("laser-vault %s\n", laser_vault_version);
+            return 0;
+        } else if (strcmp(argv[i], "--video-dir") == 0 && i + 1 < argc) {
             video_dir = argv[++i];
         } else if (strcmp(argv[i], "--roms") == 0 && i + 1 < argc) {
             roms = argv[++i];
@@ -856,6 +863,8 @@ int main(int argc, char **argv)
         usage();
         return 1;
     }
+
+    printf("laser-vault %s\n", laser_vault_version);
 
     App app = {0};
     app.subtitles = !no_subtitles;

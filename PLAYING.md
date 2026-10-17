@@ -64,7 +64,9 @@ flashing, and move or use the sword at the right moment.
 
 The number keys work on the top row or the numeric keypad. The console
 prints a line for each coin, start, button and skill-level press, and each
-move of the stick.
+move of the stick. Its first line is the version, such as
+`laser-vault 0.1.0 (041cf10)`; put that in any report of a problem, so it's
+clear which build it was.
 
 Game controllers work too, plugged in before or during play:
 
@@ -101,6 +103,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
+| `--version`           | print the version and the commit it was built from, and stop   |
 | `--frame N`           | without `--roms`: the frame to start on                        |
 | `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for the others; 23.976 without `--roms`; see `src/video/disc_video.h`) |
 

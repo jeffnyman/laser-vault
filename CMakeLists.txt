@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
-project(laser-vault LANGUAGES C)
+# The version number. Change it here (and in vcpkg.json) for a new release.
+project(laser-vault VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -77,8 +78,18 @@ foreach(icon ${EMBEDDED_ICONS})
     list(APPEND EMBEDDED_ICON_SOURCES ${output})
 endforeach()
 
+# The version text, with the git commit, rewritten on every build
+# (cmake/version.cmake) so a build always says what it was built from.
+set(VERSION_SOURCE ${CMAKE_BINARY_DIR}/generated/version.c)
+add_custom_target(version
+    COMMAND ${CMAKE_COMMAND} -DVERSION=${PROJECT_VERSION} -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -DOUTPUT=${VERSION_SOURCE} -P ${CMAKE_SOURCE_DIR}/cmake/version.cmake
+    BYPRODUCTS ${VERSION_SOURCE}
+    COMMENT "Checking the version")
+
 add_executable(laser-vault
     src/main.c
+    ${VERSION_SOURCE}
     src/games/machine.c
     src/audio/disc_audio.c
     src/ui/bezel.c
@@ -86,6 +97,7 @@ add_executable(laser-vault
     ${EMBEDDED_ICON_SOURCES}
 )
 target_link_libraries(laser-vault PRIVATE lv_video lv_ldp lv_cine lv_universal lv_funai lv_stern lv_konami lv_sega lv_rdi lv_dataeast lv_leland lv_png SDL3::SDL3)
+add_dependencies(laser-vault version)
 
 # Tool: turn a range of disc frames into an animated GIF.
 add_executable(disc-gif
@@ -213,3 +225,67 @@ foreach(target lv_video lv_ldp lv_cpu lv_roms lv_sound lv_cine lv_universal lv_f
         target_compile_options(${target} PRIVATE -Wall -Wextra)
     endif()
 endforeach()
+
+# A release: `cmake --install` gathers the program and what a player needs
+# to read into one folder, and the package target zips that folder up (see
+# DEVELOPING.md). The tools and tests above stay out of it.
+if(WIN32)
+    # Everything side by side, with the DLLs next to the program so Windows
+    # finds them.
+    set(INSTALL_BIN_DIR .)
+    set(INSTALL_DOC_DIR .)
+else()
+    include(GNUInstallDirs)
+    set(INSTALL_BIN_DIR ${CMAKE_INSTALL_BINDIR})
+    set(INSTALL_DOC_DIR ${CMAKE_INSTALL_DOCDIR})
+    # Keep the path to libraries outside the system folders (SDL3 built into
+    # ~/.local, say), so the installed program still finds them.
+    set_target_properties(laser-vault PROPERTIES INSTALL_RPATH_USE_LINK_PATH ON)
+endif()
+
+if(POLICY CMP0207)
+    cmake_policy(SET CMP0207 NEW)  # match DLL paths with forward slashes
+endif()
+if(WIN32 AND VCPKG_TOOLCHAIN)
+    # The DLLs vcpkg built (SDL3, FFmpeg, zlib, Ogg Vorbis) go with the
+    # program, and so do their licenses, which ask for that.
+    set(vcpkg_dir ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET})
+    install(TARGETS laser-vault
+        RUNTIME_DEPENDENCIES
+            PRE_EXCLUDE_REGEXES "^api-ms-" "^ext-ms-"
+            POST_EXCLUDE_REGEXES "[/\\][Ss]ystem32[/\\]"
+            DIRECTORIES ${vcpkg_dir}/bin
+        RUNTIME DESTINATION ${INSTALL_BIN_DIR})
+    # And Microsoft's C runtime, which a new Windows install may not have.
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INSTALL_BIN_DIR})
+    include(InstallRequiredSystemLibraries)
+    foreach(port sdl3 ffmpeg zlib libogg libvorbis)
+        install(FILES ${vcpkg_dir}/share/${port}/copyright
+            DESTINATION licenses RENAME ${port}.txt)
+    endforeach()
+else()
+    # Elsewhere the libraries come from the system's own packages.
+    install(TARGETS laser-vault RUNTIME DESTINATION ${INSTALL_BIN_DIR})
+endif()
+install(FILES README.md PLAYING.md LICENSE DESTINATION ${INSTALL_DOC_DIR})
+
+# The package: laser-vault-0.1.0-windows-x64.zip, or a .tar.gz elsewhere.
+if(WIN32)
+    set(package_system windows)
+    set(CPACK_GENERATOR ZIP)
+elseif(APPLE)
+    set(package_system macos)
+    set(CPACK_GENERATOR TGZ)
+else()
+    set(package_system linux)
+    set(CPACK_GENERATOR TGZ)
+endif()
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" package_arch)
+if(package_arch MATCHES "^(amd64|x86_64)$")
+    set(package_arch x64)
+elseif(package_arch MATCHES "^(arm64|aarch64)$")
+    set(package_arch arm64)
+endif()
+set(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION}-${package_system}-${package_arch})
+set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR}/package)
+include(CPack)

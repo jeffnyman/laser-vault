@@ -124,6 +124,35 @@ Using [Homebrew](https://brew.sh/):
 
 The program ends up at `build/macos/laser-vault`.
 
+## Making a release
+
+The presets above build with debug information, for working on the
+program. Each has a `-release` partner (`windows-release`, `linux-release`,
+`macos-release`) that builds in its own folder, fully optimized, and can
+package the result. On Windows, from the same Developer prompt:
+
+```
+cmake --preset windows-release
+cmake --build --preset windows-release --target package
+```
+
+That leaves `build/windows-release/package/laser-vault-0.1.0-windows-x64.zip`:
+`laser-vault.exe` with the DLLs it needs (SDL3, FFmpeg, zlib, Ogg Vorbis and
+Microsoft's C runtime), README, PLAYING, LICENSE, and a `licenses` folder
+with the libraries' licenses. Unzip it anywhere; it needs nothing else. On
+Linux and macOS (add `-DCMAKE_PREFIX_PATH` as above), the package is a
+`.tar.gz` with `bin/laser-vault` and the documents in `share/doc/laser-vault`,
+and the libraries come from the system's packages, as when building.
+`cmake --install build/linux-release --prefix ~/.local` installs the same
+files without packaging them. The tools and tests aren't included.
+
+The version number is in `CMakeLists.txt`'s `project()` line (keep
+`vcpkg.json`'s the same). Every build also records the git commit it came
+from (`cmake/version.cmake` writes it into the program), with `-dirty` when
+there were changes not yet committed. The program prints both when it
+starts and with `--version`, for example `laser-vault 0.1.0 (041cf10)`, so a
+report of a problem says which build it came from.
+
 ## Tools
 
 These are built alongside `laser-vault`.
@@ -244,6 +273,7 @@ checksums both program ROMs, and which then plays. The COP421
 ## Source map
 
 - `src/main.c`: window, keyboard, main loop, drawing.
+- `src/version.h`: the version text (written by `cmake/version.cmake`; see [Making a release](#making-a-release)).
 - `src/games/machine.c`: what the main program needs from a game board, passed on to the right one.
 - `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.

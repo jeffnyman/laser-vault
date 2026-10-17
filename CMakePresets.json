@@ -25,11 +25,35 @@
       "binaryDir": "${sourceDir}/build/macos",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows release",
+      "inherits": "windows",
+      "binaryDir": "${sourceDir}/build/windows-release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux release",
+      "inherits": "linux",
+      "binaryDir": "${sourceDir}/build/linux-release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS release",
+      "inherits": "macos",
+      "binaryDir": "${sourceDir}/build/macos-release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     }
   ],
   "buildPresets": [
     { "name": "windows", "configurePreset": "windows" },
     { "name": "linux", "configurePreset": "linux" },
-    { "name": "macos", "configurePreset": "macos" }
+    { "name": "macos", "configurePreset": "macos" },
+    { "name": "windows-release", "configurePreset": "windows-release" },
+    { "name": "linux-release", "configurePreset": "linux-release" },
+    { "name": "macos-release", "configurePreset": "macos-release" }
   ]
 }
