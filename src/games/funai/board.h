@@ -62,6 +62,8 @@ typedef struct {
     uint32_t palette[0x200];    // colour PROM decoded, as 0xAARRGGBB
 
     FunaiInputs inputs;
+    bool moves_known;           // the program is one autoplay can read (see board.c)
+    bool autoplay;              // the board plays each move itself
     Ldv1000 *player;
     uint8_t ld_out;             // the byte waiting for the player
     uint8_t misc;               // last byte written to port F5
@@ -91,6 +93,12 @@ bool funai_recognizes(const char *path);
 bool funai_load_roms(FunaiBoard *board, const char *path);
 
 const char *funai_game_name(const FunaiBoard *board);
+
+// Can autoplay play this ROM set? (Sets 1 and 3, whose second chip holds
+// the scenes.) With it on, the board presses each scene's move as well as
+// the player's controls.
+bool funai_can_autoplay(const FunaiBoard *board);
+void funai_set_autoplay(FunaiBoard *board, bool on);
 
 // Power on, connected to an LD-V1000.
 void funai_reset(FunaiBoard *board, Ldv1000 *player);

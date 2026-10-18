@@ -100,7 +100,8 @@ the picture, and the arrows that tell you which way to move.
 
 Don Davis flies across the universe to rescue Princess Sindy from Emperor
 Esh. MAME lists it as not working; laser-vault's own reading of the game's
-code supplied the missing pieces, and it plays.
+code supplied the missing pieces, and it plays. Autoplay plays it to the
+end, reading each scene's answer from the game's ROM.
 
 <p align="center">
   <a href="assets/esh-title-1310.png"><img src="assets/esh-title-1310.png" width="32%" alt="Esh's Aurunmilla title screen, frame 1310"></a>
@@ -201,6 +202,7 @@ to rescue Daphne. The sequel came out eight years after the first game, on
 a board from Leland built much like an IBM PC: an 8088 runs the game, and
 Sony's LDP-1450 player draws the game's words (the level, lives, credits
 and, on the first level, hints for the moves) over the picture itself.
+Autoplay plays all eight levels, from the game's own table of moves.
 
 <p align="center">
   <a href="assets/dl2-title-2050.png"><img src="assets/dl2-title-2050.png" width="32%" alt="Dragon's Lair II: Time Warp title, frame 2050"></a>

@@ -60,6 +60,8 @@ typedef struct {
     const char *title;
 
     LelandInputs inputs;
+    bool moves_known;       // the version autoplay can read (see board.c)
+    bool autoplay;          // the board plays each move itself
 
     // The interrupt controller.
     uint8_t pic_irr, pic_isr, pic_imr, pic_base, pic_lines;
@@ -118,6 +120,11 @@ bool leland_recognizes(const char *path);
 bool leland_load_roms(LelandBoard *board, const char *path);
 void leland_free(LelandBoard *board);
 const char *leland_game_name(const LelandBoard *board);
+
+// Can autoplay play this version? (3.19.) With it on, the board presses
+// each move as its window opens, as well as the player's controls.
+bool leland_can_autoplay(const LelandBoard *board);
+void leland_set_autoplay(LelandBoard *board, bool on);
 
 // Power on, connected to an LDP-1450.
 void leland_reset(LelandBoard *board, Ldp1000 *player);

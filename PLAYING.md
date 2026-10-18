@@ -87,7 +87,7 @@ two) and what the game's buttons do; each game's section below says more.
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
 | P / Pause             | pause / resume (Thayer's Quest: Pause only, since P is a letter) |
-| A                     | Dragon's Lair, Space Ace, Cliff Hanger, Goal to Go: autoplay on / off (see below) |
+| A                     | Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger, Goal to Go, Dragon's Lair II: autoplay on / off (see below) |
 | S                     | show / hide the score displays (Dragon's Lair, Space Ace) |
 | D                     | turn combing repair off / on (not in Thayer's Quest) |
 | Tab                   | show / hide subtitles (Thayer's Quest)    |
@@ -130,7 +130,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--attract-sound`     | sound in the attract mode (Dragon's Lair: in every cycle, not just every few), in the games with a switch for it |
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game (the games with a switch for it) |
 | `--free-play`         | no coins needed: press 1 to start (the games with a switch for it) |
-| `--autoplay`          | Dragon's Lair, Space Ace, Cliff Hanger (set 1), Goal to Go: the program plays the game for you (also the A key) |
+| `--autoplay`          | Dragon's Lair, Space Ace, Esh's Aurunmilla (sets 1 and 3), Cliff Hanger (set 1), Goal to Go, Dragon's Lair II (3.19): the program plays the game for you (also the A key) |
 | `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` or `sound` folder beside the ROMs' folder) |
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
@@ -176,16 +176,16 @@ about every five minutes. `--attract-sound` flips that switch.
 Dirks" DIP switch, meant for operators: Dirk still dies when you get a move
 wrong, but never loses a life.
 
-**Autoplay.** Dragon's Lair, Space Ace, Cliff Hanger and Goal to Go have
-it; it works from what each game keeps in memory about the moves it's
+**Autoplay.** Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger,
+Goal to Go and Dragon's Lair II have it; it works from what each game keeps in memory about the moves it's
 waiting for, and hasn't been written for the other games. With
 `--autoplay`, or after pressing A, the program plays the controls itself;
 you still insert coins and press start. It plays the whole game, from the
 first room to rescuing Daphne, without losing a life, with the original
 ROMs and both DLE sets; Space Ace too, original and SAE, at every skill
 level, to Borf's defeat. Press A at any time to take over, and again to
-hand back. The console prints each move it makes. (For Cliff Hanger and
-Goal to Go, see their sections.)
+hand back. The console prints each move it makes. (For the other four,
+see their sections.)
 
 It works by reading the game's mind. While a scene plays, the game keeps a
 list in RAM of the inputs it's watching for, each with its time windows and
@@ -456,6 +456,16 @@ Space (button 1) to begin. The video itself shows what to do: at each
 danger, a lamp on the control panel lights and the animation shows the way
 out (a dial that points left or right, for one), and you push the stick
 that way before the scene moves on.
+
+**Autoplay** (`--autoplay`, or A during a game) plays the whole game, from
+the first scene to the ending, without losing a life, and carries on into
+the next round. Each scene has a record in the game's ROM saying which
+control is right (the one the lamps light for) and which scene each answer
+leads to, and the game counts its way through the window as the scene
+plays, so the board presses the right control while the window is open
+(`src/games/funai/board.c` explains). You still insert the coin, press
+start and choose the level. Set 2's second program chip is different, and
+autoplay doesn't know it.
 
 MAME lists the game as not working. laser-vault's own reading of the game
 code gives the pieces MAME was missing: the laserdisc link runs in the
@@ -1017,6 +1027,14 @@ starts after about 18 s (`--fast-boot` skips all that). Press 5 twice (two
 coins make a credit, as the game comes set), then 1 to start. The arrow keys
 move Dirk and Space is his sword. On the first level the game names the
 moves as they're due ("LEFT").
+
+**Autoplay** (`--autoplay`, or A during a game) plays version 3.19 through
+all eight levels to the final score without losing a life. The game keeps
+every scene's move and window in a table, and copies the current scene's
+window into memory as it starts, so the board presses the move as the
+window opens (`src/games/leland/board.c` explains). You still insert the
+coins, press start and type your initials. The other versions keep things
+at other addresses, and autoplay stays off for them.
 
 The game keeps its settings (coinage, difficulty, free play) and its
 bookkeeping in an EEPROM, set from its service mode. laser-vault doesn't

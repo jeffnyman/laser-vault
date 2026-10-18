@@ -300,7 +300,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/video/tms9928.c`: the TMS9918/9928 video chip that draws over Cliff Hanger's and Goal to Go's
   picture.
 - `src/games/funai/board.c`: Funai's board that runs Esh's Aurunmilla (memory map, I/O,
-  the laserdisc interrupt, the tiles drawn over the picture, the beeper).
+  the laserdisc interrupt, the tiles drawn over the picture, the beeper, and autoplay from the
+  game's scene records).
 - `src/games/konami/board.c`: Konami's board that runs Badlands (memory map, the three
   interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
 - `src/games/rdi/board.c`: RDI's board that runs Thayer's Quest (I/O ports, the COP421's
@@ -313,7 +314,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle, Data East's Cobra Command and Road Blaster (two 6502s, the
   serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture).
 - `src/games/leland/board.c`: Leland's board that runs Dragon's Lair II (the PC's interrupt
-  controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter).
+  controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter,
+  and autoplay from the game's table of moves).
 - `src/games/gottlieb/board.c`: Gottlieb's board that runs Us vs. Them and M.A.C.H. 3 (the 8088,
   the laserdisc interface that clocks commands out to the PR-8210 and reads the frame numbers back,
   the disc's data channel with M.A.C.H. 3's targets, the tiles and sprites, and the sound board's

@@ -126,6 +126,7 @@ bool funai_load_roms(FunaiBoard *b, const char *path)
         warn_crc(&set->program[0], crcs[0]);
         warn_crc(&set->program[1], crcs[1]);
     }
+    b->moves_known = crcs[1] == rom_sets[0].program[1].crc;
     memcpy(b->rom, chips[0], 0x2000);
     memcpy(b->rom + 0x2000, chips[1], 0x2000);
 
@@ -176,6 +177,60 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
     }
 }
 
+// ---------------------------------------------------------------------------
+// Autoplay
+// ---------------------------------------------------------------------------
+//
+// Each scene has a record in the program (from 2180), and the game keeps a
+// pointer to the one it's playing at E408. While a prompt is up the game
+// steps E407 from 1 to 3 through the scene's window (0 before it, 4 after)
+// and looks for a newly pressed control. Counting the record's bytes in
+// hex: one in byte 15 is the move it's asking for (it lights the button
+// lamps from it), and takes the game on to the scene at bytes 16-18; one
+// in byte 19 goes to the scene at 1A-1C instead, and one in byte 11 counts
+// as something else again if it comes in the window's first part. E432 is set once a press has been taken. Controls
+// are bits 0-5 in the order of port F1: up, down, left, right, buttons 1
+// and 2.
+//
+// Autoplay presses byte 15's controls through the window, on and off a few
+// fields at a time, as the game wants a new press and treats a control
+// already held as the window opens as old.
+
+#define SCENE_POINTER 0xE408
+#define SCENE_PHASE 0xE407
+#define SCENE_PRESS_TAKEN 0xE432
+
+bool funai_can_autoplay(const FunaiBoard *b)
+{
+    return b->moves_known;
+}
+
+void funai_set_autoplay(FunaiBoard *b, bool on)
+{
+    b->autoplay = on && b->moves_known;
+}
+
+static uint8_t ram_byte(const FunaiBoard *b, uint16_t addr)
+{
+    return b->ram[addr - 0xE000];
+}
+
+static void add_autoplay(const FunaiBoard *b, FunaiInputs *in)
+{
+    unsigned phase = ram_byte(b, SCENE_PHASE);
+    unsigned scene = ram_byte(b, SCENE_POINTER) | ram_byte(b, SCENE_POINTER + 1) << 8;
+    if (phase < 1 || phase > 3 || ram_byte(b, SCENE_PRESS_TAKEN)) return;
+    if (scene < 0x2000 || scene + 0x20 > sizeof b->rom || (b->fields & 4)) return;
+    uint8_t want = b->rom[scene + 0x15] & 0x3F;
+    if (phase == 1 && (b->rom[scene + 0x11] & want)) return;  // wait for the move to mean the move
+    in->up |= (want & 0x01) != 0;
+    in->down |= (want & 0x02) != 0;
+    in->left |= (want & 0x04) != 0;
+    in->right |= (want & 0x08) != 0;
+    in->button1 |= (want & 0x10) != 0;
+    in->button2 |= (want & 0x20) != 0;
+}
+
 static uint8_t read_coins(const FunaiInputs *in)
 {
     // Bit 4 is the service button (not wired up here).
@@ -206,7 +261,11 @@ static uint8_t io_in(void *ctx, uint16_t port)
     FunaiBoard *b = ctx;
     switch (port & 0xFF) {
     case 0xF0: return read_coins(&b->inputs);
-    case 0xF1: return read_player(&b->inputs);
+    case 0xF1: {
+        FunaiInputs controls = b->inputs;
+        if (b->autoplay) add_autoplay(b, &controls);
+        return read_player(&controls);
+    }
     case 0xF4: return ldv1000_read_status(b->player, b->cycles);
     default: return 0xFF;  // F2: player 2's controls (none here), F3: unused
     }

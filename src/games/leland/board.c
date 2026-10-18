@@ -64,6 +64,7 @@ bool leland_load_roms(LelandBoard *b, const char *path)
     if (!b->ram) b->ram = malloc(0xF0000);
     if (!b->ram) return false;
     b->title = set->title;
+    b->moves_known = set == &sets[0];
     printf("ROMs: %s\n", set->title);
     return true;
 }
@@ -446,10 +447,72 @@ static void mem_write(void *ctx, uint32_t addr, uint8_t v)
     if (addr < 0xF0000) b->ram[addr] = v;
 }
 
+// ---------------------------------------------------------------------------
+// Autoplay
+// ---------------------------------------------------------------------------
+//
+// Dragon's Lair II keeps its scenes in a table of 14-byte records (at
+// 1000:5A24): the kind of record (0 and 1 for a scene with a move), the move
+// (01 up, 03 right, 05 down, 07 left, 0A the sword), the scene's first and
+// last frames, then three frames within it: too early from the first, the
+// window from the second to the third. As a scene starts, the game copies
+// those three to 1000:A160, A15C and A15A (widening the window a little at
+// the easier settings), and it keeps the frame it's on in A158; its first
+// level shows the move's name as a hint. The current scene's record is the
+// one the list of words at 5694 gives for the scene number in 56AA.
+// Autoplay reads all that, and presses the move as each window opens. The
+// addresses are version 3.19's; the others haven't been looked at.
+
+#define GAME_DATA 0x10000  // the game's data segment, 1000
+#define AUTO_EARLY_FRAMES 2
+
+bool leland_can_autoplay(const LelandBoard *b)
+{
+    return b->moves_known;
+}
+
+void leland_set_autoplay(LelandBoard *b, bool on)
+{
+    b->autoplay = on && b->moves_known;
+}
+
+static unsigned game_word(const LelandBoard *b, unsigned offset)
+{
+    const uint8_t *p = b->ram + GAME_DATA + offset;
+    return (unsigned)(p[0] | p[1] << 8);
+}
+
+static void add_autoplay(const LelandBoard *b, LelandInputs *in)
+{
+    unsigned frame = game_word(b, 0xA158), opens = game_word(b, 0xA15C), closes = game_word(b, 0xA15A);
+    // From two frames before the window to its end: some windows are only
+    // two frames long, and the game's frame count can step past the first
+    // between two reads of the controls. A press just before the window
+    // usually counts, but some scenes ignore one, so the press is repeated
+    // (two frames on, one off) until the move is taken and the next one's
+    // window replaces this.
+    if (!opens || frame + AUTO_EARLY_FRAMES < opens || frame > closes) return;
+    if ((frame + AUTO_EARLY_FRAMES - opens) % 3 == 2) return;
+    unsigned scene = game_word(b, 0x56AA) & 0x3F;
+    unsigned record = game_word(b, 0x5694 + 2 * scene);
+    if (0x5A24 + 14 * record + 14 > 0x10000) return;
+    const uint8_t *rec = b->ram + GAME_DATA + 0x5A24 + 14 * record;
+    switch (rec[1]) {
+    case 0x01: in->up = true; break;
+    case 0x03: in->right = true; break;
+    case 0x05: in->down = true; break;
+    case 0x07: in->left = true; break;
+    case 0x0A: in->sword = true; break;
+    default: break;
+    }
+}
+
 static uint8_t port_in(void *ctx, uint16_t port)
 {
     LelandBoard *b = ctx;
-    const LelandInputs *in = &b->inputs;
+    LelandInputs controls = b->inputs;
+    if (b->autoplay) add_autoplay(b, &controls);
+    const LelandInputs *in = &controls;
     switch (port) {
     case 0x20: return b->pic_read_isr ? b->pic_isr : b->pic_irr;
     case 0x21: return b->pic_imr;
@@ -506,12 +569,14 @@ void leland_reset(LelandBoard *b, Ldp1000 *player)
     uint8_t rom[sizeof b->rom];
     memcpy(rom, b->rom, sizeof rom);
     const char *title = b->title;
+    bool moves_known = b->moves_known;
     memset(b, 0, sizeof *b);
     b->ram = ram;
     b->samples = samples;
     b->sample_capacity = capacity;
     memcpy(b->rom, rom, sizeof rom);
     b->title = title;
+    b->moves_known = moves_known;
     memset(b->ram, 0, 0xF0000);
     memset(b->eeprom, 0xFF, sizeof b->eeprom);  // blank: the game sets it up
     b->ee_do = true;

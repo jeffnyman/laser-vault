@@ -37,8 +37,9 @@
 // default, a "sounds" folder beside the ROMs' folder). Thayer's Quest's
 // narrator is shown as subtitles; --no-subtitles (or Tab) hides them.
 // --autoplay lets the program play Dragon's Lair or Space Ace (see
-// games/cinematronics/autoplay.h), Cliff Hanger or Goal to Go (see
-// games/stern/board.c); A switches it on and off during a game.
+// games/cinematronics/autoplay.h), Esh's Aurunmilla, Cliff Hanger, Goal to
+// Go or Dragon's Lair II (see each one's board.c); A switches it on and off
+// during a game.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        action button (the sword)
@@ -1059,8 +1060,8 @@ int main(int argc, char **argv)
             app.autoplaying = true;
             printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
         } else if (autoplay) {
-            printf("Autoplay only knows Dragon's Lair, Space Ace, Cliff Hanger (set 1) and Goal\n"
-                   "to Go, so it stays off.\n");
+            printf("Autoplay only knows Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger\n"
+                   "(set 1), Goal to Go and Dragon's Lair II, so it stays off.\n");
         }
         fflush(stdout);
 

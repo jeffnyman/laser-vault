@@ -131,12 +131,16 @@ const char *machine_sample_example(const Machine *m)
 bool machine_can_autoplay(const Machine *m)
 {
     if (m->kind == MACHINE_CINEMATRONICS) return true;
+    if (m->kind == MACHINE_LELAND) return leland_can_autoplay(m->leland);
+    if (m->kind == MACHINE_FUNAI) return funai_can_autoplay(m->funai);
     return m->kind == MACHINE_STERN && stern_can_autoplay(m->stern);
 }
 
 void machine_set_autoplay(Machine *m, bool on)
 {
     if (m->kind == MACHINE_STERN) stern_set_autoplay(m->stern, on);
+    else if (m->kind == MACHINE_LELAND) leland_set_autoplay(m->leland, on);
+    else if (m->kind == MACHINE_FUNAI) funai_set_autoplay(m->funai, on);
 }
 
 bool machine_has_keyboard(const Machine *m)
