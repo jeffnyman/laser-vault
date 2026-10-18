@@ -30,6 +30,7 @@ void ldp_init(Ldp *ldp, double fps, int first_frame)
         .state = LDP_PAUSED,
         .frame = first_frame,
         .fps = fps,
+        .speed = 1,
     };
 }
 
@@ -38,6 +39,15 @@ void ldp_play(Ldp *ldp)
     if (ldp->state == LDP_SEARCHING) return;  // busy; a real player ignores it
     if (ldp->state != LDP_PLAYING) ldp->frame_clock = 0;
     ldp->state = LDP_PLAYING;
+    ldp->speed = 1;
+}
+
+void ldp_set_speed(Ldp *ldp, double speed)
+{
+    if (ldp->state == LDP_SEARCHING) return;
+    if (ldp->state != LDP_PLAYING) ldp->frame_clock = 0;
+    ldp->state = LDP_PLAYING;
+    ldp->speed = speed;
 }
 
 void ldp_pause(Ldp *ldp)
@@ -73,10 +83,11 @@ void ldp_update(Ldp *ldp, double seconds)
 {
     switch (ldp->state) {
     case LDP_PLAYING: {
-        // Advance one frame per 1/fps seconds. Keeping the leftover time
-        // (instead of resetting the clock each frame) keeps playback at the
-        // right speed even though updates don't line up with frames.
-        double frame_time = 1.0 / ldp->fps;
+        // Advance one frame per 1/fps seconds (at normal speed). Keeping
+        // the leftover time (instead of resetting the clock each frame)
+        // keeps playback at the right speed even though updates don't line
+        // up with frames.
+        double frame_time = 1.0 / (ldp->fps * ldp->speed);
         ldp->frame_clock += seconds;
         while (ldp->frame_clock >= frame_time) {
             ldp->frame_clock -= frame_time;

@@ -634,10 +634,11 @@ static void read_game_inputs(App *app)
     if (in->right && !before.right) printf("%6.1f s  stick: right\n", t);
     const char *button = app->machine.kind == MACHINE_CINEMATRONICS ? "sword" : "button";
     if (app->machine.kind == MACHINE_FUNAI || app->machine.kind == MACHINE_STERN ||
-        app->machine.kind == MACHINE_DATAEAST || app->machine.kind == MACHINE_GOTTLIEB) {
-        bool stern = app->machine.kind == MACHINE_STERN;
-        if (in->button && !before.button) printf("%6.1f s  %s\n", t, stern ? "hands" : "button 1");
-        if (in->button2 && !before.button2) printf("%6.1f s  %s\n", t, stern ? "feet" : "button 2");
+        app->machine.kind == MACHINE_DATAEAST || app->machine.kind == MACHINE_GOTTLIEB ||
+        app->machine.kind == MACHINE_GPWORLD) {
+        bool stern = app->machine.kind == MACHINE_STERN, gpw = app->machine.kind == MACHINE_GPWORLD;
+        if (in->button && !before.button) printf("%6.1f s  %s\n", t, stern ? "hands" : gpw ? "accelerator" : "button 1");
+        if (in->button2 && !before.button2) printf("%6.1f s  %s\n", t, stern ? "feet" : gpw ? "brake" : "button 2");
         if (in->button3 && !before.button3) printf("%6.1f s  button 3\n", t);
     } else if ((in->button || in->button2) && !(before.button || before.button2)) {
         printf("%6.1f s  %s\n", t, button);
@@ -1034,6 +1035,10 @@ int main(int argc, char **argv)
             printf("The arrow keys move Bega, Space fires; Shift and Z are the buttons for\n"
                    "the friends you rescue.\n");
         if (m->kind == MACHINE_LELAND) printf("The arrow keys move Dirk, Space is his sword.\n");
+        if (m->kind == MACHINE_GPWORLD)
+            printf("Left and right steer (the longer you hold one, the harder the turn),\n"
+                   "Space is the accelerator and Shift the brake; up and down shift into\n"
+                   "high and low gear.\n");
         if (m->kind == MACHINE_GOTTLIEB && m->gottlieb->game == GOTTLIEB_MACH3)
             printf("The arrow keys fly, Space is the trigger for the guns (and starts, as 1\n"
                    "does; left or right then picks the fighter or the bomber game); Shift\n"
@@ -1104,7 +1109,7 @@ int main(int argc, char **argv)
         if (app.audio) {
             bool channel1 = app.game ? machine_audio_on(&app.machine, 0) : true;
             bool channel2 = app.game ? machine_audio_on(&app.machine, 1) : true;
-            disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING && !app.paused,
+            disc_audio_update(app.audio, app.ldp.state == LDP_PLAYING && app.ldp.speed == 1 && !app.paused,
                               app.ldp.frame, channel1, channel2);
         }
         update_title(&app);

@@ -12,7 +12,8 @@ How to run the games, the keys, the options, and what each game needs.
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
   [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
-  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3), [Goal to Go](#goal-to-go)
+  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3), [Goal to Go](#goal-to-go),
+  [GP World](#gp-world)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -34,8 +35,8 @@ You need your own copy of the game:
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
   [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
-  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3) and
-  [Goal to Go](#goal-to-go).
+  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3),
+  [Goal to Go](#goal-to-go) and [GP World](#gp-world).
 
 Daphne and Singe sets usually come as one folder per game, laid out like
 this:
@@ -1211,6 +1212,69 @@ with both hints on. With them off (as MAME has them) nothing on the screen
 says when to act, and a new player can't tell what the game wants. The
 high scores are kept in battery-backed memory, which laser-vault doesn't
 save yet (the `ram` folder is ignored).
+
+<h2 id="gp-world"><img src="./assets/gpworld-logo.png" width="400" height="85" alt="GP World"></h2>
+
+GP World (Sega, 1984; Bally Midway in America) runs on its own Sega board,
+a bigger relative of Astron Belt's: a Z80 driving a Pioneer LD-V1000, with
+characters and sprites drawn over the picture. You need:
+
+- **The video:** the Daphne-style clips `gpworld.m2v` and `gpdiags.m2v`
+  (the disc's test slates) with their soundtracks, and the framefile
+  (`gpworld.txt`).
+- **The ROMs:** `gpworld.zip`: the program chips EPR-6162A, 6163 and 6164,
+  the characters' EPR-6148, and the sprites' EPR-6149 to 6158, under
+  MAME's names (`epr6162a.ic51` ...) or Daphne's (`gpw_6162a.bin` ...).
+  The colour PROMs (6146, 6147, 5501) aren't needed.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
+```
+gpworld.daphne/
+    gpworld.txt, gpworld.m2v, gpworld.ogg, gpdiags.m2v, gpdiags.ogg
+    roms/gpworld.zip
+```
+
+```
+laser-vault path/to/gpworld.daphne
+```
+
+Press 5 to insert a coin and 1 to start. After the start lights, race:
+
+- **Left and right** turn the wheel. The real wheel has four positions
+  each way (slight, medium, strong, fierce); the longer you hold a key the
+  further it turns, and letting go straightens it.
+- **Space** is the accelerator and **Shift** the brake.
+- **Up and down** move the gear lever to high and low gear (it starts in
+  low).
+
+Leave the road and the car spins off in a cloud of smoke, losing all its
+speed. The disc plays at the car's speed: the game tells the player to run
+at a quarter, half, normal, or two to five times normal speed, and
+switches between two of those for the speeds in between. As on a real
+LD-V1000, the disc's sound plays only at normal speed.
+
+The cabinet had two monitors side by side, with the picture stretched
+across both; laser-vault shows it on one 4:3 screen, with the part of the
+board's display the game draws on (as the Daphne emulator does). The
+cabinet's engine, tyre and crash sounds came from analogue circuits, which
+aren't emulated, so the game is silent but for the disc's own soundtrack.
+
+Its DIP switches (from MAME; a switch on reads as a clear bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | `F0` | coin slot 1: `F0` 1 coin 1 credit, `90` 2 coins, `80` 3 coins, `70` 4 coins, `E0` to `A0` 1 coin 2 to 6 credits, and more |
+| DSW1 | `0F` | coin slot 2, the same way |
+| DSW2 | `10` | clear: sounds in the attract mode (`--attract-sound`) |
+| DSW2 | `60` | difficulty: `60` medium, `40` easy, `20` hard, `00` hardest |
+| DSW2 | `80` | the first season: set 1984, clear 1985 |
+| DSW2 | `01` | the steering: set medium, clear hard |
+| DSW2 | `02` | the place to qualify: set fourth, clear third |
+
+laser-vault starts it with DSW1 `FF` and DSW2 `EF`. There's no free play
+setting, so `--free-play` does nothing.
 
 ## Screenshots
 

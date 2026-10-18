@@ -12,6 +12,7 @@
 //     Stern (games/stern)                  Cliff Hanger                PR-8210
 //     Konami (games/konami)                Badlands                    LD-V1000
 //     Sega (games/sega)                    Astron Belt, Galaxy Ranger  LD-V1000
+//     Sega GP World (games/sega/gpworld)   GP World                    LD-V1000
 //     RDI (games/rdi)                      Thayer's Quest              LD-V1000
 //     Data East (games/dataeast)           Bega's Battle               LDP-1000
 //     Leland (games/leland)                Dragon's Lair II            LDP-1450
@@ -31,6 +32,7 @@
 #include "games/leland/board.h"
 #include "games/rdi/board.h"
 #include "games/sega/board.h"
+#include "games/sega/gpworld.h"
 #include "games/stern/board.h"
 #include "games/universal/board.h"
 #include "ldp/ldp1000.h"
@@ -52,6 +54,7 @@ typedef enum {
     MACHINE_DATAEAST,
     MACHINE_LELAND,
     MACHINE_GOTTLIEB,
+    MACHINE_GPWORLD,
 } MachineKind;
 
 typedef struct {
@@ -66,6 +69,7 @@ typedef struct {
     DecoBoard *deco;      // when kind is MACHINE_DATAEAST
     LelandBoard *leland;  // when kind is MACHINE_LELAND
     GottliebBoard *gottlieb;  // when kind is MACHINE_GOTTLIEB
+    GpwBoard *gpw;        // when kind is MACHINE_GPWORLD
 
     // The laserdisc player the board drives, which drives the player model.
     Ldv1000 ldv1000;  // most boards

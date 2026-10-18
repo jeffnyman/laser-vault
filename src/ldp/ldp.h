@@ -32,6 +32,7 @@ typedef struct {
     LdpState state;
     int frame;              // current frame number
     double fps;             // frames per second while playing
+    double speed;           // times normal speed while playing (1 but for an LD-V1000's FORWARD x1/4 to x5)
     bool blank_during_search;  // show black while searching (as the LD-V1000 does)
 
     double frame_clock;     // time since the frame last advanced
@@ -48,6 +49,7 @@ void ldp_pause(Ldp *ldp);
 void ldp_stop(Ldp *ldp);
 void ldp_search(Ldp *ldp, int frame);
 void ldp_step(Ldp *ldp, int delta);  // pause, then move delta frames
+void ldp_set_speed(Ldp *ldp, double speed);  // play on at this many times normal speed
 
 // Advance time by the given number of seconds.
 void ldp_update(Ldp *ldp, double seconds);

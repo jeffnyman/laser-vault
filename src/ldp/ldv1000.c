@@ -178,16 +178,18 @@ static void execute(Ldv1000 *ld, uint64_t now, uint8_t byte)
             ldp_pause(ldp);
             ld->status = STATUS_STOP;
         } else if (byte > CMD_FORWARD_X0 && byte <= CMD_FORWARD_X5) {
-            // Forward at 1/4 to 5 times normal speed. The player model only
-            // plays at normal speed, so all of them do for now.
+            // Forward at 1/4 to 5 times normal speed. (GP World plays the
+            // disc at the car's speed, switching between two of these to
+            // get the speeds in between.)
             //
             // Started from a standstill, this plays without sound; sent
             // while the disc is already playing, the sound stays on. (Super
             // Don Quix-ote's "demo sounds" switch depends on it: after each
             // search in the attract mode, it sends PLAY then FORWARD x1 for
             // sound, or STOP then FORWARD x1 for silence.)
+            static const double speeds[8] = {0, 0.25, 0.5, 1, 2, 3, 4, 5};
             if (ldp->state != LDP_PLAYING) ld->muted = true;
-            ldp_play(ldp);
+            ldp_set_speed(ldp, speeds[byte - CMD_FORWARD_X0]);
             ld->autostop_frame = -1;
             ld->status = STATUS_FORWARD;
         } else if (byte >= CMD_SKIP_10 && byte <= CMD_SKIP_100) {

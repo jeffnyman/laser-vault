@@ -37,6 +37,7 @@ real hardware works.
 | [Road Blaster](#road-blaster) | 1985 | Data East | Data East | Sony LDP-1000 |
 | [M.A.C.H. 3](#mach-3) | 1983 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
 | [Goal to Go](#goal-to-go) | 1983 | Stern | Stern | PR-8210 |
+| [GP World](#gp-world) | 1984 | Sega / Bally Midway | Sega (GP World) | LD-V1000 |
 
 ### Dragon's Lair
 
@@ -265,6 +266,21 @@ should have done. Its disc is rare: MAME lists it as never dumped.
   <a href="assets/gtg-title-90.png"><img src="assets/gtg-title-90.png" width="32%" alt="Goal to Go title over a car park, frame 90"></a>
   <a href="assets/gtg-17-117.gif"><img src="assets/gtg-17-117.gif" width="32%" alt="Goal to Go: STERN ELECTRONICS PRESENTS, then the title, frames 17 to 117"></a>
   <a href="assets/gtg-play-1.png"><img src="assets/gtg-play-1.png" width="32%" alt="Playing Goal to Go: the play menu, with the clock, the down, the yards to go and the field"></a>
+</p>
+
+### GP World
+
+Sega's racing game over film of a real circuit, shot from a car: you race
+the clock and the other cars round the track, and the board draws your car,
+the others, the start lights and the speed, lap time and score over the
+film. The disc plays at the car's speed, from a crawl to five times normal,
+as the game tells the LD-V1000 how fast to go. The cabinet was huge, with
+two monitors side by side, a steering wheel, two pedals and a gear lever.
+
+<p align="center">
+  <a href="assets/gpw-title-5081.png"><img src="assets/gpw-title-5081.png" width="32%" alt="GP World title over the circuit, frame 5081"></a>
+  <a href="assets/gpw-5041-5200.gif"><img src="assets/gpw-5041-5200.gif" width="32%" alt="GP World: the title over the circuit, then GP WORLD BY SEGA, frames 5041 to 5200"></a>
+  <a href="assets/gpw-play-1.png"><img src="assets/gpw-play-1.png" width="32%" alt="Playing GP World: the car at 213 km/h on the road to the circuit, with the score, lap time and speed"></a>
 </p>
 
 ## What's planned

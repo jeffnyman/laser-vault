@@ -10,7 +10,7 @@ bool machine_recognizes(const char *path)
     return uni_recognizes(path) || stern_recognizes(path) || funai_recognizes(path) ||
            konami_recognizes(path) || sega_recognizes(path) || rdi_recognizes(path) ||
            deco_recognizes(path) || leland_recognizes(path) || gottlieb_recognizes(path) ||
-           cine_recognizes(path);
+           gpw_recognizes(path) || cine_recognizes(path);
 }
 
 bool machine_load_roms(Machine *m, const char *path)
@@ -66,6 +66,11 @@ bool machine_load_roms(Machine *m, const char *path)
         m->gottlieb = calloc(1, sizeof *m->gottlieb);
         return gottlieb_load_roms(m->gottlieb, path);
     }
+    if (gpw_recognizes(path)) {
+        m->kind = MACHINE_GPWORLD;
+        m->gpw = calloc(1, sizeof *m->gpw);
+        return gpw_load_roms(m->gpw, path);
+    }
     if (cine_recognizes(path)) {
         m->kind = MACHINE_CINEMATRONICS;
         m->cine = calloc(1, sizeof *m->cine);
@@ -80,8 +85,8 @@ bool machine_load_roms(Machine *m, const char *path)
                     "sblazerp.zip), Cobra Command (cobra.zip, or Sega's version,\n"
                     "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip),\n"
                     "Dragon's Lair II (lair2.zip), Us vs. Them (uvt.zip), Road Blaster\n"
-                    "(roadblaster.zip), M.A.C.H. 3 (mach3.zip) and Goal to Go (gtg.zip). A\n"
-                    "folder of the ROM files works too.\n", path);
+                    "(roadblaster.zip), M.A.C.H. 3 (mach3.zip), Goal to Go (gtg.zip) and GP\n"
+                    "World (gpworld.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -108,6 +113,7 @@ void machine_free(Machine *m)
     free(m->deco);
     free(m->leland);
     free(m->gottlieb);
+    free(m->gpw);
     *m = (Machine){0};
 }
 
@@ -151,6 +157,7 @@ const char *machine_game_name(const Machine *m)
     if (m->kind == MACHINE_DATAEAST) return deco_game_name(m->deco);
     if (m->kind == MACHINE_LELAND) return leland_game_name(m->leland);
     if (m->kind == MACHINE_GOTTLIEB) return gottlieb_game_name(m->gottlieb);
+    if (m->kind == MACHINE_GPWORLD) return gpw_game_name(m->gpw);
     return cine_game_name(m->cine->game);
 }
 
@@ -170,6 +177,7 @@ const char *machine_icon_name(const Machine *m)
         return m->deco->game == DECO_COBRA ? "cobra" : "bega";
     case MACHINE_LELAND: return "dlair2";
     case MACHINE_GOTTLIEB: return m->gottlieb->game == GOTTLIEB_MACH3 ? "mach3" : "uvt";
+    case MACHINE_GPWORLD: return "gpworld";
     default: return m->cine->game == CINE_SPACE_ACE ? "spaceace" : "dlair";
     }
 }
@@ -185,6 +193,7 @@ double machine_cpu_hz(const Machine *m)
     if (m->kind == MACHINE_DATAEAST) return DECO_CPU_HZ;
     if (m->kind == MACHINE_LELAND) return LELAND_CPU_HZ;
     if (m->kind == MACHINE_GOTTLIEB) return GOTTLIEB_CPU_HZ;
+    if (m->kind == MACHINE_GPWORLD) return GPW_CPU_HZ;
     return CINE_CPU_HZ;
 }
 
@@ -199,6 +208,7 @@ uint64_t machine_cycles(const Machine *m)
     if (m->kind == MACHINE_DATAEAST) return m->deco->cycles;
     if (m->kind == MACHINE_LELAND) return m->leland->cycles;
     if (m->kind == MACHINE_GOTTLIEB) return m->gottlieb->cycles;
+    if (m->kind == MACHINE_GPWORLD) return m->gpw->cycles;
     return m->cine->cycles;
 }
 
@@ -237,6 +247,7 @@ void machine_reset(Machine *m, Ldp *ldp)
     else if (m->kind == MACHINE_DATAEAST) deco_reset(m->deco, &m->ldp1000);
     else if (m->kind == MACHINE_LELAND) leland_reset(m->leland, &m->ldp1000);
     else if (m->kind == MACHINE_GOTTLIEB) gottlieb_reset(m->gottlieb, &m->pr8210);
+    else if (m->kind == MACHINE_GPWORLD) gpw_reset(m->gpw, &m->ldv1000);
     else cine_reset(m->cine, cine_ldv1000_link(&m->ldv1000));
 }
 
@@ -268,6 +279,7 @@ void machine_run(Machine *m, uint64_t cycles)
     else if (m->kind == MACHINE_DATAEAST) deco_run(m->deco, cycles);
     else if (m->kind == MACHINE_LELAND) leland_run(m->leland, cycles);
     else if (m->kind == MACHINE_GOTTLIEB) gottlieb_run(m->gottlieb, cycles);
+    else if (m->kind == MACHINE_GPWORLD) gpw_run(m->gpw, cycles);
     else cine_run(m->cine, cycles);
 }
 
@@ -310,6 +322,14 @@ void machine_set_controls(Machine *m, const Controls *c)
             .button1 = c->button || c->start1, .button2 = c->button2, .button3 = c->button3,
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
+    } else if (m->kind == MACHINE_GPWORLD) {
+        // A driving game: the arrows steer and move the gear lever, the
+        // button is the accelerator and the second button the brake.
+        m->gpw->inputs = (GpwInputs){
+            .left = c->left, .right = c->right, .gear_up = c->up, .gear_down = c->down,
+            .gas = c->button, .brake = c->button2,
+            .start1 = c->start1, .coin1 = c->coin1, .coin2 = c->coin2,
+        };
     } else if (m->kind == MACHINE_KONAMI) {
         m->konami->inputs = (KonamiInputs){
             .fire = button, .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
@@ -338,6 +358,7 @@ uint8_t *machine_dsw(Machine *m, int bank)
 {
     if (m->kind == MACHINE_STERN) return bank >= 1 && bank <= 4 ? &m->stern->dsw[bank - 1] : NULL;
     if (m->kind == MACHINE_GOTTLIEB) return bank == 1 ? &m->gottlieb->dsw : NULL;
+    if (m->kind == MACHINE_GPWORLD) return bank == 1 ? &m->gpw->dsw1 : bank == 2 ? &m->gpw->dsw2 : NULL;
     if (bank < 1 || bank > 2 || m->kind == MACHINE_FUNAI || m->kind == MACHINE_LELAND) return NULL;
     if (m->kind == MACHINE_KONAMI) return bank == 1 ? &m->konami->dsw1 : &m->konami->dsw2;
     if (m->kind == MACHINE_SEGA) return bank == 1 ? &m->sega->dsw1 : &m->sega->dsw2;
@@ -378,6 +399,8 @@ void machine_set(Machine *m, MachineSetting setting, bool on)
         deco_set(m->deco, setting == MACHINE_FREE_PLAY ? DECO_FREE_PLAY : DECO_QUIET_ATTRACT, on);
     else if (m->kind == MACHINE_GOTTLIEB && setting == MACHINE_FREE_PLAY)
         gottlieb_set(m->gottlieb, GOTTLIEB_FREE_PLAY, on);
+    else if (m->kind == MACHINE_GPWORLD && setting == MACHINE_QUIET_ATTRACT)
+        gpw_set_quiet_attract(m->gpw, on);
     else if (m->kind == MACHINE_CINEMATRONICS) cine_set(m->cine, cine_settings[setting], on);
 }
 
@@ -387,6 +410,7 @@ bool machine_get(const Machine *m, MachineSetting setting)
     if (m->kind == MACHINE_FUNAI || m->kind == MACHINE_LELAND) return false;
     if (m->kind == MACHINE_GOTTLIEB)
         return setting == MACHINE_FREE_PLAY && gottlieb_get(m->gottlieb, GOTTLIEB_FREE_PLAY);
+    if (m->kind == MACHINE_GPWORLD) return setting == MACHINE_QUIET_ATTRACT && gpw_quiet_attract(m->gpw);
     if (m->kind == MACHINE_STERN) return stern_get(m->stern, stern_settings[setting]);
     if (m->kind == MACHINE_RDI) {
         if (setting == MACHINE_UNLIMITED_LIVES) return false;
@@ -418,6 +442,7 @@ int machine_sample_rate(const Machine *m)
     if (m->kind == MACHINE_DATAEAST) return DECO_SAMPLE_RATE;
     if (m->kind == MACHINE_LELAND) return LELAND_SAMPLE_RATE;
     if (m->kind == MACHINE_GOTTLIEB) return GOTTLIEB_SAMPLE_RATE;
+    if (m->kind == MACHINE_GPWORLD) return GPW_SAMPLE_RATE;
     return CINE_SAMPLE_RATE;
 }
 
@@ -432,6 +457,7 @@ void machine_start_sound(Machine *m)
     else if (m->kind == MACHINE_DATAEAST) deco_start_sound(m->deco);
     else if (m->kind == MACHINE_LELAND) leland_start_sound(m->leland);
     else if (m->kind == MACHINE_GOTTLIEB) gottlieb_start_sound(m->gottlieb);
+    else if (m->kind == MACHINE_GPWORLD) {}  // no sound (see games/sega/gpworld.h)
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -446,6 +472,7 @@ int machine_take_samples(Machine *m, const float **samples)
     if (m->kind == MACHINE_DATAEAST) return deco_take_samples(m->deco, samples);
     if (m->kind == MACHINE_LELAND) return leland_take_samples(m->leland, samples);
     if (m->kind == MACHINE_GOTTLIEB) return gottlieb_take_samples(m->gottlieb, samples);
+    if (m->kind == MACHINE_GPWORLD) return 0;
     if (m->kind == MACHINE_RDI) {
         ssi263_run(&m->rdi->speech, m->rdi->cycles);
         return ssi263_take_samples(&m->rdi->speech, samples);
@@ -480,6 +507,10 @@ bool machine_overlay_layout(const Machine *m, OverlayLayout *layout)
     if (m->kind == MACHINE_LELAND) {
         // The player's text, over the whole picture.
         *layout = (OverlayLayout){.width = LDP1450_TEXT_W, .height = LDP1450_TEXT_H, .x = 0, .y = 0, .w = 1, .h = 1};
+        return true;
+    }
+    if (m->kind == MACHINE_GPWORLD) {
+        *layout = (OverlayLayout){.width = GPW_OVERLAY_W, .height = GPW_OVERLAY_H, .x = 0, .y = 0, .w = 1, .h = 1};
         return true;
     }
     if (m->kind == MACHINE_GOTTLIEB) {
@@ -518,6 +549,7 @@ unsigned machine_overlay_serial(const Machine *m)
     if (m->kind == MACHINE_DATAEAST) return m->deco->overlay_serial;
     if (m->kind == MACHINE_LELAND) return m->ldp1000.text_serial;
     if (m->kind == MACHINE_GOTTLIEB) return m->gottlieb->overlay_serial;
+    if (m->kind == MACHINE_GPWORLD) return m->gpw->overlay_serial;
     return 0;
 }
 
@@ -531,4 +563,5 @@ void machine_draw_overlay(const Machine *m, uint32_t *pixels)
     else if (m->kind == MACHINE_DATAEAST) deco_draw_overlay(m->deco, pixels);
     else if (m->kind == MACHINE_LELAND) ldp1450_draw_text(&m->ldp1000, pixels);
     else if (m->kind == MACHINE_GOTTLIEB) gottlieb_draw_overlay(m->gottlieb, pixels);
+    else if (m->kind == MACHINE_GPWORLD) gpw_draw_overlay(m->gpw, pixels);
 }
