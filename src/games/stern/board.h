@@ -1,4 +1,5 @@
-// board.h - Stern's laserdisc game board, which runs Cliff Hanger (1983).
+// board.h - Stern's laserdisc game board, which runs Cliff Hanger and Goal to
+// Go (both 1983).
 //
 // A Z80 with a Pioneer PR-8210, a home laserdisc player driven through its
 // remote-control socket (see ldp/pr8210.h), and a TMS9128 video chip that
@@ -66,6 +67,8 @@ typedef struct {
     uint8_t ram[0x1000];        // E000-EFFF
     uint8_t dsw[4];             // DIP switch banks 1-4
     int coins_per_credit;       // at the factory coinage (set 2 has no 1 coin 1 credit)
+    bool goal_to_go;            // else Cliff Hanger
+    uint32_t chapter_code;      // the disc's chapter code, for Goal to Go's side check (see board.c)
 
     SternInputs inputs;
     Pr8210 *player;

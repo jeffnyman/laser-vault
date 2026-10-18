@@ -1019,7 +1019,10 @@ int main(int argc, char **argv)
             printf("With the game window active, press 5 to insert a coin, then 1 to start.\n");
         if (cinematronics && m->cine->game == CINE_SPACE_ACE)
             printf("Then choose a skill level: F1 Cadet, F2 Captain or F3 Ace.\n");
-        if (m->kind == MACHINE_STERN)
+        if (m->kind == MACHINE_STERN && m->stern->goal_to_go)
+            printf("Space is the hands button, Shift the feet, the arrow keys the joystick\n"
+                   "(which also picks the play; any button starts it).\n");
+        else if (m->kind == MACHINE_STERN)
             printf("Space is Cliff's hands, Shift his feet, the arrow keys the joystick.\n");
         if (m->kind == MACHINE_DATAEAST && m->deco->game == DECO_COBRA)
             printf("The arrow keys move the gun sight, Space fires the guns and Shift the\n"

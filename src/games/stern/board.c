@@ -10,8 +10,8 @@
 // ROMs
 // ---------------------------------------------------------------------------
 //
-// Three versions of Cliff Hanger's program are known. (Names and checksums
-// from MAME's cliffhgr.cpp.)
+// Three versions of Cliff Hanger's program are known, and one of Goal to
+// Go's. (Names and checksums from MAME's cliffhgr.cpp.)
 
 typedef struct {
     const char *name;
@@ -36,6 +36,15 @@ typedef struct {
 // bank 2 picks each coin slot's price from a table (bits 0-1 slot 1, bits
 // 4-5 slot 2) whose cheapest entry, with the switches off, is 2 coins a
 // credit: it has no 1 coin 1 credit. (Set 3 isn't checked.)
+//
+// Goal to Go's (from MAME, and its code): bank 1 the hints (bit 7, what
+// you should have done after a mistake; bit 5, the move to make) and
+// continues (bits 0-1); bank 2 the coinage (bits 0-1 slot 1, 4-5 slot 2);
+// bank 3 the play diagram before each play (7), the score during it (6),
+// demo sounds (5), the disc test (4), immortality (3), free play (2); bank
+// 4 the difficulty (0-3). Its code copies them at power on, inverted, to
+// E186-E18F. MAME's defaults leave both hints off, so that nothing on the
+// screen says what to do; here they're on, as in Cliff Hanger.
 static const RomSet rom_sets[] = {
     {"Cliff Hanger (set 1)", true,
      {{"cliff_u1.bin", 0xA86EC38F}, {"cliff_u2.bin", 0xB8D33B6B}, {"cliff_u3.bin", 0x75A64CD2},
@@ -49,6 +58,10 @@ static const RomSet rom_sets[] = {
      {{"cliff_alt2_0.bin", 0x598D57FC}, {"cliff_alt2_1.bin", 0x7BCE618E}, {"cliff_alt2_2.bin", 0x65D2B984},
       {"cliff_alt2_3.bin", 0xF43A5269}},
      {0xFF, 0xFF, 0xFF, 0xFF}, 1},
+    {"Goal to Go", false,
+     {{"gtg.rm0", 0xD8EFDDEA}, {"gtg.rm1", 0x69953D38}, {"gtg.rm2", 0xB043E205}, {"gtg.rm3", 0xEC305F5E},
+      {"gtg.rm4", 0x9E4C8AA2}},
+     {0x5F, 0xFF, 0x1F, 0xFF}, 1},
 };
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
@@ -100,6 +113,8 @@ bool stern_load_roms(SternBoard *b, const char *path)
     }
     memcpy(b->dsw, set->dsw, sizeof b->dsw);
     b->coins_per_credit = set->coins_per_credit;
+    b->goal_to_go = !strcmp(set->chips[0].name, "gtg.rm0");
+    b->chapter_code = b->goal_to_go ? 0x881DDD : 0;  // side 1
     printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
     return true;
 }
@@ -117,8 +132,7 @@ bool stern_get(const SternBoard *b, SternSetting setting)
 
 const char *stern_game_name(const SternBoard *b)
 {
-    (void)b;
-    return "Cliff Hanger";
+    return b->goal_to_go ? "Goal to Go" : "Cliff Hanger";
 }
 
 // ---------------------------------------------------------------------------
@@ -299,6 +313,14 @@ static void field_event(SternBoard *b)
         // The decoder reads the line's code; a valid one (top bit set)
         // interrupts until the game acknowledges it.
         b->philips_code = pr8210_philips_code(b->player, b->cycles);
+        // Goal to Go's disc has two sides, and at power on the game reads
+        // a chapter code to tell which is in the player: chapter 1 for
+        // side 1 (881DDD), 77 for side 2. The player model gives only
+        // frame numbers, so for it the board puts side 1's chapter code on
+        // line 18 of every other field; line 17 keeps the frame number,
+        // which the game falls back on when the two lines disagree.
+        if (b->chapter_code && b->philips_code && b->next_event == 1 && (b->fields & 1))
+            b->philips_code = b->chapter_code;
         if (b->philips_code & 0x800000) {
             b->cpu.irq = true;
             b->cpu.irq_data = 0xFF;  // RST 38h

@@ -55,7 +55,7 @@ target_link_libraries(lv_png PUBLIC ZLIB::ZLIB)
 # The window icons are built into the program (as a C array generated
 # from the .ico file), so it never has to find the file at run time. Each
 # game's board names its icon (machine_icon_name); laser is for the rest.
-set(EMBEDDED_ICONS dlair spaceace cliff superdq esh badlands astron galaxy cobra thayers bega dlair2 uvt roadblaster mach3 laser)
+set(EMBEDDED_ICONS dlair spaceace cliff superdq esh badlands astron galaxy cobra thayers bega dlair2 uvt roadblaster mach3 gtg laser)
 set(EMBEDDED_ICON_SOURCES ${CMAKE_BINARY_DIR}/generated/icon_table.c)
 set(icon_declarations "")
 set(icon_entries "")

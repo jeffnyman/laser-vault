@@ -80,8 +80,8 @@ bool machine_load_roms(Machine *m, const char *path)
                     "sblazerp.zip), Cobra Command (cobra.zip, or Sega's version,\n"
                     "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip),\n"
                     "Dragon's Lair II (lair2.zip), Us vs. Them (uvt.zip), Road Blaster\n"
-                    "(roadblaster.zip) and M.A.C.H. 3 (mach3.zip). A folder of the ROM files\n"
-                    "works too.\n", path);
+                    "(roadblaster.zip), M.A.C.H. 3 (mach3.zip) and Goal to Go (gtg.zip). A\n"
+                    "folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -159,7 +159,7 @@ const char *machine_icon_name(const Machine *m)
     switch (m->kind) {
     case MACHINE_UNIVERSAL: return "superdq";
     case MACHINE_FUNAI: return "esh";
-    case MACHINE_STERN: return "cliff";
+    case MACHINE_STERN: return m->stern->goal_to_go ? "gtg" : "cliff";
     case MACHINE_KONAMI: return "badlands";
     case MACHINE_SEGA:
         if (m->sega->game == SEGA_COBRA_COMMAND) return "cobra";

@@ -12,7 +12,7 @@ How to run the games, the keys, the options, and what each game needs.
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
   [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
-  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3)
+  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3), [Goal to Go](#goal-to-go)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -34,7 +34,8 @@ You need your own copy of the game:
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
   [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
-  [Road Blaster](#road-blaster) and [M.A.C.H. 3](#mach-3).
+  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3) and
+  [Goal to Go](#goal-to-go).
 
 Daphne and Singe sets usually come as one folder per game, laid out like
 this:
@@ -1143,6 +1144,73 @@ Its DIP switches (from MAME; a switch on reads as a set bit):
 
 laser-vault starts it with `48`: 2 coins 1 credit, 3 lives, the attract
 mode's sounds.
+
+<h2 id="goal-to-go"><img src="./assets/gtg-logo.png" width="400" height="95" alt="Goal to Go"></h2>
+
+Goal to Go (Stern, 1983) is Cliff Hanger's sister game and runs on the
+same board (see [Cliff Hanger](#cliff-hanger)): a Z80 driving a Pioneer
+PR-8210, with a TMS9128 drawing over the picture. You need:
+
+- **The video:** the Daphne-style clip `gtg.m2v` with its soundtrack, and the
+  framefile (`gtg.txt`).
+- **The ROMs:** `gtg.zip`, MAME's `goaltogo`: `gtg.rm0` to `gtg.rm4`.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
+```
+gtg.daphne/
+    gtg.txt, gtg.m2v, gtg.ogg
+    roms/gtg.zip
+    ram/gtg.gz       Daphne's saved copy of the board's battery-backed memory
+```
+
+```
+laser-vault path/to/gtg.daphne
+```
+
+The disc has two sides, and the usual video is one of them, side 1. At
+power on the game asks the player which side it's playing ("CHECKING FOR
+SIDE NO."), by reading a chapter number off the disc: 1 for side 1, 77 for
+side 2. laser-vault's player model knows only frame numbers, so the board
+answers for the disc: side 1. Everything tried so far plays from side 1;
+what the game wants side 2 for, if anything, isn't known yet.
+
+Press 5 to insert a coin and 1 to start. Before each down, the stick picks
+a play from the menu and any button starts it (or the clock runs out and
+the game picks for you). During the play, as the film itself explains,
+the hands button (Space) takes hand-offs and pitches, passes and catches,
+the feet button (Shift) kicks, and the stick (the arrow keys) moves the
+ball carrier. Hold the stick or press the button when the board prompts
+"> STICK <", "> HANDS <" or "> FEET <"; get it wrong and it says what you
+should have done ("SHOULD HAVE MOVED DOWN!"), get it right and you gain
+yards ("COULD HAVE GONE FURTHER IF YOU HAD MOVED RIGHT!" means you could
+have gained more).
+
+Its DIP switches (from MAME, and the game's code; a switch on reads as a
+clear bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| 1 | `80` | clear: say what you should have done after a mistake |
+| 1 | `20` | clear: prompt each move ("> STICK <") |
+| 1 | `01` | clear: continues allowed |
+| 1 | `02` | clear: a continue costs one coin (with `01` clear) |
+| 2 | `03` | coin slot 1: `03` 1 coin 1 credit, `02` 2 coins, `01` 3 coins, `00` 4 coins |
+| 2 | `30` | coin slot 2, the same way |
+| 3 | `80` | clear: show the play's diagram before it |
+| 3 | `40` | clear: show the score during the play |
+| 3 | `20` | clear: sounds in the attract mode (`--attract-sound`) |
+| 3 | `10` | clear: the disc test |
+| 3 | `08` | clear: unlimited lives (`--unlimited-lives`) |
+| 3 | `04` | clear: free play (`--free-play`) |
+| 4 | `0F` | the difficulty of the moves: `0F` the easiest to `00` the hardest |
+
+laser-vault starts it with `5F`, `FF`, `1F`, `FF`: MAME's settings, but
+with both hints on. With them off (as MAME has them) nothing on the screen
+says when to act, and a new player can't tell what the game wants. The
+high scores are kept in battery-backed memory, which laser-vault doesn't
+save yet (the `ram` folder is ignored).
 
 ## Screenshots
 

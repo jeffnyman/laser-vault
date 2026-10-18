@@ -36,6 +36,7 @@ real hardware works.
 | [Us vs. Them](#us-vs-them) | 1984 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
 | [Road Blaster](#road-blaster) | 1985 | Data East | Data East | Sony LDP-1000 |
 | [M.A.C.H. 3](#mach-3) | 1983 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
+| [Goal to Go](#goal-to-go) | 1983 | Stern | Stern | PR-8210 |
 
 ### Dragon's Lair
 
@@ -250,15 +251,28 @@ Them: an 8088 driving Pioneer's PR-8210, and a sound board of two 6502s.
   <a href="assets/m3-play-1.png"><img src="assets/m3-play-1.png" width="32%" alt="Playing M.A.C.H. 3: the fighter over a power station, with the targets boxed and a missile's crosshair"></a>
 </p>
 
+### Goal to Go
+
+Cliff Hanger's sister game, on the same Stern board: American football,
+filmed for the disc. You call each play from a menu (a pass, a handoff, a
+pitch out, a quarterback sneak, a flea flicker), the film runs it, and the
+board tells you when to move the ball carrier with the stick, when to
+press the hands button to take a handoff or catch a pass, and when to kick.
+Get it right and you gain yards; get it wrong and the board says what you
+should have done. Its disc is rare: MAME lists it as never dumped.
+
+<p align="center">
+  <a href="assets/gtg-title-90.png"><img src="assets/gtg-title-90.png" width="32%" alt="Goal to Go title over a car park, frame 90"></a>
+  <a href="assets/gtg-17-117.gif"><img src="assets/gtg-17-117.gif" width="32%" alt="Goal to Go: STERN ELECTRONICS PRESENTS, then the title, frames 17 to 117"></a>
+  <a href="assets/gtg-play-1.png"><img src="assets/gtg-play-1.png" width="32%" alt="Playing Goal to Go: the play menu, with the clock, the down, the yards to go and the field"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
 - **More games:** Space Ace on Dragon's Lair II's board
   (Leland's 1991 conversion).
-  (*Goal to Go*,
-  Cliff Hanger's sister game, would be easy, but its disc has never been
-  dumped.)
 - **Keeping high scores and settings** between runs, for the boards that
   kept them in battery-backed memory or an EEPROM.
 - **A list of the ROM sets' checksums**, to check your copies against.
