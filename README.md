@@ -115,7 +115,8 @@ Buck rides into town after the gang that killed his family, with one button:
 wait for the outlaw to draw, then fire. Konami's board runs on a Motorola
 6809, and its laserdisc player had Konami's own changes to the player's
 software. Like Esh's Aurunmilla, it doesn't run in MAME; reading the game's
-code filled in the rest.
+code filled in the rest. It's among the hardest to play, and autoplay
+makes every shot, from the game's own script.
 
 <p align="center">
   <a href="assets/bl-title-2066.png"><img src="assets/bl-title-2066.png" width="32%" alt="Badlands title screen, frame 2066"></a>
@@ -157,7 +158,7 @@ fight through New York, the desert and the sea, with the board drawing the
 cockpit, the radar and the gun sight over the film. laser-vault runs both
 versions: Data East's own, on Bega's Battle's board with Sony's player, and
 the one Sega made for its own board, driving Sega's player over a serial
-line.
+line. Autoplay flies Data East's version through all ten stages.
 
 <p align="center">
   <a href="assets/cc-title-700.png"><img src="assets/cc-title-700.png" width="32%" alt="Cobra Command title, frame 700"></a>

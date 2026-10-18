@@ -115,6 +115,58 @@ bool konami_get(const KonamiBoard *b, KonamiSetting setting)
 // The address space
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Autoplay
+// ---------------------------------------------------------------------------
+//
+// The game plays from a script in its ROM, a list of commands with the
+// frames they apply to (big-endian), and keeps a pointer to the command it's
+// on at 487F and the disc frame it's showing at 4805. Three commands are
+// shots; each gives the scene's first and last frames, then window frames,
+// then where the game goes without a shot and where it goes with one:
+//
+//     15  two windows (opening, closing), the second, narrower one for the
+//         later rounds; then the two places
+//     16  a gunfight: two windows of three frames (opening, then two
+//         closings); then the two places
+//     06  one window, then the two places, then the points each one scores
+//
+// In a gunfight (15 or 16) the shot is always the one to make. A 06 is a
+// chance to shoot early, which is good if the shot scores, and in other
+// scenes a moment to hold fire (shooting there loses a life): the scenes
+// where holding fire is right score it, or score nothing either way.
+//
+// Autoplay fires as each window opens, when the shot is the right one.
+
+#define SCRIPT_POINTER 0x7F  // in RAM, at 487F
+#define SCRIPT_FRAME 0x05    // at 4805
+
+void konami_set_autoplay(KonamiBoard *b, bool on)
+{
+    b->autoplay = on;
+}
+
+static uint8_t rom_byte(const KonamiBoard *b, unsigned addr)
+{
+    return addr >= 0xC000 && addr <= 0xFFFF ? b->rom[addr - 0xC000] : 0;
+}
+
+static unsigned rom_word(const KonamiBoard *b, unsigned addr)
+{
+    return (unsigned)(rom_byte(b, addr) << 8 | rom_byte(b, addr + 1));
+}
+
+static void add_autoplay(const KonamiBoard *b, KonamiInputs *in)
+{
+    unsigned command = (unsigned)(b->ram[SCRIPT_POINTER] << 8 | b->ram[SCRIPT_POINTER + 1]);
+    unsigned frame = (unsigned)(b->ram[SCRIPT_FRAME] << 8 | b->ram[SCRIPT_FRAME + 1]);
+    uint8_t op = rom_byte(b, command);
+    if (op != 0x06 && op != 0x15 && op != 0x16) return;
+    if (op == 0x06 && !rom_word(b, command + 15)) return;  // the shot scores nothing
+    unsigned opens = rom_word(b, command + 5);
+    if (frame >= opens && frame <= opens + 1) in->fire = true;
+}
+
 static uint8_t read_inputs(const KonamiInputs *in)
 {
     // Bit 2 is the service button (not wired up here).
@@ -145,7 +197,11 @@ static uint8_t mem_read(void *ctx, uint16_t addr)
     case 0x0000: return b->dsw2;
     case 0x0800: return b->dsw1;
     case 0x1000: return ldv1000_read_status(b->player, b->cycles);
-    case 0x1800: return read_inputs(&b->inputs);
+    case 0x1800: {
+        KonamiInputs controls = b->inputs;
+        if (b->autoplay) add_autoplay(b, &controls);
+        return read_inputs(&controls);
+    }
     default: return 0xFF;  // nothing there (8000-9FFF: a diagnostics ROM, if fitted)
     }
 }

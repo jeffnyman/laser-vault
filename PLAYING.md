@@ -87,7 +87,7 @@ two) and what the game's buttons do; each game's section below says more.
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
 | P / Pause             | pause / resume (Thayer's Quest: Pause only, since P is a letter) |
-| A                     | Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger, Goal to Go, Dragon's Lair II: autoplay on / off (see below) |
+| A                     | Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger, Goal to Go, Badlands, Cobra Command (Data East's), Dragon's Lair II: autoplay on / off (see below) |
 | S                     | show / hide the score displays (Dragon's Lair, Space Ace) |
 | D                     | turn combing repair off / on (not in Thayer's Quest) |
 | Tab                   | show / hide subtitles (Thayer's Quest)    |
@@ -130,7 +130,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--attract-sound`     | sound in the attract mode (Dragon's Lair: in every cycle, not just every few), in the games with a switch for it |
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game (the games with a switch for it) |
 | `--free-play`         | no coins needed: press 1 to start (the games with a switch for it) |
-| `--autoplay`          | Dragon's Lair, Space Ace, Esh's Aurunmilla (sets 1 and 3), Cliff Hanger (set 1), Goal to Go, Dragon's Lair II (3.19): the program plays the game for you (also the A key) |
+| `--autoplay`          | Dragon's Lair, Space Ace, Esh's Aurunmilla (sets 1 and 3), Cliff Hanger (set 1), Goal to Go, Badlands, Cobra Command (Data East's), Dragon's Lair II (3.19): the program plays the game for you (also the A key) |
 | `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` or `sound` folder beside the ROMs' folder) |
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
@@ -177,14 +177,15 @@ Dirks" DIP switch, meant for operators: Dirk still dies when you get a move
 wrong, but never loses a life.
 
 **Autoplay.** Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger,
-Goal to Go and Dragon's Lair II have it; it works from what each game keeps in memory about the moves it's
+Goal to Go, Badlands, Data East's Cobra Command and Dragon's Lair II have
+it; it works from what each game keeps in memory about the moves it's
 waiting for, and hasn't been written for the other games. With
 `--autoplay`, or after pressing A, the program plays the controls itself;
 you still insert coins and press start. It plays the whole game, from the
 first room to rescuing Daphne, without losing a life, with the original
 ROMs and both DLE sets; Space Ace too, original and SAE, at every skill
 level, to Borf's defeat. Press A at any time to take over, and again to
-hand back. The console prints each move it makes. (For the other four,
+hand back. The console prints each move it makes. (For the other six,
 see their sections.)
 
 It works by reading the game's mind. While a scene plays, the game keeps a
@@ -607,6 +608,15 @@ takes about half a second to reload, so an early shot also leaves you
 unable to fire when it counts. (For the first gunman, the window is disc
 frames 3236 to 3251, as the game's own scene table has it.)
 
+**Autoplay** (`--autoplay`, or A during a game) makes every shot, and holds
+fire where a shot would cost a life: in tests it played twenty minutes,
+round after round, without losing one. The game runs from a script in its
+ROM, and each shot's command gives the frames its window opens and closes
+on, where the game goes with and without the shot, and, for the chances
+to shoot early, the points each way scores, which shows whether to shoot
+(`src/games/konami/board.c` explains). You still insert the coin and press
+start.
+
 MAME lists the game as not working. Reading the game's code gave the
 missing pieces: the interrupts (the NMI at vertical blank sends the
 player's next command, and the player's strobe starts the game's work for
@@ -834,6 +844,15 @@ them as unknown; a switch on reads as a clear bit):
 
 laser-vault starts it with DSW1 `0F` and DSW2 `FF`. There's no free play
 setting, so `--free-play` does nothing.
+
+**Autoplay** (`--autoplay`, or A during a game) flies Data East's version
+through all ten stages to the ending without losing a life. As each scene
+starts the game copies its record into memory: for a fight, the targets'
+windows, positions and the hits it wants; for a dodge, the window and the
+direction to push. The board moves the sight onto each target and fires
+guns and missiles while its window is open, and holds each direction
+through its window (`src/games/dataeast/board.c` explains). You still
+insert the coin and press start. Sega's version isn't covered.
 
 **Sega's version**: no recordings of its sound effects are known, so it
 plays with the disc's soundtrack alone. Its DIP switches are taken to be

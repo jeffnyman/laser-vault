@@ -303,7 +303,8 @@ checksums both program ROMs, and which then plays. The COP421
   the laserdisc interrupt, the tiles drawn over the picture, the beeper, and autoplay from the
   game's scene records).
 - `src/games/konami/board.c`: Konami's board that runs Badlands (memory map, the three
-  interrupts, the tiles drawn over the picture, the bit-reversed sound chip).
+  interrupts, the tiles drawn over the picture, the bit-reversed sound chip, and autoplay from the
+  game's script).
 - `src/games/rdi/board.c`: RDI's board that runs Thayer's Quest (I/O ports, the COP421's
   connections and the keyboard's serial link, interrupts, subtitles from the game's text).
 - `src/games/sega/board.c`: Sega's board that runs Astron Belt, Galaxy Ranger and Sega's Cobra Command
@@ -312,7 +313,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/games/sega/gpworld.c`: Sega's GP World board (memory map, the steering wheel, the pedals'
   converter and the gear lever, the laserdisc latches, the sprites and characters).
 - `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle, Data East's Cobra Command and Road Blaster (two 6502s, the
-  serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture).
+  serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture, and
+  Cobra Command's autoplay).
 - `src/games/leland/board.c`: Leland's board that runs Dragon's Lair II (the PC's interrupt
   controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter,
   and autoplay from the game's table of moves).

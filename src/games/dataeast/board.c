@@ -242,14 +242,95 @@ static bool in_vblank(const DecoBoard *b)
     return (b->cycles - start) * 525 >= length * 2 * 240;
 }
 
+// ---------------------------------------------------------------------------
+// Autoplay
+// ---------------------------------------------------------------------------
+//
+// Cobra Command copies each scene's record into RAM from 0032 as the scene
+// starts, and counts the disc's frames in 001E (in steps of 11 or so). The
+// record's first byte says what the scene wants:
+//
+//   1  shoot: up to three targets, each with a window (opening and closing
+//      frames, at 0033 + 4n), a position (at 003F + 2n) and a size; 0048
+//      is how many hits the game wants, and 0031 which target is up. A hit
+//      counts while that target's window is open (009B bit 7) and the shot
+//      lands within its box. A missile (button 2, pressed afresh) with the
+//      sight on the target and five frames to spare before the last window
+//      closes destroys the lot. (Some targets want 240 hits: missiles only.)
+//   2  steer: a window (0033 and 0035) and a direction (0037: 1 down, 2 up,
+//      4 left, 8 right). The direction has to be held as the window opens
+//      and still as it closes: the game checks it on both.
+//
+// The sight is at 0068 (moved by up and down) and 0069 (left and right).
+// Autoplay holds each steering direction from a little before its window,
+// and in a shooting scene moves the sight onto the next target and fires
+// both guns and missiles while the target's window is open.
+
+#define AUTO_LEAD_FRAMES 16  // more than one step of the game's frame count
+#define AUTO_AIM 4           // close enough to the target, in pixels
+
+bool deco_can_autoplay(const DecoBoard *b)
+{
+    return b->game == DECO_COBRA;
+}
+
+void deco_set_autoplay(DecoBoard *b, bool on)
+{
+    b->autoplay = on && b->game == DECO_COBRA;
+}
+
+static unsigned ram_word(const DecoBoard *b, unsigned addr)
+{
+    return (unsigned)(b->ram[addr] | b->ram[addr + 1] << 8);
+}
+
+static void add_autoplay(DecoBoard *b, DecoInputs *in)
+{
+    const uint8_t *r = b->ram;
+    unsigned frame = ram_word(b, 0x1E);
+    if (r[0x32] == 2) {
+        bool window = (r[0x9B] & 0x80) || (frame + AUTO_LEAD_FRAMES >= ram_word(b, 0x33) && frame <= ram_word(b, 0x35));
+        if (!window) return;
+        in->down |= r[0x37] == 1;
+        in->up |= r[0x37] == 2;
+        in->left |= r[0x37] == 4;
+        in->right |= r[0x37] == 8;
+        return;
+    }
+    if (r[0x32] != 1) return;
+
+    // Aim at the first target whose window hasn't closed.
+    unsigned n = r[0x31] < 3 ? r[0x31] : 0;
+    while (n < 2 && ram_word(b, 0x35 + 4 * n) < frame) n++;
+    int dx = r[0x3F + 2 * n] - r[0x68], dy = r[0x40 + 2 * n] - r[0x69];
+    in->down |= dx > AUTO_AIM;
+    in->up |= dx < -AUTO_AIM;
+    in->right |= dy > AUTO_AIM;
+    in->left |= dy < -AUTO_AIM;
+
+    if (!(r[0x9B] & 0x80)) {
+        b->auto_window = 0;
+        return;
+    }
+    if (!b->auto_window) b->auto_window = b->cycles;
+    // The guns in bursts (holding the button down throughout didn't score in
+    // tests), and a missile tap every 0.3 s while the sight is on the target
+    // with time to spare.
+    if ((b->cycles - b->auto_window) % (DECO_CPU_HZ * 6 / 10) < DECO_CPU_HZ * 45 / 100) in->button1 = true;
+    bool on_target = abs(dx) <= AUTO_AIM && abs(dy) <= AUTO_AIM;
+    if (on_target && (int8_t)(r[0x3D] - r[0x1E]) >= 5) {
+        if (b->cycles - b->auto_missile > DECO_CPU_HZ * 3 / 10) b->auto_missile = b->cycles;
+        if (b->cycles - b->auto_missile < DECO_CPU_HZ / 10) in->button2 = true;
+    }
+}
+
 // Cobra Command has up and down the other way round from Bega's Battle
 // (its gun sight moves up the screen on bit 0), and so does Road Blaster
 // (the next letter of your initials is on bit 0). Road Blaster's wheel is
 // left and right, its accelerator bit 4 and its brake bit 5; it reads
 // nothing else.
-static uint8_t read_controls(const DecoBoard *b)
+static uint8_t read_controls(const DecoBoard *b, const DecoInputs *in)
 {
-    const DecoInputs *in = &b->inputs;
     bool up_is_0 = b->game == DECO_COBRA || b->game == DECO_RBLASTER;
     uint8_t v = 0xFF;  // bit 7: tilt (the game resets if it reads 0)
     if (up_is_0 ? in->up : in->down) v &= ~0x01;
@@ -286,7 +367,11 @@ static uint8_t mem_read(void *ctx, uint16_t addr)
     if (addr >= 0x2000) return b->video[(addr - 0x2000) & ~0x0800];
     if (addr >= 0x1800) return b->colours[addr - 0x1800];
     switch (addr) {
-    case 0x1000: return read_controls(b);
+    case 0x1000: {
+        DecoInputs controls = b->inputs;
+        if (b->autoplay) add_autoplay(b, &controls);
+        return read_controls(b, &controls);
+    }
     case 0x1001: return read_dsw1(b);
     case 0x1002: return b->dsw2;
     case 0x1003: return in_vblank(b) ? 0x80 : 0x00;
@@ -383,6 +468,7 @@ void deco_reset(DecoBoard *b, Ldp1000 *player)
     b->sound_irq = false;
     b->acia_control = 0;
     b->rx_full = b->tx_busy = false;
+    b->auto_window = b->auto_missile = 0;
     b->cycles = b->sound_cycles = 0;
     b->sound_nmis = 0;
     b->next_serial = SERIAL_BYTE_CYCLES;

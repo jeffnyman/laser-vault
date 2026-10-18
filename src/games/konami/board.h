@@ -73,6 +73,7 @@ typedef struct {
     uint32_t palette[16];       // colour PROM decoded, as 0xAARRGGBB
 
     KonamiInputs inputs;
+    bool autoplay;              // the board makes each shot itself (see board.c)
     uint8_t dsw1, dsw2;
     Ldv1000 *player;
     uint8_t ld_out;             // the byte waiting for the player
@@ -106,6 +107,10 @@ bool konami_get(const KonamiBoard *board, KonamiSetting setting);
 
 // Power on, connected to an LD-V1000.
 void konami_reset(KonamiBoard *board, Ldv1000 *player);
+
+// With autoplay on, the board fires each shot the game is waiting for, as
+// well as the player's controls.
+void konami_set_autoplay(KonamiBoard *board, bool on);
 
 // Run the board for (at least) the given number of CPU cycles.
 void konami_run(KonamiBoard *board, uint64_t cycles);
