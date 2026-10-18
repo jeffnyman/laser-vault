@@ -72,21 +72,22 @@ laser-vault path/to/dragonslair.txt --video-dir path/to/mpeg/dragonslair --roms 
 The game sections below show this long form; the folder form works for
 every game.
 
-Press 5 twice to insert two coins (the factory setting is two coins per
-credit), then 1 to start (or add `--free-play` and skip the coins). Watch the animation for danger or for something
-flashing, and move or use the sword at the right moment.
+Press 5 to insert a coin, then 1 to start (or add `--free-play`, in the
+games that have it, and skip the coins). When the game starts, the console
+says how many coins make a credit (Dragon's Lair, as it comes set, takes
+two) and what the game's buttons do; each game's section below says more.
 
 | Key                   | Action                                    |
 |-----------------------|-------------------------------------------|
-| Arrow keys            | joystick                                  |
-| Space / Ctrl          | sword (the action button)                 |
-| Shift                 | Esh's Aurunmilla, Bega's Battle: button 2; Cliff Hanger: feet; Cobra Command: missiles (other games: the action button) |
-| Z                     | Bega's Battle: button 3                   |
+| Arrow keys            | joystick (Road Blaster, GP World: steering; GP World: up and down shift gear) |
+| Space / Ctrl          | the action button: Dragon's Lair's sword, the fire button, Cliff Hanger's and Goal to Go's hands; Road Blaster, GP World: the accelerator |
+| Shift                 | the second button: Cliff Hanger and Goal to Go: feet; Cobra Command, M.A.C.H. 3: missiles; Road Blaster, GP World: the brake; Esh's Aurunmilla, Bega's Battle, Us vs. Them: button 2 (in games with one button, the action button) |
+| Z                     | Bega's Battle, Us vs. Them: button 3      |
 | 5 / 6                 | insert a coin (slot 1 / 2)                |
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
 | P / Pause             | pause / resume (Thayer's Quest: Pause only, since P is a letter) |
-| A                     | autoplay on / off (see below)             |
+| A                     | Dragon's Lair, Space Ace: autoplay on / off (see below) |
 | S                     | show / hide the score displays (Dragon's Lair, Space Ace) |
 | D                     | turn combing repair off / on (not in Thayer's Quest) |
 | Tab                   | show / hide subtitles (Thayer's Quest)    |
@@ -108,7 +109,7 @@ Game controllers work too, plugged in before or during play:
 | any face button       | sword (the action button); in games with two or more buttons, bottom and left are button 1, right and top button 2 |
 | Back (Select)         | insert a coin                             |
 | Start                 | start (1 player)                          |
-| left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace; the left shoulder is also Bega's Battle's button 3 |
+| left / right shoulder, right trigger | Space Ace: Cadet / Captain / Ace; the left shoulder is also button 3 (Bega's Battle, Us vs. Them) |
 
 That covers Xbox, PlayStation and Switch pads, and arcade sticks that
 present themselves as one; the console names each controller as it
@@ -124,15 +125,15 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 |-----------------------|----------------------------------------------------------------|
 | `--video-dir DIR`     | where the video clips are (default: next to the framefile)     |
 | `--roms ROMS`         | run the game, from its ROM set (`lair.zip`, `ace.zip`, `superdq.zip`, `esh.zip`, `cliff.zip`, `badlands.zip`, `astronp.zip`, `galaxy.zip`, `cobraab.zip`, `tq.zip`, `bega.zip`, `lair2.zip`, ...) or a folder of ROM files |
-| `--fast-boot`         | skip the ~35 s start-up wait (see below)                        |
+| `--fast-boot`         | run the start-up (the disc spinning up, the board's checks) at full speed, and open the window in the attract mode |
 | `--scores`            | Dragon's Lair, Space Ace: show the score displays beside the picture (also the S key) |
-| `--attract-sound`     | sound in every attract-mode cycle, not just every few          |
-| `--unlimited-lives`   | the hero never loses a life, so you can see the whole game     |
-| `--free-play`         | no coins needed: press 1 to start                              |
+| `--attract-sound`     | sound in the attract mode (Dragon's Lair: in every cycle, not just every few), in the games with a switch for it |
+| `--unlimited-lives`   | the hero never loses a life, so you can see the whole game (the games with a switch for it) |
+| `--free-play`         | no coins needed: press 1 to start (the games with a switch for it) |
 | `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
 | `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` or `sound` folder beside the ROMs' folder) |
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
-| `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger also has `--dsw3`, `--dsw4`) |
+| `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--version`           | print the version and the commit it was built from, and stop   |
@@ -140,6 +141,9 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--disc-fps F`        | rate the disc's frame numbers count at (default: the game's own, 23.976 for Dragon's Lair and Space Ace, 29.97 for the others; 23.976 without `--roms`; see `src/video/disc_video.h`) |
 
 ## What to expect
+
+This is what playing Dragon's Lair is like, and most of it holds for the
+other games; each game's section below says where it differs.
 
 **Start-up.** Like the real machine, the game waits about 20 seconds for
 the laserdisc to spin up, and the attract mode starts after about 35.
@@ -172,8 +176,11 @@ about every five minutes. `--attract-sound` flips that switch.
 Dirks" DIP switch, meant for operators: Dirk still dies when you get a move
 wrong, but never loses a life.
 
-**Autoplay.** With `--autoplay`, or after pressing A, the program plays the
-joystick and sword itself; you still insert coins and press start. It
+**Autoplay.** Only Dragon's Lair and Space Ace have it: it works from the
+list the Cinematronics board's games keep of the moves they're waiting for
+(see below), and hasn't been written for the other games. With
+`--autoplay`, or after pressing A, the program plays the joystick and sword
+itself; you still insert coins and press start. It
 plays the whole game, from the first room to rescuing Daphne, without losing
 a life, with the original ROMs and both DLE sets; Space Ace too, original
 and SAE, at every skill level, to Borf's defeat. Press A at any time to take over, and again
@@ -195,9 +202,9 @@ game should look like at the moment it's made; if the game has strayed
 from the plan (you pressed something too, say), the plans are thrown away
 and planning starts again from where the game is.
 
-**Window icon.** Each game has its own icon (Galaxy Ranger and Star Blazer
-share one), built into the program from `icons/`. `--icon FILE.ico` uses
-another.
+**Window icon.** Each game has its own icon (versions of the same game,
+such as Galaxy Ranger and Star Blazer, share one), built into the program
+from `icons/`. `--icon FILE.ico` uses another.
 
 <h2 id="dragons-lair"><img src="./assets/dragon1-logo.png" width="400" height="175" alt="Dragon's Lair"></h2>
 
@@ -260,9 +267,9 @@ and the European board.
 The game board has two banks of eight DIP switches, DSW1 and DSW2, that
 the operator sets inside the cabinet: pricing, lives, difficulty and so on.
 Each ROM set starts with its usual settings (rev F2: DSW1 `20`, DSW2 `79`;
-DLE 1.1: `20`, `F9`; DLE 2.0 and 2.1: `20`, `E9`; Space Ace rev A3: `DD`, `FE`; SAE:
-`20`, `89`; Super Don Quix-ote: `FF`, `FF`), and the console shows the
-settings in use when the game starts.
+DLE 1.1: `20`, `F9`; DLE 2.0 and 2.1: `20`, `E9`; Space Ace rev A3: `DD`,
+`FE`; SAE: `20`, `89`; the other games' sections give theirs), and the
+console shows the settings in use when the game starts.
 
 `--dsw1 HEX` and `--dsw2 HEX` replace a whole bank. `--free-play`,
 `--attract-sound` and `--unlimited-lives` then change their own switches on
@@ -285,11 +292,11 @@ switches do; their readmes have the charts. They number the switches 0 to 7
 and give physical positions, where OFF means the bit is set. The original
 Space Ace and Super Don Quix-ote have layouts of their own (see
 [Space Ace](#space-ace) and [Super Don Quix-ote](#super-don-quix-ote)). In
-every set, the three named options flip whichever switches that set uses.
-Cliff Hanger has four banks (see [Cliff Hanger](#cliff-hanger)), Badlands
-and Astron Belt two of their own (see [Badlands](#badlands) and
-[Astron Belt](#astron-belt)), and Esh's Aurunmilla has no DIP switches at
-all.
+every set, the three named options flip whichever switches that set uses,
+if it has them. Every other game's section lists its own switches: Cliff
+Hanger and Goal to Go have four banks, Us vs. Them and M.A.C.H. 3 one, and
+the rest two. Esh's Aurunmilla and Dragon's Lair II keep their settings in
+memory instead, so they have no DIP switches at all.
 
 <h2 id="space-ace"><img src="./assets/space-ace-logo.png" width="400" height="175" alt="Space Ace"></h2>
 

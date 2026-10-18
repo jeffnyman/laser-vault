@@ -6,17 +6,19 @@
 // board draws over the picture. This is that common ground; each call passes
 // on to the board the ROMs are for:
 //
-//     Cinematronics (games/cinematronics)  Dragon's Lair, Space Ace    LD-V1000
-//     Universal System 1 (games/universal) Super Don Quix-ote          LD-V1000
-//     Funai (games/funai)                  Esh's Aurunmilla            LD-V1000
-//     Stern (games/stern)                  Cliff Hanger                PR-8210
-//     Konami (games/konami)                Badlands                    LD-V1000
-//     Sega (games/sega)                    Astron Belt, Galaxy Ranger  LD-V1000
-//     Sega GP World (games/sega/gpworld)   GP World                    LD-V1000
-//     RDI (games/rdi)                      Thayer's Quest              LD-V1000
-//     Data East (games/dataeast)           Bega's Battle               LDP-1000
-//     Leland (games/leland)                Dragon's Lair II            LDP-1450
-//     Gottlieb (games/gottlieb)            Us vs. Them                 PR-8210
+//     Cinematronics (games/cinematronics)  Dragon's Lair, Space Ace             LD-V1000
+//     Universal System 1 (games/universal) Super Don Quix-ote                   LD-V1000
+//     Funai (games/funai)                  Esh's Aurunmilla                     LD-V1000
+//     Stern (games/stern)                  Cliff Hanger, Goal to Go             PR-8210
+//     Konami (games/konami)                Badlands                             LD-V1000
+//     Sega (games/sega)                    Astron Belt, Galaxy Ranger,          LD-V1000 or
+//                                          Sega's Cobra Command                 Sega's own
+//     Sega GP World (games/sega/gpworld)   GP World                             LD-V1000
+//     RDI (games/rdi)                      Thayer's Quest                       LD-V1000
+//     Data East (games/dataeast)           Bega's Battle, Cobra Command,        LDP-1000
+//                                          Road Blaster
+//     Leland (games/leland)                Dragon's Lair II                     LDP-1450
+//     Gottlieb (games/gottlieb)            Us vs. Them, M.A.C.H. 3              PR-8210
 //
 // Things only one board has (the Cinematronics score displays, autoplay)
 // are reached through its own board pointer.
@@ -80,7 +82,7 @@ typedef struct {
 
 // The control panel: true means pressed. Games use what they have: some
 // have a second button (a game with one takes either as it), Bega's Battle
-// a third, Space Ace the three skill buttons.
+// and Us vs. Them a third, Space Ace the three skill buttons.
 typedef struct {
     bool up, down, left, right, button, button2, button3;
     bool start1, start2, coin1, coin2;
@@ -153,8 +155,8 @@ bool machine_audio_on(const Machine *m, int channel);
 void machine_set_controls(Machine *m, const Controls *c);
 
 // A DIP switch bank (from 1), or NULL for one the board doesn't have. Most
-// have two banks, Cliff Hanger four; Esh's Aurunmilla keeps its settings in
-// battery-backed memory instead.
+// have two banks, Stern's games four and Gottlieb's one; Esh's Aurunmilla
+// and Dragon's Lair II keep their settings in memory instead.
 uint8_t *machine_dsw(Machine *m, int bank);
 void machine_set(Machine *m, MachineSetting setting, bool on);
 bool machine_get(const Machine *m, MachineSetting setting);

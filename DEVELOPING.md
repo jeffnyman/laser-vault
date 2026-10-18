@@ -7,8 +7,9 @@ in the source. (To play the games, see [PLAYING.md](PLAYING.md).)
 
 You need a C compiler, CMake (3.21 or newer), [SDL3](https://www.libsdl.org/)
 (3.2 or newer), FFmpeg's development libraries (libavcodec, libavformat,
-libavutil, built with libvorbis) and zlib. How you get them depends on the platform. Each section below goes
-from a fresh machine to a built `laser-vault`.
+libavutil, built with libvorbis) and zlib. How you get them depends on the
+platform. Each section below goes from a fresh machine to a built
+`laser-vault`.
 
 ### Windows (native, with Visual Studio)
 
@@ -276,7 +277,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/version.h`: the version text (written by `cmake/version.cmake`; see [Making a release](#making-a-release)).
 - `src/games/machine.c`: what the main program needs from a game board, passed on to the right one.
 - `src/games/game_folder.c`: finding the framefile and the ROM set in a game's folder.
-- `src/ldp/ldp.c`: the laserdisc player model (play, pause, search, step).
+- `src/ldp/ldp.c`: the laserdisc player model (play, at normal or another speed; pause, search, step).
 - `src/ldp/ldv1000.c`: the Pioneer LD-V1000's command protocol, on top of that model.
 - `src/ldp/pr8210.c`: the Pioneer PR-8210's remote-control codes and the frame numbers on the disc.
 - `src/ldp/vip9500sg.c`: Sega's laserdisc player (the VIP9500SG) and its serial commands.
@@ -322,7 +323,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: finding and repairing combing (mixed fields), pixel by pixel.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
-- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics and Data East boards.
+- `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics and Data East boards (and
+  its relative the AY-3-8913, on Gottlieb's sound board).
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
 - `src/audio/samples.c`: recorded sound effects (WAV files), for the Sega board's sound board.
 - `src/audio/ssi263.c`: the SSI-263 speech chip: its registers and timing, and a formant synthesizer for its voice.
@@ -343,11 +345,14 @@ checksums both program ROMs, and which then plays. The COP421
 
 ### How a game fits together
 
-Each game runs on its board, in `src/games/<maker>/board.c`: the CPU (a
-Z80, Konami's 6809, Data East's 6502s, or Leland's and Gottlieb's 8088s), the memory map, the I/O ports, the interrupts and whatever the board draws or
-plays. The board drives a laserdisc player model (`src/ldp/`), which drives
-the plain player in `src/ldp/ldp.c`, whose frame number the main program
-shows. `src/games/machine.c` is the common ground: the main program asks it
-to load the ROMs, run the board, pass in the controls, and take out the
-sound and the overlay, and it passes each call on to the right board. To
-add a board, add it there; the main program needs no changes.
+Each game runs on its board, in `src/games/<maker>/board.c` (GP World's in
+`src/games/sega/gpworld.c`): the CPU (a Z80, Konami's 6809, Data East's
+6502s, or Leland's and Gottlieb's 8088s), the memory map, the I/O ports, the
+interrupts and whatever the board draws or plays. The board drives a
+laserdisc player model (`src/ldp/`), which drives the plain player in
+`src/ldp/ldp.c`, whose frame number the main program shows.
+`src/games/machine.c` is the common ground: the main program asks it to
+load the ROMs, run the board, pass in the controls, and take out the sound
+and the overlay, and it passes each call on to the right board. To add a
+board, add it there; in the main program, only the lines it prints at
+start-up about the game's controls name the games.

@@ -3,17 +3,19 @@
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
-The original game code runs on emulated CPUs (a Z80, Badlands' 6809, Bega's
-Battle's two 6502s, the 8088s of Dragon's Lair II, Us vs. Them and M.A.C.H. 3, and
-Thayer's Quest's COP421 microcontroller) and drives an emulated laserdisc player, just as on the
-arcade board: the attract mode
-plays, coins and start work, and you can play the game, with the
-laserdisc's soundtrack, the board's own sounds, and whatever the board draws
-over the picture. The code is meant to be read: each part explains how the
-real hardware works.
+The original game code runs on emulated CPUs (Z80s, Badlands' 6809, the
+6502s of Data East's games and Gottlieb's sound board, the 8088s of Dragon's
+Lair II, Us vs. Them and M.A.C.H. 3, and Thayer's Quest's COP421
+microcontroller) and drives an emulated laserdisc player, just as on the
+arcade board: the attract mode plays, coins and start work, and you can
+play the game, with the laserdisc's soundtrack, the board's own sounds, and
+whatever the board draws over the picture. The code is meant to be read:
+each part explains how the real hardware works.
 
 - **To play:** see [PLAYING.md](PLAYING.md). You need your own copy of each
   game: its ROMs and the disc's video, as made for the Daphne emulator.
+  Every game's folder is preserved on the Internet Archive; PLAYING links
+  each one.
 - **To build it, or to read the code:** see [DEVELOPING.md](DEVELOPING.md).
   It builds on Windows, Linux and macOS.
 
@@ -69,9 +71,10 @@ runs the arcade rev A3 and the fan-made Space Ace Enhancement.
 ### Cliff Hanger
 
 Cliff has to save Clarissa from the evil Count Draco, in animation from the
-Lupin III films *The Castle of Cagliostro* and *Mystery of Mamo*. Its board drives a home player, the Pioneer PR-8210, through the
-remote-control socket, and knows where the disc is only by reading the frame
-numbers recorded in the picture. A TMS9128 video chip draws the score, the
+Lupin III films *The Castle of Cagliostro* and *Mystery of Mamo*. Its board
+drives a home player, the Pioneer PR-8210, through the remote-control
+socket, and knows where the disc is only by reading the frame numbers
+recorded in the picture. A TMS9128 video chip draws the score, the
 lives and the hints over it.
 
 <p align="center">
@@ -291,7 +294,14 @@ Ideas rather than promises:
   (Leland's 1991 conversion).
 - **Keeping high scores and settings** between runs, for the boards that
   kept them in battery-backed memory or an EEPROM.
+- **The missing sounds:** the SP0250 speech chip on Gottlieb's sound board
+  (Us vs. Them and M.A.C.H. 3 are silent where they speak), and GP World's
+  engine, tyre and crash sounds, perhaps from recordings, as for Astron Belt.
 - **A list of the ROM sets' checksums**, to check your copies against.
+
+Not planned: Singe games, such as the fan-made versions of Time Gal. They
+aren't original arcade programs but scripts written for the Singe engine,
+with no board to emulate; Hypseus, Singe's home, plays them.
 
 ## License
 
