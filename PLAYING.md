@@ -49,6 +49,10 @@ lair.daphne/
     sounds/             recorded sound effects (Astron Belt, Galaxy Ranger)
 ```
 
+Folders laid out like this for every game here are preserved on the
+Internet Archive, in [these uploads](https://archive.org/details/@jeff_nyman/uploads);
+each game's section below links its own.
+
 Then give laser-vault the folder, and it finds the rest:
 
 ```
@@ -197,6 +201,9 @@ another.
 
 <h2 id="dragons-lair"><img src="./assets/dragon1-logo.png" width="400" height="175" alt="Dragon's Lair"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/dragons.lair.laser.disc](https://archive.org/details/dragons.lair.laser.disc).
+
 The usual set is a folder laid out the way laser-vault looks for (see
 [Running](#running)), with the two fan-made sets beside the original:
 
@@ -286,6 +293,9 @@ all.
 
 <h2 id="space-ace"><img src="./assets/space-ace-logo.png" width="400" height="175" alt="Space Ace"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/space.ace.laser.disc](https://archive.org/details/space.ace.laser.disc).
+
 Space Ace (1983) came from the same team and runs on the same Cinematronics
 board, so laser-vault plays it the same way. You need:
 
@@ -341,6 +351,9 @@ Ace also uses a letter code for a blank digit, so the panel shows only
 digits; the window title shows the raw codes.
 
 <h2 id="super-don-quix-ote"><img src="./assets/sdq-logo.png" width="400" height="174" alt="Super Don Quix-ote"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/sdq.laser.disc](https://archive.org/details/sdq.laser.disc).
 
 Super Don Quix-ote (Universal, 1984) runs on Universal's own board, the
 System 1. Like the Cinematronics board, it has a Z80 that drives an LD-V1000
@@ -398,6 +411,9 @@ player keeps silent; `src/ldp/ldv1000.c` explains.
 
 <h2 id="eshs-aurunmilla"><img src="./assets/esh-logo.png" width="400" height="163" alt="Esh's Aurunmilla"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/esh.laser.disc](https://archive.org/details/esh.laser.disc).
+
 Esh's Aurunmilla (Funai/Gakken, 1984) runs on Funai's own board: another Z80
 driving an LD-V1000, with tiles drawn over the picture for the score and
 the menus. You need:
@@ -443,6 +459,9 @@ on DIP switches, so `--free-play` and the other switch options do nothing.
 The beeper's pitch isn't known; laser-vault uses MAME's guess of 2 kHz.
 
 <h2 id="cliff-hanger"><img src="./assets/cliff-logo.png" width="400" height="175" alt="Cliff Hanger"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/cliff.hanger.laser.disc](https://archive.org/details/cliff.hanger.laser.disc).
 
 Cliff Hanger (Stern, 1983), made from the Lupin III films *The Castle of
 Cagliostro* and *Mystery of Mamo*, runs on Stern's own board, with a
@@ -519,6 +538,9 @@ laser-vault starts set 1 with DSW1 `C7`, DSW2 `FF`, DSW3 `3F` and DSW4
 
 <h2 id="badlands"><img src="./assets/badlands-logo.png" width="400" height="81" alt="Badlands"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/badlands.laser.disc](https://archive.org/details/badlands.laser.disc).
+
 Badlands (Konami/Centuri, 1984) runs on Konami's own board: a Motorola 6809
 driving an LD-V1000, with tiles drawn over the picture for the score and
 the hero's name, and an SN76496 sound chip for the gunshots. You need:
@@ -584,6 +606,9 @@ credit, 3 lives, sound in the attract mode. Hold both start buttons as the
 game powers on for its service mode.
 
 <h2 id="astron-belt"><img src="./assets/astron-logo.png" width="400" height="45" alt="Astron Belt"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/astron.belt.laser.disc](https://archive.org/details/astron.belt.laser.disc).
 
 Astron Belt (Sega, 1983; Bally Midway in America) runs on Sega's own board:
 a Z80 driving a laserdisc player, with sprites (your fighter, the enemy ships and
@@ -672,6 +697,9 @@ setting, so `--free-play` does nothing.
 
 <h2 id="galaxy-ranger"><img src="./assets/galaxy-logo.png" width="400" height="100" alt="Galaxy Ranger"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/galaxy.ranger.laser.disc](https://archive.org/details/galaxy.ranger.laser.disc).
+
 Galaxy Ranger (Sega, 1984; Bally Midway in America; Star Blazer in Japan)
 is Astron Belt's sequel on the same board: through tunnels, over alien
 deserts and cities, and into dogfights, to the enemy's battle cruiser. It
@@ -719,6 +747,9 @@ alone. Its DIP
 switches are taken to be Astron Belt's, which hasn't been checked.
 
 <h2 id="cobra-command"><img src="./assets/cobra-logo.png" width="400" height="167" alt="Cobra Command"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/cobra.command.laser.disc](https://archive.org/details/cobra.command.laser.disc).
 
 Cobra Command (Data East, 1984) came in two versions, and laser-vault runs
 both: Data East's own, on the board Bega's Battle uses, driving Sony's
@@ -782,6 +813,9 @@ plays with the disc's soundtrack alone. Its DIP switches are taken to be
 Astron Belt's, which hasn't been checked.
 
 <h2 id="thayers-quest"><img src="./assets/thayers-logo.png" width="400" height="175" alt="Thayer's Quest"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/thayer.laser.disc](https://archive.org/details/thayer.laser.disc).
 
 Thayer's Quest (RDI Video Systems, 1984), from Rick Dyer, who designed
 Dragon's Lair, runs on RDI's own board: a Z80 driving an LD-V1000, with a
@@ -861,6 +895,9 @@ laser-vault starts with DSW1 `FF` and DSW2 `0F`.
 
 <h2 id="begas-battle"><img src="./assets/begas-logo.png" width="400" height="106" alt="Bega's Battle"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/bega.laser.disc](https://archive.org/details/bega.laser.disc).
+
 Bega's Battle (Data East, 1983) runs on Data East's own board: two 6502s,
 one running the game and one its sound (two AY-3-8910s), driving Sony's
 LDP-1000 player over a serial line. The disc holds scenes from the anime
@@ -919,6 +956,9 @@ for the attract mode's sound. laser-vault starts with DSW1 `0F` and DSW2
 
 <h2 id="dragons-lair-ii"><img src="./assets/dragon2-logo.png" width="400" height="65" alt="Dragon's Lair II"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/dragons.lair.2.laser.disc](https://archive.org/details/dragons.lair.2.laser.disc).
+
 Dragon's Lair II: Time Warp (Leland, 1991) runs on Leland's board, which is
 built much like an IBM PC XT: an 8088 at 10 MHz, the PC's interrupt
 controller, timer and speaker, and Sony's LDP-1450 player on its second
@@ -967,6 +1007,9 @@ save the EEPROM yet, so each run starts blank and the game sets up its
 factory settings; `--free-play` and the other setting options do nothing.
 
 <h2 id="us-vs-them"><img src="./assets/uvt-logo.png" width="400" height="104" alt="Us vs. Them"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/uvt.laser.disc](https://archive.org/details/uvt.laser.disc).
 
 Us vs. Them (Mylstar, 1984; Mylstar was Gottlieb by then) runs on Gottlieb's
 arcade board of the time with a laserdisc interface added: an 8088 driving a
@@ -1022,6 +1065,9 @@ Its DIP switches (from MAME; a switch on reads as a set bit):
 laser-vault starts it with `00`.
 
 <h2 id="road-blaster"><img src="./assets/roadblaster-logo.png" width="400" height="112" alt="Road Blaster"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/roadblaster.laser.disc](https://archive.org/details/roadblaster.laser.disc).
 
 Road Blaster (Data East, 1985) is a conversion for Bega's Battle's board,
 the same two 6502s driving Sony's LDP-1000 (see
@@ -1085,6 +1131,9 @@ setting, so `--free-play` does nothing.
 
 <h2 id="mach-3"><img src="./assets/mach3-logo.png" width="400" height="76" alt="M.A.C.H. 3"></h2>
 
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/mach3.laser.disc](https://archive.org/details/mach3.laser.disc).
+
 M.A.C.H. 3 (Mylstar, 1983) runs on the same board as
 [Us vs. Them](#us-vs-them): an 8088 driving a Pioneer PR-8210, with tiles
 and sprites drawn over the picture, and the sound board of two 6502s. You
@@ -1147,6 +1196,9 @@ laser-vault starts it with `48`: 2 coins 1 credit, 3 lives, the attract
 mode's sounds.
 
 <h2 id="goal-to-go"><img src="./assets/gtg-logo.png" width="400" height="95" alt="Goal to Go"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/gtg.laser.disc](https://archive.org/details/gtg.laser.disc).
 
 Goal to Go (Stern, 1983) is Cliff Hanger's sister game and runs on the
 same board (see [Cliff Hanger](#cliff-hanger)): a Z80 driving a Pioneer
@@ -1214,6 +1266,9 @@ high scores are kept in battery-backed memory, which laser-vault doesn't
 save yet (the `ram` folder is ignored).
 
 <h2 id="gp-world"><img src="./assets/gpworld-logo.png" width="400" height="85" alt="GP World"></h2>
+
+The game's folder, ready to play, is preserved on the Internet Archive:
+[archive.org/details/gpworld.laser.disc](https://archive.org/details/gpworld.laser.disc).
 
 GP World (Sega, 1984; Bally Midway in America) runs on its own Sega board,
 a bigger relative of Astron Belt's: a Z80 driving a Pioneer LD-V1000, with
