@@ -38,8 +38,8 @@
 // narrator is shown as subtitles; --no-subtitles (or Tab) hides them.
 // --autoplay lets the program play Dragon's Lair or Space Ace (see
 // games/cinematronics/autoplay.h), Esh's Aurunmilla, Cliff Hanger, Goal to
-// Go, Badlands, Data East's Cobra Command or Dragon's Lair II (see each
-// one's board.c); A switches it on and off during a game.
+// Go, Badlands, Data East's Cobra Command, Road Blaster or Dragon's Lair II
+// (see each one's board.c); A switches it on and off during a game.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        action button (the sword)
@@ -1061,8 +1061,8 @@ int main(int argc, char **argv)
             printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
         } else if (autoplay) {
             printf("Autoplay only knows Dragon's Lair, Space Ace, Esh's Aurunmilla, Cliff Hanger\n"
-                   "(set 1), Goal to Go, Badlands, Data East's Cobra Command and Dragon's\n"
-                   "Lair II, so it stays off.\n");
+                   "(set 1), Goal to Go, Badlands, Data East's Cobra Command, Road Blaster and\n"
+                   "Dragon's Lair II, so it stays off.\n");
         }
         fflush(stdout);
 

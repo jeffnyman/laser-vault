@@ -236,6 +236,7 @@ speedometer, the rev counter and a sight, and tells you what to do: an
 arrow to steer, a brake pedal, or a turbine with brackets to line the sight
 up on the car ahead and floor it. Data East made it as a conversion for
 Bega's Battle's board, with the same two 6502s and Sony's LDP-1000.
+Autoplay drives it to the end.
 
 <p align="center">
   <a href="assets/rb-title-640.png"><img src="assets/rb-title-640.png" width="32%" alt="Road Blaster title over the car in its garage, frame 640"></a>

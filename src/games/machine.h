@@ -120,8 +120,8 @@ const char *machine_game_name(const Machine *m);
 // Can the program play the game itself (autoplay)? Dragon's Lair and Space
 // Ace (whose planner lives in games/cinematronics/autoplay.h, driven by the
 // main program), and Esh's Aurunmilla, Cliff Hanger, Goal to Go, Badlands,
-// Data East's Cobra Command and Dragon's Lair II, whose boards play their
-// moves when told to.
+// Data East's Cobra Command, Road Blaster and Dragon's Lair II, whose boards
+// play their moves when told to.
 bool machine_can_autoplay(const Machine *m);
 void machine_set_autoplay(Machine *m, bool on);  // the boards that play their own moves
 

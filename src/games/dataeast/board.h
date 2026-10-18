@@ -91,7 +91,7 @@ typedef struct {
     uint8_t gfx[0xC000];        // graphics chips, three planes of 0x4000
 
     DecoInputs inputs;
-    bool autoplay;              // the board plays Cobra Command itself (see board.c)
+    bool autoplay;              // the board plays the game itself (see board.c)
     uint64_t auto_window;       // cycle the open target window opened, or 0
     uint64_t auto_missile;      // cycle of autoplay's last missile press
     uint8_t dsw1, dsw2;
@@ -128,8 +128,9 @@ const char *deco_game_name(const DecoBoard *board);
 void deco_set(DecoBoard *board, DecoSetting setting, bool on);
 bool deco_get(const DecoBoard *board, DecoSetting setting);
 
-// Can autoplay play this game? (Cobra Command.) With it on, the board flies
-// and shoots as each scene asks, as well as the player's controls.
+// Can autoplay play this game? (Cobra Command and Road Blaster.) With it on,
+// the board makes each move a scene asks for, as well as the player's
+// controls.
 bool deco_can_autoplay(const DecoBoard *board);
 void deco_set_autoplay(DecoBoard *board, bool on);
 

@@ -314,7 +314,7 @@ checksums both program ROMs, and which then plays. The COP421
   converter and the gear lever, the laserdisc latches, the sprites and characters).
 - `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle, Data East's Cobra Command and Road Blaster (two 6502s, the
   serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture, and
-  Cobra Command's autoplay).
+  Cobra Command's and Road Blaster's autoplay).
 - `src/games/leland/board.c`: Leland's board that runs Dragon's Lair II (the PC's interrupt
   controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter,
   and autoplay from the game's table of moves).

@@ -265,18 +265,26 @@ static bool in_vblank(const DecoBoard *b)
 // Autoplay holds each steering direction from a little before its window,
 // and in a shooting scene moves the sight onto the next target and fires
 // both guns and missiles while the target's window is open.
+//
+// Road Blaster flags each prompt in RAM while its window is open, and
+// checks the controls as the window closes: 0034 bit 0 to steer (0036 bit
+// 0 says which way: set for left), 0051 bit 0 to brake, and 0042 bit 0 to
+// accelerate, which also wants the car's position across the road (002B,
+// moved by steering, and not re-centred by the game) within the range at
+// 0243 to 0247. Autoplay holds what each open window wants, and between
+// prompts steers the car back to the middle of that range, or of the road.
 
 #define AUTO_LEAD_FRAMES 16  // more than one step of the game's frame count
 #define AUTO_AIM 4           // close enough to the target, in pixels
 
 bool deco_can_autoplay(const DecoBoard *b)
 {
-    return b->game == DECO_COBRA;
+    return b->game == DECO_COBRA || b->game == DECO_RBLASTER;
 }
 
 void deco_set_autoplay(DecoBoard *b, bool on)
 {
-    b->autoplay = on && b->game == DECO_COBRA;
+    b->autoplay = on && deco_can_autoplay(b);
 }
 
 static unsigned ram_word(const DecoBoard *b, unsigned addr)
@@ -284,7 +292,7 @@ static unsigned ram_word(const DecoBoard *b, unsigned addr)
     return (unsigned)(b->ram[addr] | b->ram[addr + 1] << 8);
 }
 
-static void add_autoplay(DecoBoard *b, DecoInputs *in)
+static void cobra_autoplay(DecoBoard *b, DecoInputs *in)
 {
     const uint8_t *r = b->ram;
     unsigned frame = ram_word(b, 0x1E);
@@ -322,6 +330,30 @@ static void add_autoplay(DecoBoard *b, DecoInputs *in)
         if (b->cycles - b->auto_missile > DECO_CPU_HZ * 3 / 10) b->auto_missile = b->cycles;
         if (b->cycles - b->auto_missile < DECO_CPU_HZ / 10) in->button2 = true;
     }
+}
+
+#define AUTO_CENTRE 8  // close enough to the middle, across the road
+
+static void rblaster_autoplay(const DecoBoard *b, DecoInputs *in)
+{
+    const uint8_t *r = b->ram;
+    bool accelerate = r[0x42] & 1;
+    if (r[0x34] & 1) {
+        if (r[0x36] & 1) in->left = true;
+        else in->right = true;
+    } else {
+        int middle = accelerate ? (r[0x243] + r[0x247]) / 2 : 0x80;
+        in->left |= r[0x2B] > middle + AUTO_CENTRE;
+        in->right |= r[0x2B] < middle - AUTO_CENTRE;
+    }
+    if (r[0x51] & 1) in->button2 = true;
+    else if (accelerate) in->button1 = true;
+}
+
+static void add_autoplay(DecoBoard *b, DecoInputs *in)
+{
+    if (b->game == DECO_COBRA) cobra_autoplay(b, in);
+    else if (b->game == DECO_RBLASTER) rblaster_autoplay(b, in);
 }
 
 // Cobra Command has up and down the other way round from Bega's Battle
