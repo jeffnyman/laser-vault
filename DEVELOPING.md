@@ -290,11 +290,13 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/cpu/i8088.c`: the Intel 8088 CPU emulator, with a disassembler.
 - `src/games/cinematronics/board.c`: the Cinematronics board that runs Dragon's Lair and Space Ace
   (memory map, inputs, outputs, interrupts, ROM sets).
-- `src/games/cinematronics/autoplay.c`: autoplay (the game's list of moves, and looking ahead).
+- `src/games/cinematronics/autoplay.c`: Dragon's Lair's and Space Ace's autoplay (the game's list of
+  moves, and looking ahead).
 - `src/games/universal/board.c`: Universal's System 1 board that runs Super Don Quix-ote
   (memory map, I/O, the tiles drawn over the picture, ROM sets).
 - `src/games/stern/board.c`: Stern's board that runs Cliff Hanger and Goal to Go (memory map, I/O,
-  the frame-number reader, Goal to Go's side check, the tones, ROM sets).
+  the frame-number reader, Goal to Go's side check, the tones, ROM sets, and autoplay from the
+  games' move records).
 - `src/video/tms9928.c`: the TMS9918/9928 video chip that draws over Cliff Hanger's and Goal to Go's
   picture.
 - `src/games/funai/board.c`: Funai's board that runs Esh's Aurunmilla (memory map, I/O,

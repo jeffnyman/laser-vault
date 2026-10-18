@@ -36,9 +36,9 @@
 // effects for a board whose sounds aren't emulated (Astron Belt's; by
 // default, a "sounds" folder beside the ROMs' folder). Thayer's Quest's
 // narrator is shown as subtitles; --no-subtitles (or Tab) hides them.
-// --autoplay lets the
-// program play Dragon's Lair or Space Ace (see
-// games/cinematronics/autoplay.h); A switches it on and off during a game.
+// --autoplay lets the program play Dragon's Lair or Space Ace (see
+// games/cinematronics/autoplay.h), Cliff Hanger or Goal to Go (see
+// games/stern/board.c); A switches it on and off during a game.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        action button (the sword)
@@ -524,7 +524,7 @@ static void run_board(App *app, uint64_t cycles)
     uint64_t end = machine_cycles(m) + cycles;
     while (machine_cycles(m) < end) {
         uint64_t stop = end;
-        if (app->autoplaying) {
+        if (app->autoplaying && m->kind == MACHINE_CINEMATRONICS) {
             finish_autoplay_thread(app, false, true);
             CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, m->cine, &app->ldp, &m->ldv1000);
             if (job) {
@@ -716,11 +716,15 @@ static bool handle_key(App *app, SDL_Keycode key, SDL_Keymod mod)
             // right place on resume.)
             if (app->paused && app->chip_sound) SDL_ClearAudioStream(app->chip_sound);
         }
-        if (key == SDLK_A && app->machine.kind == MACHINE_CINEMATRONICS) {
+        if (key == SDLK_A && machine_can_autoplay(&app->machine)) {
             app->autoplaying = !app->autoplaying;
-            // A plan in the works is for the moment autoplay stopped; drop it.
-            finish_autoplay_thread(app, true, false);
-            if (app->autoplaying) cine_autoplay_resume(&app->autoplay);
+            if (app->machine.kind == MACHINE_CINEMATRONICS) {
+                // A plan in the works is for the moment autoplay stopped; drop it.
+                finish_autoplay_thread(app, true, false);
+                if (app->autoplaying) cine_autoplay_resume(&app->autoplay);
+            } else {
+                machine_set_autoplay(&app->machine, app->autoplaying);
+            }
             printf("Autoplay %s\n", app->autoplaying ? "on" : "off");
             fflush(stdout);
         }
@@ -1050,8 +1054,13 @@ int main(int argc, char **argv)
             cine_autoplay_init(&app.autoplay, true);
             app.autoplaying = autoplay;
             if (autoplay) printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
+        } else if (autoplay && machine_can_autoplay(m)) {
+            machine_set_autoplay(m, true);
+            app.autoplaying = true;
+            printf("Autoplay is on: once a game starts, the program plays (A turns it off).\n");
         } else if (autoplay) {
-            printf("Autoplay only knows Dragon's Lair and Space Ace, so it stays off.\n");
+            printf("Autoplay only knows Dragon's Lair, Space Ace, Cliff Hanger (set 1) and Goal\n"
+                   "to Go, so it stays off.\n");
         }
         fflush(stdout);
 

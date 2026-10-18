@@ -75,7 +75,8 @@ Lupin III films *The Castle of Cagliostro* and *Mystery of Mamo*. Its board
 drives a home player, the Pioneer PR-8210, through the remote-control
 socket, and knows where the disc is only by reading the frame numbers
 recorded in the picture. A TMS9128 video chip draws the score, the
-lives and the hints over it.
+lives and the hints over it. Autoplay plays it through to the end, reading
+each move from the game's own scripts.
 
 <p align="center">
   <a href="assets/ch-title-50.png"><img src="assets/ch-title-50.png" width="32%" alt="Cliff Hanger title screen, frame 50"></a>
@@ -263,7 +264,8 @@ pitch out, a quarterback sneak, a flea flicker), the film runs it, and the
 board tells you when to move the ball carrier with the stick, when to
 press the hands button to take a handoff or catch a pass, and when to kick.
 Get it right and you gain yards; get it wrong and the board says what you
-should have done. Its disc is rare: MAME lists it as never dumped.
+should have done. Autoplay can make the moves for you. Its disc is rare:
+MAME lists it as never dumped.
 
 <p align="center">
   <a href="assets/gtg-title-90.png"><img src="assets/gtg-title-90.png" width="32%" alt="Goal to Go title over a car park, frame 90"></a>

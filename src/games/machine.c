@@ -128,6 +128,17 @@ const char *machine_sample_example(const Machine *m)
     return m->kind == MACHINE_SEGA ? sega_sample_example(m->sega) : "";
 }
 
+bool machine_can_autoplay(const Machine *m)
+{
+    if (m->kind == MACHINE_CINEMATRONICS) return true;
+    return m->kind == MACHINE_STERN && stern_can_autoplay(m->stern);
+}
+
+void machine_set_autoplay(Machine *m, bool on)
+{
+    if (m->kind == MACHINE_STERN) stern_set_autoplay(m->stern, on);
+}
+
 bool machine_has_keyboard(const Machine *m)
 {
     return m->kind == MACHINE_RDI;

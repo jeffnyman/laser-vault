@@ -24,6 +24,7 @@ typedef struct {
     RomChip chips[5];      // 8 KB each, from address 0; unused ones NULL
     uint8_t dsw[4];        // the factory DIP settings
     int coins_per_credit;  // at those settings
+    SternMoveRecords moves;  // for autoplay (see below); check 0 for a set it doesn't know
 } RomSet;
 
 // DIP switches: a switch on reads as 0. In set 1, bank 1 holds the hints
@@ -49,19 +50,19 @@ static const RomSet rom_sets[] = {
     {"Cliff Hanger (set 1)", true,
      {{"cliff_u1.bin", 0xA86EC38F}, {"cliff_u2.bin", 0xB8D33B6B}, {"cliff_u3.bin", 0x75A64CD2},
       {"cliff_u4.bin", 0x906B2AF1}, {"cliff_u5.bin", 0x5922E710}},
-     {0xC7, 0xFF, 0x3F, 0xFF}, 1},
+     {0xC7, 0xFF, 0x3F, 0xFF}, 1, {0x0BA2, 1, 3, 6, false, false}},
     {"Cliff Hanger (set 2)", true,
      {{"cliff_alt_0.bin", 0x27CAA67C}, {"cliff_alt_1.bin", 0x6E5F1515}, {"cliff_alt_2.bin", 0x045F895D},
       {"cliff_alt_3.bin", 0x54CDB4A1}},
-     {0xFF, 0xFF, 0xFF, 0xFF}, 2},
+     {0xFF, 0xFF, 0xFF, 0xFF}, 2, {0}},
     {"Cliff Hanger (set 3)", false,
      {{"cliff_alt2_0.bin", 0x598D57FC}, {"cliff_alt2_1.bin", 0x7BCE618E}, {"cliff_alt2_2.bin", 0x65D2B984},
       {"cliff_alt2_3.bin", 0xF43A5269}},
-     {0xFF, 0xFF, 0xFF, 0xFF}, 1},
+     {0xFF, 0xFF, 0xFF, 0xFF}, 1, {0}},
     {"Goal to Go", false,
      {{"gtg.rm0", 0xD8EFDDEA}, {"gtg.rm1", 0x69953D38}, {"gtg.rm2", 0xB043E205}, {"gtg.rm3", 0xEC305F5E},
       {"gtg.rm4", 0x9E4C8AA2}},
-     {0x5F, 0xFF, 0x1F, 0xFF}, 1},
+     {0x5F, 0xFF, 0x1F, 0xFF}, 1, {0x100A, 6, 0, 3, true, true}},
 };
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
@@ -113,6 +114,7 @@ bool stern_load_roms(SternBoard *b, const char *path)
     }
     memcpy(b->dsw, set->dsw, sizeof b->dsw);
     b->coins_per_credit = set->coins_per_credit;
+    b->moves = set->moves;
     b->goal_to_go = !strcmp(set->chips[0].name, "gtg.rm0");
     b->chapter_code = b->goal_to_go ? 0x881DDD : 0;  // side 1
     printf("ROMs: %s%s\n", set->title, set->tested ? "" : " (not yet tested with laser-vault)");
@@ -153,9 +155,96 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
     if (addr >= 0xE000 && addr < 0xF000) b->ram[addr - 0xE000] = v;
 }
 
+// ---------------------------------------------------------------------------
+// Autoplay
+// ---------------------------------------------------------------------------
+//
+// Cliff Hanger's scenes are scripts in its ROM, 18 bytes for each move: the
+// right move (byte 1), the moves that count as mistakes (2), the frames the
+// move's window opens and closes on (3-5 and 6-8, in BCD), then the death
+// scene to play and more. While a window is open, the game loops round its
+// move check (at 0BA2 in set 1) with the IY register on the move's record,
+// comparing the controls with byte 1: its low four bits a direction on the
+// stick (bit 0 left, 1 down, 2 right, 3 up), its top four the hands (any but
+// 9), the feet (9), or either (F).
+//
+// Goal to Go's plays are the same idea, 16 bytes a move: the window (bytes
+// 0-2 and 3-5), the right move (6) and the mistakes (7), checked at 100A.
+// Its stick bits are the board's own order (up, right, down, left), and F
+// wants the hands and the feet together.
+//
+// So autoplay needs no looking ahead: when the CPU reaches the check, the
+// board notes the record, and presses the move it names for the next few
+// frames, then lets go (two moves for the same control can come one after
+// the other, and each needs its own press). That's usually as the window
+// opens, but after a search a scene can start part way through one.
+
+#define AUTO_PRESS_FRAMES 6
+
+bool stern_can_autoplay(const SternBoard *b)
+{
+    return b->moves.check != 0;
+}
+
+void stern_set_autoplay(SternBoard *b, bool on)
+{
+    b->autoplay = on && stern_can_autoplay(b);
+    b->move_record = 0;
+    memset(&b->auto_inputs, 0, sizeof b->auto_inputs);
+}
+
+static int bcd_frame(const uint8_t *p)
+{
+    int frame = 0;
+    for (int i = 0; i < 3; i++) frame = frame * 100 + (p[i] >> 4) * 10 + (p[i] & 0x0F);
+    return frame;
+}
+
+// Once a field: what to press now.
+static void update_autoplay(SternBoard *b)
+{
+    memset(&b->auto_inputs, 0, sizeof b->auto_inputs);
+    const SternMoveRecords *m = &b->moves;
+    if (!b->move_record || (size_t)b->move_record + 18 > sizeof b->rom) return;
+    const uint8_t *rec = b->rom + b->move_record;
+    int frame = b->player->ldp->frame;
+    int opens = bcd_frame(rec + m->opens_at), closes = bcd_frame(rec + m->closes_at);
+    if (frame > closes || frame < opens) {
+        b->move_record = 0;  // the window has gone by
+        return;
+    }
+    if (frame > b->move_seen + AUTO_PRESS_FRAMES) return;
+    SternInputs *in = &b->auto_inputs;
+    uint8_t move = rec[m->move_at];
+    if (m->stick_as_wired) {
+        in->up = move & 0x01, in->right = move & 0x02, in->down = move & 0x04, in->left = move & 0x08;
+    } else {
+        in->left = move & 0x01, in->down = move & 0x02, in->right = move & 0x04, in->up = move & 0x08;
+    }
+    switch (move & 0xF0) {
+    case 0x00: break;
+    case 0x90: in->feet = true; break;
+    case 0xF0: in->hand = true, in->feet = m->both_buttons; break;  // either, or both
+    default: in->hand = true; break;
+    }
+}
+
+// The player's controls, with autoplay's on top.
+static SternInputs controls(const SternBoard *b)
+{
+    SternInputs in = b->inputs;
+    if (b->autoplay) {
+        const SternInputs *a = &b->auto_inputs;
+        in.up |= a->up, in.down |= a->down, in.left |= a->left, in.right |= a->right;
+        in.hand |= a->hand, in.feet |= a->feet;
+    }
+    return in;
+}
+
 static uint8_t read_bank(const SternBoard *b)
 {
-    const SternInputs *in = &b->inputs;
+    SternInputs controls_now = controls(b);
+    const SternInputs *in = &controls_now;
     uint8_t v = 0xFF;
     switch (b->bank) {
     case 1: case 2: case 3: case 4:
@@ -300,6 +389,8 @@ void stern_reset(SternBoard *b, Pr8210 *player)
     b->philips_code = 0;
     b->cycles = 0;
     b->fields = 0;
+    b->move_record = 0;  // (autoplay stays as it was)
+    memset(&b->auto_inputs, 0, sizeof b->auto_inputs);
     b->next_event = 0;
     b->next_event_at = event_time(0, 0);
     b->next_sample = 0;
@@ -327,6 +418,7 @@ static void field_event(SternBoard *b)
         }
     } else {
         tms9928_vblank(&b->vdp);
+        if (b->autoplay) update_autoplay(b);
     }
     if (++b->next_event == (int)COUNT(event_lines)) {
         b->next_event = 0;
@@ -340,6 +432,14 @@ void stern_run(SternBoard *b, uint64_t cycles)
     uint64_t end = b->cycles + cycles;
     while (b->cycles < end) {
         if (b->cycles >= b->next_event_at) field_event(b);
+        if (b->autoplay && b->cpu.pc == b->moves.check) {
+            uint16_t record = (uint16_t)(b->cpu.iyh << 8 | b->cpu.iyl);
+            if (record != b->move_record) {
+                b->move_record = record;
+                b->move_seen = b->player->ldp->frame;
+                update_autoplay(b);  // press from now, not from the next field
+            }
+        }
         b->cycles += (uint64_t)z80_step(&b->cpu);
         // The video chip's interrupt goes to the NMI, which acts on its edge.
         bool irq = tms9928_irq(&b->vdp);

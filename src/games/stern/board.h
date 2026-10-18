@@ -59,6 +59,16 @@ typedef struct {
     bool start1, start2, coin1, coin2;
 } SternInputs;
 
+// Where a game keeps its moves, for autoplay (see board.c).
+typedef struct {
+    uint16_t check;        // the address of its move check, 0 if not known
+    uint8_t move_at;       // where in a move's record the right move is
+    uint8_t opens_at, closes_at;  // and the window's first and last frames (BCD)
+    bool stick_as_wired;   // the move's stick bits are the board's (up, right, down, left);
+                           // else Cliff Hanger's order (left, down, right, up)
+    bool both_buttons;     // F in the top bits: hands and feet together (else either)
+} SternMoveRecords;
+
 #define STERN_MAX_SAMPLES 4096
 
 typedef struct {
@@ -69,6 +79,14 @@ typedef struct {
     int coins_per_credit;       // at the factory coinage (set 2 has no 1 coin 1 credit)
     bool goal_to_go;            // else Cliff Hanger
     uint32_t chapter_code;      // the disc's chapter code, for Goal to Go's side check (see board.c)
+
+    // Autoplay (see board.c): where the game checks a move, the move it
+    // checked last, and what autoplay is pressing.
+    bool autoplay;
+    SternMoveRecords moves;     // where the game keeps its moves; check 0 if not known
+    uint16_t move_record;       // the move's record in the game's script, or 0
+    int move_seen;              // the disc frame the game started checking it on
+    SternInputs auto_inputs;
 
     SternInputs inputs;
     Pr8210 *player;
@@ -100,6 +118,11 @@ bool stern_recognizes(const char *path);
 // and set the DIP switches as the factory did. Returns false (after
 // printing why) if the set can't be run.
 bool stern_load_roms(SternBoard *board, const char *path);
+
+// Can autoplay play this ROM set? (Cliff Hanger set 1, and Goal to Go.) With it on, the
+// board presses each move's control itself, as well as the player's.
+bool stern_can_autoplay(const SternBoard *board);
+void stern_set_autoplay(SternBoard *board, bool on);
 
 void stern_set(SternBoard *board, SternSetting setting, bool on);
 bool stern_get(const SternBoard *board, SternSetting setting);

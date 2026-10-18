@@ -87,7 +87,7 @@ two) and what the game's buttons do; each game's section below says more.
 | 1 / 2                 | start (1 / 2 players)                     |
 | F1 / F2 / F3          | Space Ace: skill level Cadet / Captain / Ace |
 | P / Pause             | pause / resume (Thayer's Quest: Pause only, since P is a letter) |
-| A                     | Dragon's Lair, Space Ace: autoplay on / off (see below) |
+| A                     | Dragon's Lair, Space Ace, Cliff Hanger, Goal to Go: autoplay on / off (see below) |
 | S                     | show / hide the score displays (Dragon's Lair, Space Ace) |
 | D                     | turn combing repair off / on (not in Thayer's Quest) |
 | Tab                   | show / hide subtitles (Thayer's Quest)    |
@@ -130,7 +130,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--attract-sound`     | sound in the attract mode (Dragon's Lair: in every cycle, not just every few), in the games with a switch for it |
 | `--unlimited-lives`   | the hero never loses a life, so you can see the whole game (the games with a switch for it) |
 | `--free-play`         | no coins needed: press 1 to start (the games with a switch for it) |
-| `--autoplay`          | Dragon's Lair, Space Ace: the program plays the game for you (also the A key) |
+| `--autoplay`          | Dragon's Lair, Space Ace, Cliff Hanger (set 1), Goal to Go: the program plays the game for you (also the A key) |
 | `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` or `sound` folder beside the ROMs' folder) |
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
@@ -176,15 +176,16 @@ about every five minutes. `--attract-sound` flips that switch.
 Dirks" DIP switch, meant for operators: Dirk still dies when you get a move
 wrong, but never loses a life.
 
-**Autoplay.** Only Dragon's Lair and Space Ace have it: it works from the
-list the Cinematronics board's games keep of the moves they're waiting for
-(see below), and hasn't been written for the other games. With
-`--autoplay`, or after pressing A, the program plays the joystick and sword
-itself; you still insert coins and press start. It
-plays the whole game, from the first room to rescuing Daphne, without losing
-a life, with the original ROMs and both DLE sets; Space Ace too, original
-and SAE, at every skill level, to Borf's defeat. Press A at any time to take over, and again
-to hand back. The console prints each move it makes.
+**Autoplay.** Dragon's Lair, Space Ace, Cliff Hanger and Goal to Go have
+it; it works from what each game keeps in memory about the moves it's
+waiting for, and hasn't been written for the other games. With
+`--autoplay`, or after pressing A, the program plays the controls itself;
+you still insert coins and press start. It plays the whole game, from the
+first room to rescuing Daphne, without losing a life, with the original
+ROMs and both DLE sets; Space Ace too, original and SAE, at every skill
+level, to Borf's defeat. Press A at any time to take over, and again to
+hand back. The console prints each move it makes. (For Cliff Hanger and
+Goal to Go, see their sections.)
 
 It works by reading the game's mind. While a scene plays, the game keeps a
 list in RAM of the inputs it's watching for, each with its time windows and
@@ -526,6 +527,15 @@ The control panel's feet buttons double as the start buttons, which is how
 the game reads them (MAME calls them player 1's and 2's second buttons).
 The PR-8210's remote codes, and the way the game sends each one three
 times, are described in `src/ldp/pr8210.h`.
+
+**Autoplay** (`--autoplay`, or A during a game) plays set 1 from the first
+scene to the end, "CONGRATULATIONS PLAYER 1", without losing a life. It
+needs no looking ahead: each scene is a script in the game's ROM, and each
+move's record says which control is right and the frames its window opens
+and closes on, so the board presses that control as the game starts
+checking the move (`src/games/stern/board.c` explains). You still insert
+the coin, press start and type your initials. Set 2's program is different
+and autoplay doesn't know it.
 
 Its DIP switches, from MAME's `cliffhgr.cpp` (set 1; a switch on reads as a
 clear bit):
@@ -1246,6 +1256,13 @@ ball carrier. Hold the stick or press the button when the board prompts
 should have done ("SHOULD HAVE MOVED DOWN!"), get it right and you gain
 yards ("COULD HAVE GONE FURTHER IF YOU HAD MOVED RIGHT!" means you could
 have gained more).
+
+**Autoplay** (`--autoplay`, or A during a game) makes every move of a play,
+as in Cliff Hanger: the game keeps each play's moves in its ROM, with the
+right control and the frames each window opens and closes on. You still
+choose the plays (or let the clock choose them). It runs whole drives
+without a mistake, touchdowns included; how a game turns out also depends
+on the plays chosen.
 
 Its DIP switches (from MAME, and the game's code; a switch on reads as a
 clear bit):

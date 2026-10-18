@@ -117,6 +117,13 @@ const char *machine_sample_example(const Machine *m);
 
 const char *machine_game_name(const Machine *m);
 
+// Can the program play the game itself (autoplay)? Dragon's Lair and Space
+// Ace (whose planner lives in games/cinematronics/autoplay.h, driven by the
+// main program), and Cliff Hanger and Goal to Go, whose board plays their
+// moves when told to.
+bool machine_can_autoplay(const Machine *m);
+void machine_set_autoplay(Machine *m, bool on);  // the boards that play their own moves
+
 // The name of the game's window icon, in icons/ ("dlair" for dlair.ico).
 const char *machine_icon_name(const Machine *m);
 
