@@ -12,8 +12,8 @@
 //
 // Two revisions of Bega's Battle, which differ in five program chips (a
 // set may hold only those, with the rest in the other set's zip beside
-// it), and Data East's own Cobra Command. (Names and checksums from MAME's
-// deco_ld.cpp.)
+// it), Data East's own Cobra Command, and Road Blaster. (Names and
+// checksums from MAME's deco_ld.cpp.)
 
 typedef struct {
     const char *name;
@@ -53,6 +53,14 @@ static const RomSet sets[] = {
       {"au0a", 0x6AAEDCF3, GFX, 0x0000}, {"au07", 0xD4BF12A5, GFX, 0x2000},
       {"au0b", 0x92247877, GFX, 0x4000}, {"au08", 0x63158274, GFX, 0x6000},
       {"au0c", 0xD00A2762, GFX, 0x8000}, {"au09", 0x74E93394, GFX, 0xA000}}},
+    // Its program starts at C000, and both layers have the same graphics
+    // (chips 03 and 06, 04 and 07, 05 and 08 match; each pair dumped once).
+    {DECO_RBLASTER, "Road Blaster",
+     {{"03-06.bin", 0xD1FF5FFB, GFX, 0x0000}, {"03-06.bin", 0xD1FF5FFB, GFX, 0x2000},
+      {"04-07.bin", 0xDA2C84D9, GFX, 0x4000}, {"04-07.bin", 0xDA2C84D9, GFX, 0x6000},
+      {"05-08.bin", 0x4608B516, GFX, 0x8000}, {"05-08.bin", 0x4608B516, GFX, 0xA000},
+      {"01.bin", 0xE4733C49, MAIN, 0x8000}, {"00.bin", 0x084D6AE2, MAIN, 0xA000},
+      {"02.bin", 0x6C20335D, SOUND, 0x0000}}},
 };
 #define SET_COUNT (int)(sizeof sets / sizeof sets[0])
 
@@ -132,8 +140,20 @@ bool deco_load_roms(DecoBoard *b, const char *path)
     //           bit 5     1: the disc's sound in the attract mode
     //           bit 6     read at start-up; unknown
     //           bit 7     1: the game; 0: the board's test program
+    //
+    // Road Blaster's DSW1 is the same again. Its DSW2, from its code (and
+    // Hypseus's notes):
+    //
+    //     DSW2  bit 0     cars: 3 (1), 5 (0)
+    //           bits 1-2  the score for a bonus car
+    //           bit 4     difficulty: normal (1), hard (0)
+    //           bit 5     1: the disc's sound in the attract mode
+    //           bit 6     1: the game starts at the first stage; 0: at a
+    //                     random one
+    //           bit 7     1: the game; 0: it plays itself, ignoring the
+    //                     controls
     b->dsw1 = 0x0F;  // 1 coin 1 credit in both slots
-    if (b->game == DECO_COBRA)
+    if (b->game == DECO_COBRA || b->game == DECO_RBLASTER)
         b->dsw2 = 0xFF;  // all off: 3 lives, the first bonus setting, sound in the attract mode, the game
     else
         b->dsw2 = 0xBB;  // 3 lives, continues, the first bonus setting, one or two players, the game
@@ -143,21 +163,26 @@ bool deco_load_roms(DecoBoard *b, const char *path)
 
 const char *deco_game_name(const DecoBoard *b)
 {
-    return b->game == DECO_COBRA ? "Cobra Command" : "Bega's Battle";
+    return b->game == DECO_COBRA ? "Cobra Command" : b->game == DECO_RBLASTER ? "Road Blaster" : "Bega's Battle";
 }
 
-// Only Cobra Command has one of these on its switches: the attract mode's
-// sound (DSW2 bit 5).
+// Only Cobra Command and Road Blaster have one of these on their switches:
+// the attract mode's sound (DSW2 bit 5).
+static bool has_attract_sound_switch(const DecoBoard *b)
+{
+    return b->game == DECO_COBRA || b->game == DECO_RBLASTER;
+}
+
 void deco_set(DecoBoard *b, DecoSetting setting, bool on)
 {
-    if (b->game != DECO_COBRA || setting != DECO_QUIET_ATTRACT) return;
+    if (!has_attract_sound_switch(b) || setting != DECO_QUIET_ATTRACT) return;
     if (on) b->dsw2 &= (uint8_t)~0x20;
     else b->dsw2 |= 0x20;
 }
 
 bool deco_get(const DecoBoard *b, DecoSetting setting)
 {
-    return b->game == DECO_COBRA && setting == DECO_QUIET_ATTRACT && !(b->dsw2 & 0x20);
+    return has_attract_sound_switch(b) && setting == DECO_QUIET_ATTRACT && !(b->dsw2 & 0x20);
 }
 
 // ---------------------------------------------------------------------------
@@ -218,16 +243,24 @@ static bool in_vblank(const DecoBoard *b)
 }
 
 // Cobra Command has up and down the other way round from Bega's Battle
-// (its gun sight moves up the screen on bit 0).
+// (its gun sight moves up the screen on bit 0), and so does Road Blaster
+// (the next letter of your initials is on bit 0). Road Blaster's wheel is
+// left and right, its accelerator bit 4 and its brake bit 5; it reads
+// nothing else.
 static uint8_t read_controls(const DecoBoard *b)
 {
     const DecoInputs *in = &b->inputs;
-    bool cobra = b->game == DECO_COBRA;
+    bool up_is_0 = b->game == DECO_COBRA || b->game == DECO_RBLASTER;
     uint8_t v = 0xFF;  // bit 7: tilt (the game resets if it reads 0)
-    if (cobra ? in->up : in->down) v &= ~0x01;
-    if (cobra ? in->down : in->up) v &= ~0x02;
+    if (up_is_0 ? in->up : in->down) v &= ~0x01;
+    if (up_is_0 ? in->down : in->up) v &= ~0x02;
     if (in->left) v &= ~0x04;
     if (in->right) v &= ~0x08;
+    if (b->game == DECO_RBLASTER) {
+        if (in->button1) v &= ~0x10;
+        if (in->button2) v &= ~0x20;
+        return v;
+    }
     if (in->button1) v &= ~0x40;
     if (in->button2) v &= ~0x20;
     if (in->button3) v &= ~0x10;

@@ -304,7 +304,7 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/games/sega/board.c`: Sega's board that runs Astron Belt, Galaxy Ranger and Sega's Cobra Command
   (memory map, ROM banks, the serial chip for Sega's player,
   the laserdisc latches, the sprites and characters drawn over the picture).
-- `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle and Data East's Cobra Command (two 6502s, the
+- `src/games/dataeast/board.c`: Data East's board that runs Bega's Battle, Data East's Cobra Command and Road Blaster (two 6502s, the
   serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture).
 - `src/games/leland/board.c`: Leland's board that runs Dragon's Lair II (the PC's interrupt
   controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter).

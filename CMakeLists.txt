@@ -55,7 +55,7 @@ target_link_libraries(lv_png PUBLIC ZLIB::ZLIB)
 # The window icons are built into the program (as a C array generated
 # from the .ico file), so it never has to find the file at run time. Each
 # game's board names its icon (machine_icon_name); laser is for the rest.
-set(EMBEDDED_ICONS dlair spaceace cliff superdq esh badlands astron galaxy cobra thayers bega dlair2 uvt laser)
+set(EMBEDDED_ICONS dlair spaceace cliff superdq esh badlands astron galaxy cobra thayers bega dlair2 uvt roadblaster laser)
 set(EMBEDDED_ICON_SOURCES ${CMAKE_BINARY_DIR}/generated/icon_table.c)
 set(icon_declarations "")
 set(icon_entries "")
@@ -200,7 +200,8 @@ add_library(lv_rdi STATIC
 )
 target_link_libraries(lv_rdi PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 
-# Data East's laserdisc board, which runs Bega's Battle.
+# Data East's laserdisc board, which runs Bega's Battle, Cobra Command and
+# Road Blaster.
 add_library(lv_dataeast STATIC
     src/games/dataeast/board.c
 )

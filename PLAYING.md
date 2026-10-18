@@ -11,7 +11,8 @@ How to run the games, the keys, the options, and what each game needs.
   [Cliff Hanger](#cliff-hanger), [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
-  [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them)
+  [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
+  [Road Blaster](#road-blaster)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -32,7 +33,8 @@ You need your own copy of the game:
   [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
-  [Dragon's Lair II](#dragons-lair-ii) and [Us vs. Them](#us-vs-them).
+  [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them) and
+  [Road Blaster](#road-blaster).
 
 Daphne and Singe sets usually come as one folder per game, laid out like
 this:
@@ -1016,6 +1018,68 @@ Its DIP switches (from MAME; a switch on reads as a set bit):
 | `04` | set: hard |
 
 laser-vault starts it with `00`.
+
+<h2 id="road-blaster"><img src="./assets/roadblaster-logo.png" width="400" height="112" alt="Road Blaster"></h2>
+
+Road Blaster (Data East, 1985) is a conversion for Bega's Battle's board,
+the same two 6502s driving Sony's LDP-1000 (see
+[Bega's Battle](#begas-battle)). You need:
+
+- **The video:** the Daphne-style clips `rb0004.m2v` to `rb0042.m2v`,
+  `rb0095-96.m2v` and `rbhs.m2v`, each with its soundtrack, and the
+  framefile (`roadblaster.txt`). The `.dat` files beside them aren't needed.
+- **The ROMs:** `roadblaster.zip`, MAME's `rblaster`: the program chips
+  `00.bin` and `01.bin`, the sound CPU's `02.bin`, and the graphics
+  `03-06.bin`, `04-07.bin` and `05-08.bin` (each was two chips on the board,
+  with the same contents).
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
+```
+roadblaster.daphne/
+    roadblaster.txt, rb0004.m2v, rb0004.ogg, ... rbhs.m2v, rbhs.ogg
+    roms/roadblaster.zip
+```
+
+```
+laser-vault path/to/roadblaster.daphne
+```
+
+Unlike the other Data East games it doesn't wait for the disc: the attract
+mode starts at once. Press 5 to insert a coin, then 1 to start. Left and
+right steer, Space is the accelerator and Shift the brake; up and down pick
+the letters of your initials, and left and right move between them.
+
+The board tells you what to do over the picture, and checks what you're
+holding as each moment ends, so hold the control until the prompt goes:
+
+- **A green arrow** beside the sight: steer that way. Steering also moves
+  the sight across the screen, and it stays where you leave it.
+- **A brake pedal** in the INDICATER box: brake.
+- **A turbine** in the box, with red brackets on the screen: steer the sight
+  into the brackets and floor the accelerator (without the brake).
+
+Miss one and the car crashes; the disc shows the wreck and the game goes
+back to just before it. Its sound effects come from the board's two sound
+chips.
+
+Its DIP switches, as the game's code reads them (with Hypseus's notes; a
+switch on reads as a clear bit):
+
+| Bank | Bits | Meaning |
+|------|------|---------|
+| DSW1 | `03` | coin slot 1: `03` 1 coin 1 credit, `02` 3 coins 1 credit, `01` 1 coin 2 credits, `00` 2 coins 1 credit |
+| DSW1 | `0C` | coin slot 2, the same way |
+| DSW2 | `01` | set: 3 cars; clear: 5 |
+| DSW2 | `06` | the score for a bonus car |
+| DSW2 | `10` | set: normal; clear: hard |
+| DSW2 | `20` | set: the disc's sound in the attract mode (`--attract-sound` sets it) |
+| DSW2 | `40` | set: the game starts at the first stage; clear: at a random one |
+| DSW2 | `80` | set: the game; clear: it plays itself, ignoring the controls |
+
+laser-vault starts it with DSW1 `0F` and DSW2 `FF`. There's no free play
+setting, so `--free-play` does nothing.
 
 ## Screenshots
 

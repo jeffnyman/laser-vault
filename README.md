@@ -34,6 +34,7 @@ real hardware works.
 | [Bega's Battle](#begas-battle) | 1983 | Data East | Data East | Sony LDP-1000 |
 | [Dragon's Lair II: Time Warp](#dragons-lair-ii-time-warp) | 1991 | Leland / Sullivan Bluth | Leland | Sony LDP-1450 |
 | [Us vs. Them](#us-vs-them) | 1984 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
+| [Road Blaster](#road-blaster) | 1985 | Data East | Data East | Sony LDP-1000 |
 
 ### Dragon's Lair
 
@@ -216,12 +217,27 @@ picture, and a sound board of two 6502s makes the effects.
   <a href="assets/uvt-play-1.png"><img src="assets/uvt-play-1.png" width="32%" alt="Playing Us vs. Them: the fighter over a desert lake, with an alien hedron, an energy wall and the shield gauge"></a>
 </p>
 
+### Road Blaster
+
+A driving game in animation: you race a supercharged car down coast roads,
+over bridges and through forests after the gang that killed your wife.
+The disc plays the drive; the board draws the dashboard over it, with the
+speedometer, the rev counter and a sight, and tells you what to do: an
+arrow to steer, a brake pedal, or a turbine with brackets to line the sight
+up on the car ahead and floor it. Data East made it as a conversion for
+Bega's Battle's board, with the same two 6502s and Sony's LDP-1000.
+
+<p align="center">
+  <a href="assets/rb-title-640.png"><img src="assets/rb-title-640.png" width="32%" alt="Road Blaster title over the car in its garage, frame 640"></a>
+  <a href="assets/rb-540-660.gif"><img src="assets/rb-540-660.gif" width="32%" alt="Road Blaster: the title flies in over the car in its garage, frames 540 to 660"></a>
+  <a href="assets/rb-play-1.png"><img src="assets/rb-play-1.png" width="32%" alt="Playing Road Blaster: a car ahead in the sight on a coast road, with the dashboard below"></a>
+</p>
+
 ## What's planned
 
 Ideas rather than promises:
 
-- **More games:** Data East's *Road Blaster*, on Bega's Battle's board;
-  Space Ace on Dragon's Lair II's board
+- **More games:** Space Ace on Dragon's Lair II's board
   (Leland's 1991 conversion).
   (*Goal to Go*,
   Cliff Hanger's sister game, would be easy, but its disc has never been

@@ -79,8 +79,8 @@ bool machine_load_roms(Machine *m, const char *path)
                     "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
                     "sblazerp.zip), Cobra Command (cobra.zip, or Sega's version,\n"
                     "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip),\n"
-                    "Dragon's Lair II (lair2.zip) and Us vs. Them (uvt.zip). A folder of the\n"
-                    "ROM files works too.\n", path);
+                    "Dragon's Lair II (lair2.zip), Us vs. Them (uvt.zip) and Road Blaster\n"
+                    "(roadblaster.zip). A folder of the ROM files works too.\n", path);
     return false;
 }
 
@@ -163,7 +163,9 @@ const char *machine_icon_name(const Machine *m)
         if (m->sega->game == SEGA_COBRA_COMMAND) return "cobra";
         return m->sega->game == SEGA_ASTRON_BELT ? "astron" : "galaxy";  // Star Blazer too
     case MACHINE_RDI: return "thayers";
-    case MACHINE_DATAEAST: return m->deco->game == DECO_COBRA ? "cobra" : "bega";
+    case MACHINE_DATAEAST:
+        if (m->deco->game == DECO_RBLASTER) return "roadblaster";
+        return m->deco->game == DECO_COBRA ? "cobra" : "bega";
     case MACHINE_LELAND: return "dlair2";
     case MACHINE_GOTTLIEB: return "uvt";
     default: return m->cine->game == CINE_SPACE_ACE ? "spaceace" : "dlair";
