@@ -79,8 +79,9 @@ bool machine_load_roms(Machine *m, const char *path)
                     "(astronp.zip), Galaxy Ranger (galaxyrp.zip, or Star Blazer's\n"
                     "sblazerp.zip), Cobra Command (cobra.zip, or Sega's version,\n"
                     "cobraab.zip), Thayer's Quest (tq.zip), Bega's Battle (bega.zip),\n"
-                    "Dragon's Lair II (lair2.zip), Us vs. Them (uvt.zip) and Road Blaster\n"
-                    "(roadblaster.zip). A folder of the ROM files works too.\n", path);
+                    "Dragon's Lair II (lair2.zip), Us vs. Them (uvt.zip), Road Blaster\n"
+                    "(roadblaster.zip) and M.A.C.H. 3 (mach3.zip). A folder of the ROM files\n"
+                    "works too.\n", path);
     return false;
 }
 
@@ -130,6 +131,7 @@ int machine_coins_per_credit(const Machine *m)
 {
     if (m->kind == MACHINE_CINEMATRONICS || m->kind == MACHINE_LELAND) return 2;
     if (m->kind == MACHINE_STERN) return m->stern->coins_per_credit;
+    if (m->kind == MACHINE_GOTTLIEB && m->gottlieb->game == GOTTLIEB_MACH3) return 2;  // its default switches
     return 1;
 }
 
@@ -167,7 +169,7 @@ const char *machine_icon_name(const Machine *m)
         if (m->deco->game == DECO_RBLASTER) return "roadblaster";
         return m->deco->game == DECO_COBRA ? "cobra" : "bega";
     case MACHINE_LELAND: return "dlair2";
-    case MACHINE_GOTTLIEB: return "uvt";
+    case MACHINE_GOTTLIEB: return m->gottlieb->game == GOTTLIEB_MACH3 ? "mach3" : "uvt";
     default: return m->cine->game == CINE_SPACE_ACE ? "spaceace" : "dlair";
     }
 }
@@ -301,8 +303,8 @@ void machine_set_controls(Machine *m, const Controls *c)
             .start1 = c->start1, .start2 = c->start2, .coin1 = c->coin1, .coin2 = c->coin2,
         };
     } else if (m->kind == MACHINE_GOTTLIEB) {
-        // Us vs. Them starts a game on the fire button, not the start
-        // buttons (which it never reads), so the start key fires too.
+        // Us vs. Them and M.A.C.H. 3 start a game on the fire button (Us vs.
+        // Them never reads the start buttons), so the start key fires too.
         m->gottlieb->inputs = (GottliebInputs){
             .up = c->up, .down = c->down, .left = c->left, .right = c->right,
             .button1 = c->button || c->start1, .button2 = c->button2, .button3 = c->button3,

@@ -1031,7 +1031,11 @@ int main(int argc, char **argv)
             printf("The arrow keys move Bega, Space fires; Shift and Z are the buttons for\n"
                    "the friends you rescue.\n");
         if (m->kind == MACHINE_LELAND) printf("The arrow keys move Dirk, Space is his sword.\n");
-        if (m->kind == MACHINE_GOTTLIEB)
+        if (m->kind == MACHINE_GOTTLIEB && m->gottlieb->game == GOTTLIEB_MACH3)
+            printf("The arrow keys fly, Space is the trigger for the guns (and starts, as 1\n"
+                   "does; left or right then picks the fighter or the bomber game); Shift\n"
+                   "launches missiles.\n");
+        else if (m->kind == MACHINE_GOTTLIEB)
             printf("The arrow keys fly, Space fires (and starts, as 1 does; fire again to\n"
                    "pick the skill level); Shift and Z are the other two buttons.\n");
         if (cinematronics) {

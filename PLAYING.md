@@ -12,7 +12,7 @@ How to run the games, the keys, the options, and what each game needs.
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
   [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
-  [Road Blaster](#road-blaster)
+  [Road Blaster](#road-blaster), [M.A.C.H. 3](#mach-3)
 - [Screenshots](#screenshots)
 - [Driving the laserdisc player yourself](#driving-the-laserdisc-player-yourself)
 
@@ -33,8 +33,8 @@ You need your own copy of the game:
   [Badlands](#badlands), [Astron Belt](#astron-belt),
   [Galaxy Ranger](#galaxy-ranger), [Cobra Command](#cobra-command),
   [Thayer's Quest](#thayers-quest), [Bega's Battle](#begas-battle),
-  [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them) and
-  [Road Blaster](#road-blaster).
+  [Dragon's Lair II](#dragons-lair-ii), [Us vs. Them](#us-vs-them),
+  [Road Blaster](#road-blaster) and [M.A.C.H. 3](#mach-3).
 
 Daphne and Singe sets usually come as one folder per game, laid out like
 this:
@@ -1080,6 +1080,69 @@ switch on reads as a clear bit):
 
 laser-vault starts it with DSW1 `0F` and DSW2 `FF`. There's no free play
 setting, so `--free-play` does nothing.
+
+<h2 id="mach-3"><img src="./assets/mach3-logo.png" width="400" height="76" alt="M.A.C.H. 3"></h2>
+
+M.A.C.H. 3 (Mylstar, 1983) runs on the same board as
+[Us vs. Them](#us-vs-them): an 8088 driving a Pioneer PR-8210, with tiles
+and sprites drawn over the picture, and the sound board of two 6502s. You
+need:
+
+- **The video:** the Daphne-style clip `mach3.m2v` with its soundtrack, and
+  the framefile (`mach3.txt`, whose clip starts at frame -80).
+- **The ROMs:** `mach3.zip`, MAME's set 1: the program chips `m3rom0.bin` to
+  `m3rom4.bin`, the sound CPUs' `m3drom1.bin` and `m3yrom1.bin`, the tiles
+  `mach3bg0.bin` and `mach3bg1.bin`, and the sprites `mach3fg0.bin` to
+  `mach3fg3.bin`.
+- **The target data:** `m3target.bin`, in the same zip (Daphne's sets
+  include it). The disc carries, on one of its sound tracks, where the
+  targets are in the film, a block every 53 frames; the board reads it to
+  box the targets and know what you hit. MAME decodes it from the disc's
+  sound; laser-vault, like Daphne and Hypseus, reads the decoded blocks
+  from this file. Without it the game runs, but shows no targets.
+
+The usual set is a folder laid out the way laser-vault looks for (see
+[Running](#running)):
+
+```
+mach3.daphne/
+    mach3.txt, mach3.m2v, mach3.ogg
+    roms/mach3.zip
+    ram/mach3.gz     Daphne's saved copy of the board's battery-backed memory
+```
+
+```
+laser-vault path/to/mach3.daphne
+```
+
+At power on the game checks the disc player, then the attract mode plays:
+the title, the TOP BRASS scores, and the fighter and bomber games playing
+themselves. On the usual DIP switches a game takes two coins: press 5
+twice, then 1 or Space (the game starts on the trigger). Push the stick
+left for the fighter game or right for the bomber game. The arrow keys fly,
+Space is the trigger for the guns, and Shift launches missiles (four at a
+time).
+
+The game counts the disc's frames itself, by the board's interrupts, and
+checks them against the frame numbers in the target data; if they drift
+apart it stops with "DISC ERROR .... STAY PUT!". The speech chip isn't
+emulated (as in Us vs. Them); the other sound effects play. The high
+scores are kept in battery-backed memory, which laser-vault doesn't save
+yet (the `ram` folder is ignored).
+
+Its DIP switches (from MAME; a switch on reads as a set bit):
+
+| Bits | Meaning |
+|------|---------|
+| `09` | coinage: `09` 4 coins 1 credit, `01` 3 coins, `08` 2 coins, `00` free play (`--free-play`) |
+| `02` | set: hard |
+| `10` | set: 5 lives; clear: 3 |
+| `24` | the bonus lives: `00` at 10,000 and every 10,000; `04` 10,000 and every 20,000; `20` 10,000 and every 40,000; `24` 20,000 and every 60,000 |
+| `40` | set: sounds in the attract mode |
+| `80` | set: unlimited lives |
+
+laser-vault starts it with `48`: 2 coins 1 credit, 3 lives, the attract
+mode's sounds.
 
 ## Screenshots
 

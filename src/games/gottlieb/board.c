@@ -10,9 +10,10 @@
 // ROMs
 // ---------------------------------------------------------------------------
 //
-// Us vs. Them: five program chips, one for each sound CPU, two of tiles and
+// Each game: five program chips, one for each sound CPU, two of tiles and
 // four of sprites (one bit plane each). (Names and checksums from MAME's
-// gottlieb.cpp.)
+// gottlieb.cpp.) M.A.C.H. 3's sprite and sound chips are half the size of
+// Us vs. Them's; a sound ROM repeats through its CPU's top 16 KB.
 
 enum { MAIN, DSOUND, YSOUND, TILES, SPRITES };
 
@@ -22,6 +23,22 @@ typedef struct {
     int where;     // which region
     uint32_t at;   // offset in it
 } RomChip;
+
+static const RomChip mach3[] = {
+    {"m3rom4.bin", 0x8BFD5A44, 0x2000, MAIN, 0x0000},  // 6000
+    {"m3rom3.bin", 0xB1B045AF, 0x2000, MAIN, 0x2000},
+    {"m3rom2.bin", 0xFBDFB03D, 0x2000, MAIN, 0x4000},
+    {"m3rom1.bin", 0x3B0BA80B, 0x2000, MAIN, 0x6000},
+    {"m3rom0.bin", 0x70C12BF4, 0x2000, MAIN, 0x8000},  // E000
+    {"m3drom1.bin", 0xA6E29212, 0x1000, DSOUND, 0x1000},
+    {"m3yrom1.bin", 0xEDDF8872, 0x1000, YSOUND, 0x3000},
+    {"mach3bg0.bin", 0xEA2F5257, 0x1000, TILES, 0x0000},
+    {"mach3bg1.bin", 0xF543E4CE, 0x1000, TILES, 0x1000},
+    {"mach3fg3.bin", 0x472128B4, 0x2000, SPRITES, 0x0000},  // the top bit plane
+    {"mach3fg2.bin", 0x2A59E99E, 0x2000, SPRITES, 0x4000},
+    {"mach3fg1.bin", 0x9B88767B, 0x2000, SPRITES, 0x8000},
+    {"mach3fg0.bin", 0x0BAE12A5, 0x2000, SPRITES, 0xC000},
+};
 
 static const RomChip usvsthem[] = {
     {"usvs.rm4", 0x0D7A4072, 0x2000, MAIN, 0x0000},  // 6000
@@ -38,23 +55,68 @@ static const RomChip usvsthem[] = {
     {"usvs.fg1", 0xA2057430, 0x4000, SPRITES, 0x8000},
     {"usvs.fg0", 0x7734E53F, 0x4000, SPRITES, 0xC000},
 };
-#define CHIP_COUNT (int)(sizeof usvsthem / sizeof usvsthem[0])
+typedef struct {
+    GottliebGame game;
+    const char *title;
+    const RomChip *chips;  // 13 of them
+} RomSet;
+
+static const RomSet sets[] = {
+    {GOTTLIEB_USVSTHEM, "Us vs. Them (Mylstar)", usvsthem},
+    {GOTTLIEB_MACH3, "M.A.C.H. 3 (Mylstar, set 1)", mach3},
+};
+#define SET_COUNT (int)(sizeof sets / sizeof sets[0])
+#define CHIP_COUNT 13
+
+// M.A.C.H. 3's targets come from the disc's data channel. MAME decodes it
+// from the disc's sound; Daphne and Hypseus read a file of the decoded
+// blocks instead, m3target.bin, which comes with their ROM sets, and so
+// does laser-vault.
+#define TARGETS_NAME "m3target.bin"
+#define TARGETS_SIZE 971776
+#define TARGETS_CRC 0xA2A9F8E5
+
+static const RomSet *find_set(const char *path)
+{
+    for (int i = 0; i < SET_COUNT; i++)
+        if (roms_has(path, sets[i].chips[0].name)) return &sets[i];
+    return NULL;
+}
 
 bool gottlieb_recognizes(const char *path)
 {
-    return roms_has(path, usvsthem[0].name);
+    return find_set(path) != NULL;
+}
+
+static void load_targets(GottliebBoard *b, const char *path)
+{
+    uint8_t *data = NULL;
+    size_t size = 0;
+    if (!roms_read(path, TARGETS_NAME, &data, &size)) {
+        fprintf(stderr, "ROMs: %s has no %s (the disc's target data), so the game\n"
+                        "will show no targets\n", path, TARGETS_NAME);
+        return;
+    }
+    uint32_t crc = (uint32_t)crc32(0, data, (uInt)size);
+    if (size != TARGETS_SIZE || crc != TARGETS_CRC)
+        fprintf(stderr, "ROMs: warning: %s is %zu bytes with CRC %08X, expected %u bytes\n"
+                        "with CRC %08X; trying it anyway\n", TARGETS_NAME, size, crc, TARGETS_SIZE, TARGETS_CRC);
+    b->targets = data;
+    b->target_size = size;
 }
 
 bool gottlieb_load_roms(GottliebBoard *b, const char *path)
 {
-    if (!gottlieb_recognizes(path)) return false;
+    const RomSet *set = find_set(path);
+    if (!set) return false;
     memset(b, 0, sizeof *b);
+    b->game = set->game;
     for (int i = 0; i < CHIP_COUNT; i++) {
-        const RomChip *chip = &usvsthem[i];
+        const RomChip *chip = &set->chips[i];
         uint8_t *data = NULL;
         size_t size = 0;
         if (!roms_read(path, chip->name, &data, &size)) {
-            fprintf(stderr, "ROMs: %s looks like Us vs. Them, but %s is missing\n", path, chip->name);
+            fprintf(stderr, "ROMs: %s looks like %s, but %s is missing\n", path, set->title, chip->name);
             return false;
         }
         if (size != chip->size) {
@@ -74,10 +136,20 @@ bool gottlieb_load_roms(GottliebBoard *b, const char *path)
         memcpy(region + chip->at, data, size);
         free(data);
     }
-    // The DIP switches (a switch on reads as 1): bits 0 and 3 the coinage
-    // (00 1 coin 1 credit, 08 2 coins 1 credit, 01 free play), bit 2 hard.
-    b->dsw = 0x00;
-    printf("ROMs: Us vs. Them (Mylstar)\n");
+    // A 4 KB sound ROM repeats through its CPU's top 16 KB.
+    if (b->game == GOTTLIEB_MACH3) {
+        memcpy(b->d_rom, b->d_rom + 0x1000, 0x1000);
+        for (int at = 0; at < 0x3000; at += 0x1000) memcpy(b->y_rom + at, b->y_rom + 0x3000, 0x1000);
+        load_targets(b, path);
+    }
+    // The DIP switches (a switch on reads as 1). Us vs. Them's: bits 0 and 3
+    // the coinage (00 1 coin 1 credit, 08 2 coins 1 credit, 01 free play),
+    // bit 2 hard. M.A.C.H. 3's (from MAME): bits 0 and 3 the coinage (09 4
+    // coins 1 credit, 01 3 coins, 08 2 coins, 00 free play), bit 1 hard,
+    // bit 4 five lives, bits 2 and 5 the bonus lives, bit 6 the attract
+    // mode's sound, bit 7 unlimited lives.
+    b->dsw = b->game == GOTTLIEB_MACH3 ? 0x48 : 0x00;
+    printf("ROMs: %s\n", set->title);
     return true;
 }
 
@@ -86,24 +158,29 @@ void gottlieb_free(GottliebBoard *b)
     for (int i = 0; i < 2; i++) ay8910_free(&b->ay[i]);
     free(b->dac_samples);
     free(b->samples);
+    free(b->targets);
     b->dac_samples = b->samples = NULL;
+    b->targets = NULL;
 }
 
 const char *gottlieb_game_name(const GottliebBoard *b)
 {
-    (void)b;
-    return "Us vs. Them";
+    return b->game == GOTTLIEB_MACH3 ? "M.A.C.H. 3" : "Us vs. Them";
 }
 
+// Free play is coinage 01 for Us vs. Them, 00 for M.A.C.H. 3 (which then
+// goes back to 2 coins 1 credit when it's turned off).
 void gottlieb_set(GottliebBoard *b, GottliebSetting setting, bool on)
 {
     if (setting != GOTTLIEB_FREE_PLAY) return;
-    b->dsw = (uint8_t)((b->dsw & ~0x09) | (on ? 0x01 : 0x00));
+    if (b->game == GOTTLIEB_MACH3) b->dsw = (uint8_t)((b->dsw & ~0x09) | (on ? 0x00 : 0x08));
+    else b->dsw = (uint8_t)((b->dsw & ~0x09) | (on ? 0x01 : 0x00));
 }
 
 bool gottlieb_get(const GottliebBoard *b, GottliebSetting setting)
 {
-    return setting == GOTTLIEB_FREE_PLAY && (b->dsw & 0x09) == 0x01;
+    if (setting != GOTTLIEB_FREE_PLAY) return false;
+    return (b->dsw & 0x09) == (b->game == GOTTLIEB_MACH3 ? 0x00 : 0x01);
 }
 
 // ---------------------------------------------------------------------------
@@ -125,8 +202,59 @@ bool gottlieb_get(const GottliebBoard *b, GottliebSetting setting)
 #define SEARCH_FIELDS 60
 #define PR8210_SEEK 0x1A
 
+// The disc's data channel. M.A.C.H. 3's disc carries, on one of its sound
+// tracks, a block of 1 KB every 53 frames from frame 2332 (block 44) on:
+// where the targets are in the film. The board's decoder fills a buffer
+// from it, sets 5807 bit 3 when a block has come in, and the game reads the
+// block a byte at a time from 5807 (with 5806 bit 0 clear), the address
+// stepping on by itself. Bit 7 says the channel's clock is missing: before
+// the data starts, or while the player is finding a frame. Here the blocks
+// come from m3target.bin, as Hypseus does it.
+#define TARGET_BLOCK_FRAMES 53
+#define TARGET_FIRST_BLOCK 44
+#define TARGET_BLOCK_SIZE 1024
+#define PR8210_PAUSE_BYTE 0x24
+
+static int disc_frame(const GottliebBoard *b)
+{
+    return b->player->ldp->frame;
+}
+
+static void update_data_channel(GottliebBoard *b)
+{
+    int frame = disc_frame(b);
+    if (frame % TARGET_BLOCK_FRAMES == 0) {
+        if (frame != b->last_frame && frame / TARGET_BLOCK_FRAMES >= TARGET_FIRST_BLOCK) {
+            // The file keeps a header byte at the start of each block.
+            b->target_block = (size_t)(frame / TARGET_BLOCK_FRAMES - TARGET_FIRST_BLOCK) * TARGET_BLOCK_SIZE + 1;
+            b->target_offset = 0;
+            b->data_ready = true;
+        } else if (frame == b->last_frame) {
+            b->data_ready = false;  // a field later
+        }
+    }
+    b->last_frame = frame;
+}
+
+static uint8_t read_data_channel(GottliebBoard *b)
+{
+    size_t at = b->target_block + b->target_offset;
+    uint8_t v = b->targets && at < b->target_size ? b->targets[at] : 0;
+    if (++b->target_offset == TARGET_BLOCK_SIZE - 1) b->target_offset = 0;
+    return v;
+}
+
 static void send_command(GottliebBoard *b, uint8_t v)
 {
+    // Pausing interrupts the data channel, which the decoder notices: its
+    // buffer starts over (each command is sent twice; the second doesn't
+    // count).
+    if (b->game == GOTTLIEB_MACH3 && v == PR8210_PAUSE_BYTE && b->last_ld_command != v &&
+        disc_frame(b) > TARGET_BLOCK_FRAMES * TARGET_FIRST_BLOCK) {
+        b->data_ready = true;
+        b->target_offset = 0;
+    }
+    b->last_ld_command = v;
     if ((v & 0x1F) == PR8210_SEEK) b->search_fields = SEARCH_FIELDS;
     b->command = v;
     b->pulses_left = 13;
@@ -149,11 +277,16 @@ static void clock_pulses(GottliebBoard *b)
 }
 
 // 5807 with the status selected: bits 0-2 the frame number's top digit,
-// bit 3 the data channel's buffer full (always, as nothing is read from
-// it), bit 4 ready for another command, bit 5 a picture from the disc.
+// bit 3 a block in from the data channel, bit 4 ready for another command,
+// bit 5 a picture from the disc, bit 7 the data channel's clock missing.
+// (Us vs. Them doesn't use the data channel; bit 3 always reads 1 for it.)
 static uint8_t ld_status(const GottliebBoard *b)
 {
-    return (uint8_t)(((b->philips_code >> 16) & 7) | 0x08 | (b->pulses_left ? 0 : 0x10) | (b->disc_ready ? 0x20 : 0));
+    uint8_t v = (uint8_t)(((b->philips_code >> 16) & 7) | (b->pulses_left ? 0 : 0x10) | (b->disc_ready ? 0x20 : 0));
+    if (b->game != GOTTLIEB_MACH3) return v | 0x08;
+    if (b->data_ready) v |= 0x08;
+    if (disc_frame(b) < TARGET_BLOCK_FRAMES * TARGET_FIRST_BLOCK || b->search_fields) v |= 0x80;
+    return v;
 }
 
 // ---------------------------------------------------------------------------
@@ -174,12 +307,17 @@ static uint8_t mem_read(void *ctx, uint32_t addr)
     case 1:  // bit 0 service (low), bit 1 its select button, bit 5 tilt (low)
         return (uint8_t)(0x21 | (in->coin1 ? 0x04 : 0) | (in->coin2 ? 0x08 : 0) | (in->start1 ? 0x40 : 0) |
                          (in->start2 ? 0x80 : 0));
-    case 4:
-        return (uint8_t)((in->up ? 0x01 : 0) | (in->down ? 0x02 : 0) | (in->left ? 0x04 : 0) | (in->right ? 0x08 : 0) |
-                         (in->button1 ? 0x10 : 0) | (in->button2 ? 0x20 : 0) | (in->button3 ? 0x40 : 0));
+    case 4: {  // the stick, then the buttons: Us vs. Them's three from bit 4, M.A.C.H. 3's two from bit 5
+        uint8_t v = (uint8_t)((in->up ? 0x01 : 0) | (in->down ? 0x02 : 0) | (in->left ? 0x04 : 0) | (in->right ? 0x08 : 0));
+        if (b->game == GOTTLIEB_MACH3)
+            return (uint8_t)(v | (in->button1 ? 0x20 : 0) | (in->button2 ? 0x40 : 0));
+        return (uint8_t)(v | (in->button1 ? 0x10 : 0) | (in->button2 ? 0x20 : 0) | (in->button3 ? 0x40 : 0));
+    }
     case 5: return (uint8_t)b->philips_code;
     case 6: return (uint8_t)(b->philips_code >> 8);
-    case 7: return b->data_select ? ld_status(b) : 0;
+    case 7:
+        if (b->data_select) return ld_status(b);
+        return b->game == GOTTLIEB_MACH3 ? read_data_channel(b) : 0;
     default: return 0xFF;  // the trackball, which Us vs. Them doesn't have
     }
 }
@@ -393,9 +531,15 @@ void gottlieb_reset(GottliebBoard *b, Pr8210 *player)
     b->philips_code = 0;
     b->disc_ready = false;
     b->search_fields = 0;
+    b->target_block = 0;
+    b->target_offset = 0;
+    b->data_ready = false;
+    b->last_frame = -1;
+    b->last_ld_command = 0;
     b->pulses_left = 0;
     b->pulse_end = 0;
     b->cycles = 0;
+    b->fields = 0;
     b->next_field = field_start(1);
     b->overlay_serial++;
 
@@ -437,9 +581,10 @@ void gottlieb_run(GottliebBoard *b, uint64_t cycles)
             if ((code & 0xF00000) == 0xF00000) b->philips_code = code;
             if (b->search_fields) b->search_fields--;
             b->disc_ready = code != 0 && !b->search_fields;
+            if (b->game == GOTTLIEB_MACH3) update_data_channel(b);
             b->cpu.nmi = true;
-            uint64_t n = b->cycles * 60000 / ((uint64_t)GOTTLIEB_CPU_HZ * 1001) + 1;
-            b->next_field = field_start(n);
+            b->fields++;
+            b->next_field = field_start(b->fields + 1);
         }
         b->cycles += (uint64_t)i8088_step(&b->cpu);
         run_sound(b);
@@ -538,7 +683,9 @@ static void draw_tiles(const GottliebBoard *b, const uint32_t *palette, bool opa
 
 static void draw_sprites(const GottliebBoard *b, const uint32_t *palette, uint32_t *pixels)
 {
-    int bank = (b->video_control & 0x02) ? 256 : 0;
+    // Bit 1 picks the second bank of 256 sprites; M.A.C.H. 3's chips hold
+    // only one, so for it the bank makes no difference.
+    int bank = (b->video_control & 0x02) && b->game != GOTTLIEB_MACH3 ? 256 : 0;
     for (int i = 0; i < 0x100; i += 4) {
         const uint8_t *s = b->sprites + i;
         int sx = s[1] - 4, sy = s[0] - 13;

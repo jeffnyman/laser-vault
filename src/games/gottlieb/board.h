@@ -1,5 +1,5 @@
 // board.h - Gottlieb's laserdisc game board (Mylstar's, by then), which runs
-// Us vs. Them (1984).
+// M.A.C.H. 3 (1983) and Us vs. Them (1984).
 //
 // Gottlieb's arcade board of the time (Q*bert's), with a laserdisc
 // interface added: an 8088 driving a Pioneer PR-8210 (see ldp/pr8210.h),
@@ -66,6 +66,7 @@
 #include "ldp/pr8210.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define GOTTLIEB_CPU_HZ 5000000
@@ -75,6 +76,11 @@
 // The overlay: the tile map's 32 x 30 shown rows.
 #define GOTTLIEB_OVERLAY_W 256
 #define GOTTLIEB_OVERLAY_H 240
+
+typedef enum {
+    GOTTLIEB_USVSTHEM,
+    GOTTLIEB_MACH3,
+} GottliebGame;
 
 typedef enum {
     GOTTLIEB_FREE_PLAY,
@@ -88,6 +94,7 @@ typedef struct {
 } GottliebInputs;
 
 typedef struct {
+    GottliebGame game;
     I8088 cpu;
     uint8_t ram[0x3000];        // 0000-2FFF
     uint8_t sprites[0x100];     // 3000-30FF
@@ -110,7 +117,17 @@ typedef struct {
     int pulses_left;            // 0 when idle
     uint64_t next_pulse;        // when the next pulse starts
     uint64_t pulse_end;         // when the current one ends (0 for none)
+    uint64_t fields;            // video fields since power-on
     uint64_t next_field;        // when the next vertical blank comes
+
+    // The disc's data channel, which only M.A.C.H. 3 uses (see board.c).
+    uint8_t *targets;           // m3target.bin: the channel's blocks, decoded
+    size_t target_size;
+    size_t target_block;        // where the current block starts in it
+    uint16_t target_offset;     // the decoder's read address in the block
+    bool data_ready;            // 5807 bit 3: a new block has come in
+    int last_frame;             // the disc's frame at the last vertical blank
+    uint8_t last_ld_command;    // the last byte sent to the player
 
     // The sound board.
     M6502 dcpu, ycpu;

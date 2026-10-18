@@ -4,7 +4,7 @@ A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
 
 The original game code runs on emulated CPUs (a Z80, Badlands' 6809, Bega's
-Battle's two 6502s, the 8088s of Dragon's Lair II and Us vs. Them, and
+Battle's two 6502s, the 8088s of Dragon's Lair II, Us vs. Them and M.A.C.H. 3, and
 Thayer's Quest's COP421 microcontroller) and drives an emulated laserdisc player, just as on the
 arcade board: the attract mode
 plays, coins and start work, and you can play the game, with the
@@ -35,6 +35,7 @@ real hardware works.
 | [Dragon's Lair II: Time Warp](#dragons-lair-ii-time-warp) | 1991 | Leland / Sullivan Bluth | Leland | Sony LDP-1450 |
 | [Us vs. Them](#us-vs-them) | 1984 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
 | [Road Blaster](#road-blaster) | 1985 | Data East | Data East | Sony LDP-1000 |
+| [M.A.C.H. 3](#mach-3) | 1983 | Mylstar (Gottlieb) | Gottlieb | PR-8210 |
 
 ### Dragon's Lair
 
@@ -231,6 +232,22 @@ Bega's Battle's board, with the same two 6502s and Sony's LDP-1000.
   <a href="assets/rb-title-640.png"><img src="assets/rb-title-640.png" width="32%" alt="Road Blaster title over the car in its garage, frame 640"></a>
   <a href="assets/rb-540-660.gif"><img src="assets/rb-540-660.gif" width="32%" alt="Road Blaster: the title flies in over the car in its garage, frames 540 to 660"></a>
   <a href="assets/rb-play-1.png"><img src="assets/rb-play-1.png" width="32%" alt="Playing Road Blaster: a car ahead in the sight on a coast road, with the dashboard below"></a>
+</p>
+
+### M.A.C.H. 3
+
+Mylstar's first laserdisc game, a year before Us vs. Them: you fly a fighter low over
+desert, canyons and a power station, or take a bomber over docks and oil
+tanks, while the disc plays the real aerial film beneath you. The board
+draws your jet, the enemy guns and your shots over it, and boxes around
+the targets in the film; where those targets are comes from data on the
+disc itself, read off one of its sound tracks. The same board as Us vs.
+Them: an 8088 driving Pioneer's PR-8210, and a sound board of two 6502s.
+
+<p align="center">
+  <a href="assets/m3-title.png"><img src="assets/m3-title.png" width="32%" alt="M.A.C.H. 3 title, drawn by the board over the disc's film of a river valley"></a>
+  <a href="assets/m3-60-260.gif"><img src="assets/m3-60-260.gif" width="32%" alt="M.A.C.H. 3: the take-off, from the runway out over the desert, frames 60 to 260"></a>
+  <a href="assets/m3-play-1.png"><img src="assets/m3-play-1.png" width="32%" alt="Playing M.A.C.H. 3: the fighter over a power station, with the targets boxed and a missile's crosshair"></a>
 </p>
 
 ## What's planned

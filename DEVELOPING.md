@@ -308,9 +308,10 @@ checksums both program ROMs, and which then plays. The COP421
   serial chip for Sony's player, the two sound chips, the tiles and sprites drawn over the picture).
 - `src/games/leland/board.c`: Leland's board that runs Dragon's Lair II (the PC's interrupt
   controller, timer and speaker, the serial port for Sony's player, the EEPROM, the coin counter).
-- `src/games/gottlieb/board.c`: Gottlieb's board that runs Us vs. Them (the 8088, the laserdisc
-  interface that clocks commands out to the PR-8210 and reads the frame numbers back, the tiles and
-  sprites, and the sound board's two 6502s, DAC and AY-3-8913s).
+- `src/games/gottlieb/board.c`: Gottlieb's board that runs Us vs. Them and M.A.C.H. 3 (the 8088,
+  the laserdisc interface that clocks commands out to the PR-8210 and reads the frame numbers back,
+  the disc's data channel with M.A.C.H. 3's targets, the tiles and sprites, and the sound board's
+  two 6502s, DAC and AY-3-8913s).
 - `src/util/roms.c`: reading ROM chips from a zip file or a folder.
 - `src/util/zip.c`: reading files out of zip archives.
 - `src/util/png.c`: writing PNG files, for screenshots.

@@ -54,8 +54,9 @@ static bool named_like(const char *file, const char *stem)
 }
 
 // Whether the file looks like a framefile: somewhere near the top, a line
-// that's a frame number and a clip's file name ("150  dl-slates.m2v").
-// Readme files and the like don't have one.
+// that's a frame number and a clip's file name ("150  dl-slates.m2v"). The
+// number can be negative, for a clip that starts before the disc's frame 0
+// ("-80  mach3.m2v"). Readme files and the like don't have one.
 static bool looks_like_framefile(const char *path)
 {
     FILE *f = fopen(path, "r");
@@ -65,6 +66,7 @@ static bool looks_like_framefile(const char *path)
     for (int lines = 0; !found && lines < 64 && fgets(line, sizeof line, f); lines++) {
         const char *p = line;
         while (*p == ' ' || *p == '\t') p++;
+        if (*p == '-') p++;
         if (!isdigit((unsigned char)*p)) continue;
         while (isdigit((unsigned char)*p)) p++;
         if (*p != ' ' && *p != '\t') continue;
