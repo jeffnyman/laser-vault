@@ -1451,9 +1451,17 @@ sunset, the last frame before the game begins its next round:
 laser-vault path/to/badlands.daphne --fast-boot --autoplay --record badlands.mp4 --press coin1@1 --press start1@3 --until-frame 43015 --seconds 600
 ```
 
-Those come to 10:54 of video for Dragon's Lair, 7:13 for Space Ace and
-14:18 for Cliff Hanger. Badlands chooses many of its scenes at random, so
-its length varies (4:52, the time it was tried).
+Esh's Aurunmilla, at the MIDDLE level (button 1 takes the level the menu
+offers first), to the end of its first round: Don and Princess Sindy away
+from Esh's fortress, and the stars, before the game starts its next round:
+
+```
+laser-vault path/to/esh.daphne --fast-boot --autoplay --record esh.mp4 --press coin1@1 --press start1@3 --press button@5.5 --until-frame 39135 --seconds 1000
+```
+
+Those come to 10:54 of video for Dragon's Lair, 7:13 for Space Ace, 14:18
+for Cliff Hanger and 13:10 for Esh's Aurunmilla. Badlands chooses many of
+its scenes at random, so its length varies (4:52, the time it was tried).
 
 The buttons are `up`, `down`, `left`, `right`, `button` (or `sword`),
 `button2`, `button3`, `coin1`, `coin2`, `start1`, `start2`, and Space Ace's
