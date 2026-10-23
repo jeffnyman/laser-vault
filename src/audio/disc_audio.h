@@ -26,6 +26,15 @@ typedef struct DiscAudio DiscAudio;
 DiscAudio *disc_audio_open(const Framefile *ff, double disc_fps);
 void disc_audio_close(DiscAudio *da);
 
+// For recording rather than playing: the same, but the sound waits for
+// disc_audio_take instead of going to the speakers, as stereo at rate
+// samples a second. Needs no audio device.
+DiscAudio *disc_audio_open_for_recording(const Framefile *ff, double disc_fps, int rate);
+
+// Take frames pairs of samples (left, right) of the sound made so far, as
+// the speakers would; silence where there isn't any.
+void disc_audio_take(DiscAudio *da, float *samples, int frames);
+
 // Make the sound match the player. playing: the disc is playing forward at
 // normal speed (sound is silenced otherwise, as on a real player). frame:
 // the disc frame being shown. channel1/channel2: the audio channel switches.

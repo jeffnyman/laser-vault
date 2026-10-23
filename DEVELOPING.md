@@ -206,7 +206,7 @@ Buttons: `up down left right sword start1 start2 coin1 coin2`, and for
 Space Ace `cadet captain ace`.
 
 With `--autoplay`, a whole game takes seconds. This plays through to the
-rescue (about 11 minutes of game time) in under 10 seconds:
+rescue (about 11 minutes of game time) in a quarter of a minute or so:
 
 ```
 cine-trace path/to/lair.zip --seconds 700 --press coin1@40 --press coin1@41 --press start1@43 --autoplay
@@ -329,6 +329,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/video/disc_video.c`: MPEG-2 decoding and seeking with FFmpeg.
 - `src/video/decomb.c`: finding and repairing combing (mixed fields), pixel by pixel.
 - `src/audio/disc_audio.c`: the laserdisc's soundtrack, kept in step with the picture.
+- `src/video/recorder.c`: writing a recording (`--record`) as an MP4: the pictures converted to YUV
+  and encoded as H.264 or MPEG-4, the sound as AAC.
 - `src/audio/ay8910.c`: the AY-3-8910 sound chip on the Cinematronics and Data East boards (and
   its relative the AY-3-8913, on Gottlieb's sound board).
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.

@@ -237,7 +237,9 @@ void disc_audio_update(DiscAudio *da, bool playing, int frame, bool channel1, bo
         queue_samples(da);
 }
 
-DiscAudio *disc_audio_open(const Framefile *ff, double disc_fps)
+// record_rate: 0 to play through the audio device, or the sample rate to
+// make the sound at for disc_audio_take.
+static DiscAudio *open_audio(const Framefile *ff, double disc_fps, int record_rate)
 {
     DiscAudio *da = calloc(1, sizeof *da);
     if (!da) return NULL;
@@ -246,17 +248,43 @@ DiscAudio *disc_audio_open(const Framefile *ff, double disc_fps)
     da->rate = 44100;
 
     SDL_AudioSpec spec = {SDL_AUDIO_F32, OUTPUT_CHANNELS, da->rate};
-    da->stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+    if (record_rate) {
+        // A stream with nothing at the other end: it converts what's put in
+        // to the recording's rate, and holds it until it's taken.
+        SDL_AudioSpec out = {SDL_AUDIO_F32, OUTPUT_CHANNELS, record_rate};
+        da->stream = SDL_CreateAudioStream(&spec, &out);
+    } else {
+        da->stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+    }
     if (!da->stream) {
-        fprintf(stderr, "No sound: cannot open the audio device (%s)\n", SDL_GetError());
+        fprintf(stderr, "No sound: cannot open the audio %s (%s)\n", record_rate ? "stream" : "device",
+                SDL_GetError());
         free(da);
         return NULL;
     }
-    SDL_ResumeAudioStreamDevice(da->stream);  // devices start paused
+    if (!record_rate) SDL_ResumeAudioStreamDevice(da->stream);  // devices start paused
 
     da->packet = av_packet_alloc();
     da->samples = av_frame_alloc();
     return da;
+}
+
+DiscAudio *disc_audio_open(const Framefile *ff, double disc_fps)
+{
+    return open_audio(ff, disc_fps, 0);
+}
+
+DiscAudio *disc_audio_open_for_recording(const Framefile *ff, double disc_fps, int rate)
+{
+    return open_audio(ff, disc_fps, rate);
+}
+
+void disc_audio_take(DiscAudio *da, float *samples, int frames)
+{
+    int bytes = frames * OUTPUT_CHANNELS * (int)sizeof(float);
+    int got = SDL_GetAudioStreamData(da->stream, samples, bytes);
+    if (got < 0) got = 0;
+    memset((char *)samples + got, 0, (size_t)(bytes - got));
 }
 
 void disc_audio_close(DiscAudio *da)

@@ -93,6 +93,7 @@ add_executable(laser-vault
     src/games/machine.c
     src/games/game_folder.c
     src/audio/disc_audio.c
+    src/video/recorder.c
     src/ui/bezel.c
     src/ui/icon.c
     ${EMBEDDED_ICON_SOURCES}

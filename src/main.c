@@ -7,6 +7,8 @@
 //                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]
 //                                 [--samples DIR] [--no-subtitles]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
+//                    [--record FILE.mp4 [--seconds N] [--until-frame N]
+//                                       [--press BUTTON@T[:LEN]] ...]
 //        laser-vault --version
 //
 // Given a game's folder, it finds the framefile, the video and the ROMs in
@@ -40,6 +42,9 @@
 // games/cinematronics/autoplay.h), Esh's Aurunmilla, Cliff Hanger, Goal to
 // Go, Badlands, Data East's Cobra Command, Road Blaster or Dragon's Lair II
 // (see each one's board.c); A switches it on and off during a game.
+// --record makes a video file of the game instead of opening a window (see
+// "Recording" below): with --autoplay, a whole playthrough, with coins and
+// start pressed by --press, until --seconds or --until-frame.
 //
 //   Arrow keys          joystick
 //   Space / Ctrl        action button (the sword)
@@ -79,6 +84,7 @@
 #include "version.h"
 #include "video/disc_video.h"
 #include "video/framefile.h"
+#include "video/recorder.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -113,6 +119,7 @@ typedef struct {
     bool screenshot;   // save the next frame drawn
     bool subtitles;    // show what a game's narrator says (Tab)
     bool autoplaying;  // game mode: the program plays the joystick and sword
+    bool recording;    // making a video file (--record) rather than showing a window
     CineAutoplay autoplay;
     SDL_Thread *autoplay_thread;    // planning the next move, or NULL
     CineAutoplayJob *autoplay_job;  // what it's planning
@@ -164,6 +171,8 @@ static void usage(void)
                     "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
                     "                   [--samples DIR] [--no-subtitles]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n"
+                    "                   [--record FILE.mp4 [--seconds N] [--until-frame N]\n"
+                    "                                  [--press BUTTON@T[:LEN]] ...]\n"
                     "       laser-vault --version\n");
 }
 
@@ -528,6 +537,14 @@ static void run_board(App *app, uint64_t cycles)
         if (app->autoplaying && m->kind == MACHINE_CINEMATRONICS) {
             finish_autoplay_thread(app, false, true);
             CineAutoplayJob *job = cine_autoplay_update(&app->autoplay, m->cine, &app->ldp, &m->ldv1000);
+            if (job && app->recording) {
+                // Recording isn't tied to the clock, so there's time to plan
+                // each move before going on: no move is ever pressed late,
+                // and the same recording comes out every time.
+                cine_autoplay_think(job);
+                cine_autoplay_answer(&app->autoplay, job);
+                continue;
+            }
             if (job) {
                 app->autoplay_job = job;
                 app->autoplay_thread = SDL_CreateThread(autoplay_thread, "autoplay", app);
@@ -809,6 +826,162 @@ static void load_samples(Machine *m, const char *roms, const char *dir)
                tries > 1 ? " or " : "", tries > 1 ? tried[1] : "");
 }
 
+// ---------------------------------------------------------------------------
+// Recording (--record)
+// ---------------------------------------------------------------------------
+//
+// Instead of showing the game in a window, run it without one and write
+// what it would have shown and played to a video file. Each video frame
+// runs the board for exactly a frame's worth of its time, draws the picture
+// as the window would (with draw(), into memory, through SDL's software
+// renderer), and takes exactly a frame's worth of sound from the disc and
+// the board's chips. So the video has every frame, in perfect step with
+// its sound, however fast or slow the computer is, and the same options
+// make the same video every time. Coins and start come from --press, and
+// the game itself from --autoplay; the recording stops after --seconds or
+// as the disc reaches --until-frame.
+
+#define RECORD_HEIGHT 1080   // the width follows from 4:3 (1440)
+#define RECORD_FPS_NUM 30000  // 29.97 frames a second, as NTSC video and the
+#define RECORD_FPS_DEN 1001   // discs' video run at
+#define RECORD_RATE 48000     // sound samples a second
+
+typedef struct {
+    char button[16];
+    double at, len;  // seconds into the recording
+} Press;
+
+typedef struct {
+    const char *path;     // NULL: not recording
+    double seconds;       // stop after this much video (0: no limit)
+    int until_frame;      // stop as the disc reaches this frame (-1: no)
+    Press presses[64];
+    int press_count;
+} RecordOptions;
+
+// Press a button in the controls by its --press name, or with in NULL just
+// check that there's a button by that name.
+static bool press_button(Controls *in, const char *name)
+{
+    static const char *const names[] = {"up", "down", "left", "right", "button", "sword", "button2",
+                                        "button3", "coin1", "coin2", "start1", "start2", "cadet",
+                                        "captain", "ace"};
+    int which = -1;
+    for (int i = 0; i < (int)SDL_arraysize(names); i++)
+        if (strcmp(name, names[i]) == 0) which = i;
+    if (which < 0 || !in) return which >= 0;
+    bool *buttons[] = {&in->up, &in->down, &in->left, &in->right, &in->button, &in->button, &in->button2,
+                       &in->button3, &in->coin1, &in->coin2, &in->start1, &in->start2, &in->skill[0],
+                       &in->skill[1], &in->skill[2]};
+    *buttons[which] = true;
+    return true;
+}
+
+// "coin1@2" or "start1@4:0.5": the button, when (s) and for how long
+// (default 0.2 s).
+static bool parse_press(const char *s, Press *p)
+{
+    p->len = 0.2;
+    if (sscanf(s, "%15[a-z0-9]@%lf:%lf", p->button, &p->at, &p->len) < 2) return false;
+    return press_button(NULL, p->button) && p->at >= 0 && p->len > 0;
+}
+
+static int record(App *app, const RecordOptions *opt)
+{
+    Machine *m = &app->machine;
+    bool scores = app->show_scores && m->kind == MACHINE_CINEMATRONICS;
+    int logical_w = VIDEO_W + (scores ? BEZEL_WIDTH : 0);
+    int width = (RECORD_HEIGHT * logical_w / VIDEO_H) & ~1;
+    SDL_Surface *canvas = SDL_CreateSurface(width, RECORD_HEIGHT, SDL_PIXELFORMAT_XRGB8888);
+    app->renderer = canvas ? SDL_CreateSoftwareRenderer(canvas) : NULL;
+    if (!app->renderer) {
+        fprintf(stderr, "Recording: can't draw the pictures (%s)\n", SDL_GetError());
+        SDL_DestroySurface(canvas);
+        return 1;
+    }
+    SDL_SetRenderLogicalPresentation(app->renderer, logical_w, VIDEO_H, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    Recorder *rec = recorder_open(opt->path, width, RECORD_HEIGHT, RECORD_FPS_NUM, RECORD_FPS_DEN, RECORD_RATE);
+    if (!rec) {
+        SDL_DestroyRenderer(app->renderer);
+        app->renderer = NULL;
+        SDL_DestroySurface(canvas);
+        return 1;
+    }
+    printf("Recording %s: %dx%d at 29.97 frames a second, %s and AAC sound.\n", opt->path, width,
+           RECORD_HEIGHT, recorder_video_codec(rec));
+    fflush(stdout);
+
+    // A frame's worth of sound is 1601 or 1602 samples (48000 / 29.97).
+    int most = RECORD_RATE * RECORD_FPS_DEN / RECORD_FPS_NUM + 2;
+    float *sound = malloc((size_t)most * 2 * sizeof(float));
+    float *chip = malloc((size_t)most * 2 * sizeof(float));
+    double hz = machine_cpu_hz(m), owed = 0;
+    int64_t frames = 0, samples = 0;
+    bool ok = sound && chip;
+    while (ok) {
+        double t = (double)frames * RECORD_FPS_DEN / RECORD_FPS_NUM;
+        if (opt->seconds > 0 && t >= opt->seconds) break;
+
+        Controls in = {0};
+        for (int i = 0; i < opt->press_count; i++) {
+            const Press *p = &opt->presses[i];
+            if (t >= p->at && t < p->at + p->len) press_button(&in, p->button);
+        }
+        machine_set_controls(m, &in);
+        owed += hz * RECORD_FPS_DEN / RECORD_FPS_NUM;
+        uint64_t cycles = (uint64_t)owed;
+        owed -= (double)cycles;
+        run_board(app, cycles);
+        if (app->chip_sound) play_chip_sound(app);
+        draw(app);
+
+        // The sound for this frame: the disc's (as the main loop has it) and
+        // the board's chips, mixed as the speakers would.
+        int64_t due = (frames + 1) * RECORD_RATE * RECORD_FPS_DEN / RECORD_FPS_NUM;
+        int n = (int)(due - samples);
+        samples = due;
+        memset(sound, 0, (size_t)n * 2 * sizeof(float));
+        if (app->audio) {
+            disc_audio_update(app->audio, app->ldp.state == LDP_PLAYING && app->ldp.speed == 1, app->ldp.frame,
+                              machine_audio_on(m, 0), machine_audio_on(m, 1));
+            disc_audio_take(app->audio, sound, n);
+        }
+        if (app->chip_sound) {
+            int got = SDL_GetAudioStreamData(app->chip_sound, chip, n * 2 * (int)sizeof(float));
+            int got_samples = got > 0 ? got / (int)sizeof(float) : 0;
+            for (int i = 0; i < got_samples; i++) {
+                float v = sound[i] + chip[i];
+                sound[i] = v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v;
+            }
+        }
+        ok = recorder_add_sound(rec, sound, n) && recorder_add_picture(rec, canvas->pixels, canvas->pitch);
+        frames++;
+
+        if (frames % (30 * 30) == 0) {  // every 30 s or so of video
+            printf("Recorded %d:%02d (disc frame %d)\n", (int)(t / 60), (int)t % 60, app->ldp.frame);
+            fflush(stdout);
+        }
+        // (Whatever the player is doing: a game may start a search on the
+        // very frame it's waiting for, as Dragon's Lair does at its end.)
+        if (opt->until_frame >= 0 && app->ldp.frame >= opt->until_frame && app->ldp.frame < opt->until_frame + 30)
+            break;
+    }
+    if (!recorder_close(rec)) ok = false;
+    double length = (double)frames * RECORD_FPS_DEN / RECORD_FPS_NUM;
+    if (ok) printf("Wrote %s: %d:%02d of video (%lld frames).\n", opt->path, (int)(length / 60),
+                   (int)length % 60, (long long)frames);
+    else fprintf(stderr, "Recording: writing %s failed.\n", opt->path);
+    free(sound);
+    free(chip);
+    SDL_DestroyTexture(app->texture);
+    SDL_DestroyTexture(app->overlay);
+    app->texture = app->overlay = NULL;
+    SDL_DestroyRenderer(app->renderer);
+    app->renderer = NULL;
+    SDL_DestroySurface(canvas);
+    return ok ? 0 : 1;
+}
+
 int main(int argc, char **argv)
 {
     const char *framefile_path = NULL;
@@ -827,6 +1000,7 @@ int main(int argc, char **argv)
     const char *icon_path = NULL;
     int start_frame = -1;
     double disc_fps = 0;  // 0 = the game's own rate, or the default without ROMs
+    RecordOptions rec = {.until_frame = -1};
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--version") == 0) {
@@ -866,6 +1040,21 @@ int main(int argc, char **argv)
             want_fast_boot = true;
         } else if (strcmp(argv[i], "--frame") == 0 && i + 1 < argc) {
             start_frame = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--record") == 0 && i + 1 < argc) {
+            rec.path = argv[++i];
+        } else if (strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
+            rec.seconds = atof(argv[++i]);
+        } else if (strcmp(argv[i], "--until-frame") == 0 && i + 1 < argc) {
+            rec.until_frame = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--press") == 0 && i + 1 < argc) {
+            if (rec.press_count == (int)SDL_arraysize(rec.presses) ||
+                !parse_press(argv[++i], &rec.presses[rec.press_count])) {
+                fprintf(stderr, "--press wants BUTTON@SECONDS[:LENGTH], e.g. coin1@2 or start1@4:0.5;\n"
+                                "the buttons are up, down, left, right, button (or sword), button2,\n"
+                                "button3, coin1, coin2, start1, start2, cadet, captain and ace.\n");
+                return 1;
+            }
+            rec.press_count++;
         } else if (strcmp(argv[i], "--disc-fps") == 0 && i + 1 < argc) {
             disc_fps = atof(argv[++i]);
             if (disc_fps <= 0) disc_fps = -1;
@@ -921,46 +1110,61 @@ int main(int argc, char **argv)
            app.framefile.clips[0].start_frame,
            app.framefile.clips[app.framefile.clip_count - 1].start_frame);
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    app.recording = rec.path != NULL;
+    if (app.recording && (!app.game || (rec.seconds <= 0 && rec.until_frame < 0))) {
+        fprintf(stderr, "--record needs a game's ROMs, and --seconds or --until-frame to say when to\n"
+                        "stop (for example --autoplay --press coin1@1 --press start1@2 --seconds 600).\n");
+        return 1;
+    }
+
+    // Recording makes no window, and needs no sound device: its sound is
+    // taken, not played (SDL's "dummy" audio driver stands in for one).
+    if (app.recording) SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
+    if (!SDL_Init(app.recording ? 0 : SDL_INIT_VIDEO)) {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
         return 1;
     }
-    if (!SDL_CreateWindowAndRenderer("laser-vault", 960, 720, SDL_WINDOW_RESIZABLE,
-                                     &app.window, &app.renderer)) {
-        fprintf(stderr, "SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
-        return 1;
-    }
     app.show_scores = show_scores;
-    set_layout(&app);
-    if (fullscreen) toggle_fullscreen(&app);
-    // Controllers announce themselves through the event loop once this is up.
-    if (app.game && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
-        fprintf(stderr, "No gamepads: %s\n", SDL_GetError());
+    bool vsync = false;
+    if (!app.recording) {
+        if (!SDL_CreateWindowAndRenderer("laser-vault", 960, 720, SDL_WINDOW_RESIZABLE,
+                                         &app.window, &app.renderer)) {
+            fprintf(stderr, "SDL_CreateWindowAndRenderer: %s\n", SDL_GetError());
+            return 1;
+        }
+        set_layout(&app);
+        if (fullscreen) toggle_fullscreen(&app);
+        // Controllers announce themselves through the event loop once this is up.
+        if (app.game && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+            fprintf(stderr, "No gamepads: %s\n", SDL_GetError());
 
-    // The window icon, built into the program: each game has its own, and
-    // a game without one would get the shared laserdisc icon. --icon names
-    // another.
-    SDL_Surface *icon = NULL;
-    if (icon_path) icon = icon_load(icon_path);
-    else if (app.game) {
-        icon = icon_load_embedded(machine_icon_name(&app.machine));
-        if (!icon) icon = icon_load_embedded("laser");
-    }
-    if (icon) {
-        SDL_SetWindowIcon(app.window, icon);
-        SDL_DestroySurface(icon);
-    }
+        // The window icon, built into the program: each game has its own, and
+        // a game without one would get the shared laserdisc icon. --icon names
+        // another.
+        SDL_Surface *icon = NULL;
+        if (icon_path) icon = icon_load(icon_path);
+        else if (app.game) {
+            icon = icon_load_embedded(machine_icon_name(&app.machine));
+            if (!icon) icon = icon_load_embedded("laser");
+        }
+        if (icon) {
+            SDL_SetWindowIcon(app.window, icon);
+            SDL_DestroySurface(icon);
+        }
 
-    // With vsync, presenting a frame waits for the monitor's next refresh,
-    // which paces the loop below. Without it, sleep a little each pass so
-    // the loop doesn't spin a CPU core at 100%.
-    bool vsync = SDL_SetRenderVSync(app.renderer, 1);
+        // With vsync, presenting a frame waits for the monitor's next refresh,
+        // which paces the loop below. Without it, sleep a little each pass so
+        // the loop doesn't spin a CPU core at 100%.
+        vsync = SDL_SetRenderVSync(app.renderer, 1);
+    }
 
     app.video = disc_video_open(&app.framefile, disc_fps);
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO))
-        app.audio = disc_audio_open(&app.framefile, disc_fps);
-    else
+    if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
         fprintf(stderr, "No sound: %s\n", SDL_GetError());
+    else if (app.recording)
+        app.audio = disc_audio_open_for_recording(&app.framefile, disc_fps, RECORD_RATE);
+    else
+        app.audio = disc_audio_open(&app.framefile, disc_fps);
     ldp_init(&app.ldp, disc_fps,
              start_frame >= 0 ? start_frame : app.framefile.clips[0].start_frame);
     if (app.game) {
@@ -1069,19 +1273,23 @@ int main(int argc, char **argv)
         // The board's sound chip gets its own audio stream; SDL mixes it with
         // the laserdisc's. Start it now, after any fast boot, so the beeps
         // from the skipped start-up don't all play at once.
+        // (Recording, the stream converts it to the video's sound instead.)
         if (app.audio) {
             SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, machine_sample_rate(m)};
-            app.chip_sound = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+            SDL_AudioSpec out = {SDL_AUDIO_F32, 2, RECORD_RATE};
+            if (app.recording) app.chip_sound = SDL_CreateAudioStream(&spec, &out);
+            else app.chip_sound = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
             if (app.chip_sound) {
-                SDL_ResumeAudioStreamDevice(app.chip_sound);
+                if (!app.recording) SDL_ResumeAudioStreamDevice(app.chip_sound);
                 machine_start_sound(m);
             }
         }
     }
 
     // The main loop: handle input, advance by however much time has passed,
-    // and draw whatever frame the player is on.
-    bool running = true;
+    // and draw whatever frame the player is on. (Or record the game instead.)
+    int exit_code = app.recording ? record(&app, &rec) : 0;
+    bool running = !app.recording;
     Uint64 last_ns = SDL_GetTicksNS();
     while (running) {
         SDL_Event event;
@@ -1135,7 +1343,7 @@ int main(int argc, char **argv)
     SDL_DestroyTexture(app.texture);
     SDL_DestroyTexture(app.overlay);
     SDL_DestroyRenderer(app.renderer);
-    SDL_DestroyWindow(app.window);
+    if (app.window) SDL_DestroyWindow(app.window);
     SDL_Quit();
     framefile_free(&app.framefile);
     if (app.game) {
@@ -1144,5 +1352,5 @@ int main(int argc, char **argv)
         machine_free(&app.machine);
     }
     free(app.overlay_pixels);
-    return 0;
+    return exit_code;
 }

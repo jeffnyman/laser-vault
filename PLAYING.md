@@ -134,6 +134,9 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--samples DIR`       | Astron Belt, Galaxy Ranger: the folder of their recorded sound effects (default: a `sounds` or `sound` folder beside the ROMs' folder) |
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
+| `--record FILE.mp4`   | make a video of the game instead of showing it (see [Recording a video](#recording-a-video)) |
+| `--seconds N`, `--until-frame N` | with `--record`: stop after N seconds of video, or as the disc reaches frame N |
+| `--press BUTTON@T[:LEN]` | with `--record`: press a button T seconds into the video, for LEN seconds (default 0.2) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
 | `--version`           | print the version and the commit it was built from, and stop   |
@@ -1407,6 +1410,42 @@ over it and the score panel if it's shown, as a PNG named for the date and
 time, in the folder you ran it from, at the size it fills the window:
 960x720 at the window's starting size. Pause first (P) to line
 up a moment; the PAUSED banner stays out of the shot.
+
+## Recording a video
+
+`--record` makes a video file of a game instead of opening a window: the
+picture with whatever the board draws over it, and all the sound, the
+disc's and the board's. With `--autoplay`, that's a whole playthrough with
+no one at the controls. The coins and the start button come from `--press`,
+timed in seconds from the start of the video, and the recording stops
+after `--seconds`, or as the disc reaches the frame given by `--until-frame`.
+This records Dragon's Lair from the attract mode to the rescue of Daphne,
+which ends at frame 31186:
+
+```
+laser-vault path/to/lair.daphne --fast-boot --autoplay --record dragons-lair.mp4 --press coin1@1 --press coin1@1.5 --press start1@2.5 --until-frame 31186 --seconds 900
+```
+
+The buttons are `up`, `down`, `left`, `right`, `button` (or `sword`),
+`button2`, `button3`, `coin1`, `coin2`, `start1`, `start2`, and Space Ace's
+`cadet`, `captain` and `ace`.
+
+The video is an MP4 at 1440x1080 (4:3) and 29.97 frames a second, the
+disc's own rate, with stereo AAC sound at 48 kHz. On Windows the picture is
+encoded as H.264 with the system's own encoder; elsewhere (or on a Windows
+without one) with FFmpeg's MPEG-4 encoder, which takes more space for the
+same quality. Either
+kind plays anywhere and can be uploaded to video sites.
+
+Recording isn't tied to the clock: each frame of video runs the game for
+exactly one frame's worth of its time, so the video has every frame, in
+step with its sound, however busy the computer is. It usually runs a few
+times faster than real time. The same options make the same video every
+time.
+
+Some games carry on after their ending into another round (Dragon's Lair,
+Esh's Aurunmilla, Badlands), so `--until-frame` or `--seconds` says where to
+stop.
 
 ## Driving the laserdisc player yourself
 
