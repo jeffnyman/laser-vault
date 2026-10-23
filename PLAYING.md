@@ -135,7 +135,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
 | `--record FILE.mp4`   | make a video of the game instead of showing it (see [Recording a video](#recording-a-video)) |
-| `--seconds N`, `--until-frame N` | with `--record`: stop after N seconds of video, or as the disc reaches frame N |
+| `--seconds N`, `--until-frame N[+S]` | with `--record`: stop after N seconds of video, or as the disc reaches frame N (or S seconds after) |
 | `--press BUTTON@T[:LEN]` | with `--record`: press a button T seconds into the video, for LEN seconds (default 0.2) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
@@ -1425,6 +1425,26 @@ which ends at frame 31186:
 ```
 laser-vault path/to/lair.daphne --fast-boot --autoplay --record dragons-lair.mp4 --press coin1@1 --press coin1@1.5 --press start1@2.5 --until-frame 31186 --seconds 900
 ```
+
+Space Ace, the original revision A3, at Ace level (choosing the skill as
+its lamps start to chase), to the end of the game, Borf beaten and the
+title back on the screen:
+
+```
+laser-vault path/to/ace.daphne --roms path/to/ace.zip --fast-boot --autoplay --record space-ace.mp4 --press coin1@1 --press coin1@1.5 --press start1@2.5 --press ace@4.5 --until-frame 33177 --seconds 900
+```
+
+Cliff Hanger (set 1) holds the disc on its last frame at the end and puts
+its congratulations over it, so `--until-frame` takes a number of seconds
+to carry on for after that frame: here, the 12 s the message is up, before
+the game asks for initials.
+
+```
+laser-vault path/to/cliff.daphne --fast-boot --autoplay --record cliff-hanger.mp4 --press coin1@1 --press start1@3 --until-frame 46887+12 --seconds 1000
+```
+
+Those come to 10:54 of video for Dragon's Lair, 7:13 for Space Ace and
+14:18 for Cliff Hanger.
 
 The buttons are `up`, `down`, `left`, `right`, `button` (or `sword`),
 `button2`, `button3`, `coin1`, `coin2`, `start1`, `start2`, and Space Ace's

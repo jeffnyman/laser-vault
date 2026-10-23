@@ -7,7 +7,7 @@
 //                                 [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]
 //                                 [--samples DIR] [--no-subtitles]]
 //                    [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]
-//                    [--record FILE.mp4 [--seconds N] [--until-frame N]
+//                    [--record FILE.mp4 [--seconds N] [--until-frame N[+S]]
 //                                       [--press BUTTON@T[:LEN]] ...]
 //        laser-vault --version
 //
@@ -171,7 +171,7 @@ static void usage(void)
                     "                   [--free-play] [--dsw1 HEX] ... [--dsw4 HEX] [--autoplay]\n"
                     "                   [--samples DIR] [--no-subtitles]\n"
                     "                   [--frame N] [--disc-fps F] [--icon FILE.ico] [--fullscreen]\n"
-                    "                   [--record FILE.mp4 [--seconds N] [--until-frame N]\n"
+                    "                   [--record FILE.mp4 [--seconds N] [--until-frame N[+S]]\n"
                     "                                  [--press BUTTON@T[:LEN]] ...]\n"
                     "       laser-vault --version\n");
 }
@@ -839,7 +839,8 @@ static void load_samples(Machine *m, const char *roms, const char *dir)
 // its sound, however fast or slow the computer is, and the same options
 // make the same video every time. Coins and start come from --press, and
 // the game itself from --autoplay; the recording stops after --seconds or
-// as the disc reaches --until-frame.
+// as the disc reaches --until-frame (written N, or N+S for S seconds after,
+// to show what a game puts up over a frame it holds at its end).
 
 #define RECORD_HEIGHT 1080   // the width follows from 4:3 (1440)
 #define RECORD_FPS_NUM 30000  // 29.97 frames a second, as NTSC video and the
@@ -855,6 +856,7 @@ typedef struct {
     const char *path;     // NULL: not recording
     double seconds;       // stop after this much video (0: no limit)
     int until_frame;      // stop as the disc reaches this frame (-1: no)
+    double until_extra;   // ... or this many seconds after
     Press presses[64];
     int press_count;
 } RecordOptions;
@@ -917,6 +919,7 @@ static int record(App *app, const RecordOptions *opt)
     float *chip = malloc((size_t)most * 2 * sizeof(float));
     double hz = machine_cpu_hz(m), owed = 0;
     int64_t frames = 0, samples = 0;
+    double stop_at = -1;  // when to stop, once the disc has reached --until-frame
     bool ok = sound && chip;
     while (ok) {
         double t = (double)frames * RECORD_FPS_DEN / RECORD_FPS_NUM;
@@ -963,8 +966,10 @@ static int record(App *app, const RecordOptions *opt)
         }
         // (Whatever the player is doing: a game may start a search on the
         // very frame it's waiting for, as Dragon's Lair does at its end.)
-        if (opt->until_frame >= 0 && app->ldp.frame >= opt->until_frame && app->ldp.frame < opt->until_frame + 30)
-            break;
+        if (opt->until_frame >= 0 && stop_at < 0 && app->ldp.frame >= opt->until_frame &&
+            app->ldp.frame < opt->until_frame + 30)
+            stop_at = t + opt->until_extra;
+        if (stop_at >= 0 && t >= stop_at) break;
     }
     if (!recorder_close(rec)) ok = false;
     double length = (double)frames * RECORD_FPS_DEN / RECORD_FPS_NUM;
@@ -1045,7 +1050,11 @@ int main(int argc, char **argv)
         } else if (strcmp(argv[i], "--seconds") == 0 && i + 1 < argc) {
             rec.seconds = atof(argv[++i]);
         } else if (strcmp(argv[i], "--until-frame") == 0 && i + 1 < argc) {
-            rec.until_frame = atoi(argv[++i]);
+            if (sscanf(argv[++i], "%d+%lf", &rec.until_frame, &rec.until_extra) < 1 || rec.until_frame < 0 ||
+                rec.until_extra < 0) {
+                fprintf(stderr, "--until-frame wants a frame number, or N+S for S seconds after frame N\n");
+                return 1;
+            }
         } else if (strcmp(argv[i], "--press") == 0 && i + 1 < argc) {
             if (rec.press_count == (int)SDL_arraysize(rec.presses) ||
                 !parse_press(argv[++i], &rec.presses[rec.press_count])) {
