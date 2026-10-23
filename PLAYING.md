@@ -612,8 +612,9 @@ unable to fire when it counts. (For the first gunman, the window is disc
 frames 3236 to 3251, as the game's own scene table has it.)
 
 **Autoplay** (`--autoplay`, or A during a game) makes every shot, and holds
-fire where a shot would cost a life: in tests it played twenty minutes,
-round after round, without losing one. The game runs from a script in its
+fire where a shot would cost a life: it plays through to the end, Buck
+riding into the sunset under "YOU WIN, CONGRATULATIONS!", and on through
+the rounds that follow (in tests, twenty minutes) without losing a life. The game runs from a script in its
 ROM, and each shot's command gives the frames its window opens and closes
 on, where the game goes with and without the shot, and, for the chances
 to shoot early, the points each way scores, which shows whether to shoot
@@ -1443,8 +1444,16 @@ the game asks for initials.
 laser-vault path/to/cliff.daphne --fast-boot --autoplay --record cliff-hanger.mp4 --press coin1@1 --press start1@3 --until-frame 46887+12 --seconds 1000
 ```
 
+Badlands, from the story that start 1 plays to Buck riding into the
+sunset, the last frame before the game begins its next round:
+
+```
+laser-vault path/to/badlands.daphne --fast-boot --autoplay --record badlands.mp4 --press coin1@1 --press start1@3 --until-frame 43015 --seconds 600
+```
+
 Those come to 10:54 of video for Dragon's Lair, 7:13 for Space Ace and
-14:18 for Cliff Hanger.
+14:18 for Cliff Hanger. Badlands chooses many of its scenes at random, so
+its length varies (4:52, the time it was tried).
 
 The buttons are `up`, `down`, `left`, `right`, `button` (or `sword`),
 `button2`, `button3`, `coin1`, `coin2`, `start1`, `start2`, and Space Ace's
