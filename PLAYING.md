@@ -135,7 +135,7 @@ with the `SDL_GAMECONTROLLERCONFIG` environment variable (see SDL's
 | `--no-subtitles`      | Thayer's Quest: start with the narrator's subtitles hidden (Tab shows them) |
 | `--dsw1 HEX`, `--dsw2 HEX` | set the game's DIP switches directly (see [DIP switches](#dip-switches); Cliff Hanger and Goal to Go also have `--dsw3`, `--dsw4`) |
 | `--record FILE.mp4`   | make a video of the game instead of showing it (see [Recording a video](#recording-a-video)) |
-| `--seconds N`, `--until-frame N[+S]` | with `--record`: stop after N seconds of video, or as the disc reaches frame N (or S seconds after) |
+| `--seconds N`, `--until-frame N[+S]` | with `--record`: stop after N seconds of video, or as the disc plays up to frame N (or S seconds after) |
 | `--press BUTTON@T[:LEN]` | with `--record`: press a button T seconds into the video, for LEN seconds (default 0.2) |
 | `--fullscreen`        | start fullscreen (F11 or Alt+Enter switches back)              |
 | `--icon FILE.ico`     | use a different window icon                                    |
@@ -1419,7 +1419,8 @@ picture with whatever the board draws over it, and all the sound, the
 disc's and the board's. With `--autoplay`, that's a whole playthrough with
 no one at the controls. The coins and the start button come from `--press`,
 timed in seconds from the start of the video, and the recording stops
-after `--seconds`, or as the disc reaches the frame given by `--until-frame`.
+after `--seconds`, or as the disc plays up to the frame given by `--until-frame`
+(a search that lands on or past it doesn't count).
 This records Dragon's Lair from the attract mode to the rescue of Daphne,
 which ends at frame 31186:
 
@@ -1459,8 +1460,16 @@ from Esh's fortress, and the stars, before the game starts its next round:
 laser-vault path/to/esh.daphne --fast-boot --autoplay --record esh.mp4 --press coin1@1 --press start1@3 --press button@5.5 --until-frame 39135 --seconds 1000
 ```
 
+Data East's Cobra Command, through all ten stages and the "END" to the
+credits that follow, which the game signs off with its high-score table as
+the cast:
+
+```
+laser-vault path/to/cobra.daphne --fast-boot --autoplay --record cobra-command.mp4 --press coin1@1 --press start1@3 --until-frame 27265 --seconds 1300
+```
+
 Those come to 10:54 of video for Dragon's Lair, 7:13 for Space Ace, 14:18
-for Cliff Hanger and 13:10 for Esh's Aurunmilla. Badlands chooses many of
+for Cliff Hanger, 13:10 for Esh's Aurunmilla and 17:30 for Cobra Command. Badlands chooses many of
 its scenes at random, so its length varies (4:52, the time it was tried).
 
 The buttons are `up`, `down`, `left`, `right`, `button` (or `sword`),

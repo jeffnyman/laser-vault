@@ -839,7 +839,7 @@ static void load_samples(Machine *m, const char *roms, const char *dir)
 // its sound, however fast or slow the computer is, and the same options
 // make the same video every time. Coins and start come from --press, and
 // the game itself from --autoplay; the recording stops after --seconds or
-// as the disc reaches --until-frame (written N, or N+S for S seconds after,
+// as the disc plays up to --until-frame (written N, or N+S for S seconds after,
 // to show what a game puts up over a frame it holds at its end).
 
 #define RECORD_HEIGHT 1080   // the width follows from 4:3 (1440)
@@ -855,7 +855,7 @@ typedef struct {
 typedef struct {
     const char *path;     // NULL: not recording
     double seconds;       // stop after this much video (0: no limit)
-    int until_frame;      // stop as the disc reaches this frame (-1: no)
+    int until_frame;      // stop as the disc plays up to this frame (-1: no)
     double until_extra;   // ... or this many seconds after
     Press presses[64];
     int press_count;
@@ -920,6 +920,7 @@ static int record(App *app, const RecordOptions *opt)
     double hz = machine_cpu_hz(m), owed = 0;
     int64_t frames = 0, samples = 0;
     double stop_at = -1;  // when to stop, once the disc has reached --until-frame
+    int last_frame = app->ldp.frame;
     bool ok = sound && chip;
     while (ok) {
         double t = (double)frames * RECORD_FPS_DEN / RECORD_FPS_NUM;
@@ -964,11 +965,15 @@ static int record(App *app, const RecordOptions *opt)
             printf("Recorded %d:%02d (disc frame %d)\n", (int)(t / 60), (int)t % 60, app->ldp.frame);
             fflush(stdout);
         }
-        // (Whatever the player is doing: a game may start a search on the
-        // very frame it's waiting for, as Dragon's Lair does at its end.)
-        if (opt->until_frame >= 0 && stop_at < 0 && app->ldp.frame >= opt->until_frame &&
-            app->ldp.frame < opt->until_frame + 30)
+        // Reached by playing up to it, not by a search landing on or past it
+        // (Cobra Command's credits end next to where a stage starts). And
+        // whatever the player is doing then: a game may start a search on
+        // the very frame it's waiting for, as Dragon's Lair does at its end.
+        int frame = app->ldp.frame;
+        if (opt->until_frame >= 0 && stop_at < 0 && last_frame < opt->until_frame && frame >= opt->until_frame &&
+            frame - last_frame < 30)
             stop_at = t + opt->until_extra;
+        last_frame = frame;
         if (stop_at >= 0 && t >= stop_at) break;
     }
     if (!recorder_close(rec)) ok = false;
