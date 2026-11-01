@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/laser-vault-title.png" width="600" height="400" alt="Laser Vault">
+  <img src="assets/laser-vault-title.png" width="600" height="351" alt="Laser Vault">
 </h1>
 
 <p align="center">
@@ -362,6 +362,16 @@ Copyright (C) 2026 [Jeff Nyman][owner]
 > but WITHOUT ANY WARRANTY; without even the implied warranty of
 > MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 > [GNU General Public License] for more details.
+
+### The games
+
+Laser Vault is an emulator. It contains no code, artwork, film, music or
+sound from any of the games it runs; you need your own copies of them. The
+games, their names, artwork, film and music remain the property of their
+respective copyright and trademark holders. Laser Vault isn't affiliated
+with or endorsed by any of them, and uses the games' names only to say what
+it runs. (*Dragon's Lair*, *Space Ace* and *Dragon's Lair II* are published today
+by Digital Leisure.)
 
 [owner]: https://github.com/jeffnyman
 [GNU General Public License]: https://www.gnu.org/licenses/gpl-3.0.en.html
