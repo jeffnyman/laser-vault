@@ -336,6 +336,8 @@ checksums both program ROMs, and which then plays. The COP421
 - `src/audio/sn76496.c`: the SN76496 sound chip on the Universal and Konami boards.
 - `src/audio/samples.c`: recorded sound effects (WAV files), for the Sega board's sound board.
 - `src/audio/ssi263.c`: the SSI-263 speech chip: its registers and timing, and a formant synthesizer for its voice.
+- `src/audio/sp0250.c`: the SP0250 speech chip on Gottlieb's sound board: frames of linear predictive
+  coding, a buzz or noise through six filters.
 - `src/ui/bezel.c`: the score displays, drawn as seven-segment LED digits.
 - `src/ui/icon.c`: reading Windows `.ico` files for the window icon.
 - `src/tools/disc_gif.c`: the `disc-gif` tool (decode, scale, sample).

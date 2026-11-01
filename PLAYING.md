@@ -1108,8 +1108,9 @@ The board waits for the player's picture to drop out after each search,
 as a real PR-8210's does for a second or more; the player model finds a
 frame faster than that, so the board counts the picture as lost for a
 second after each search, as Hypseus does (`src/games/gottlieb/board.c`
-explains). The speech chip isn't emulated yet, so the game's voice is
-silent; the other sound effects play. The board keeps the high scores in
+explains). The sound board's SP0250 speech chip is emulated too
+(`src/audio/sp0250.c`), so the game speaks, as on its skill-select
+countdown. The board keeps the high scores in
 battery-backed memory, which laser-vault doesn't save yet (the `ram` folder
 is ignored).
 
@@ -1242,8 +1243,10 @@ time).
 
 The game counts the disc's frames itself, by the board's interrupts, and
 checks them against the frame numbers in the target data; if they drift
-apart it stops with "DISC ERROR .... STAY PUT!". The speech chip isn't
-emulated (as in Us vs. Them); the other sound effects play. The high
+apart it stops with "DISC ERROR .... STAY PUT!". The sound board's SP0250
+speech chip plays as in Us vs. Them; M.A.C.H. 3 also uses it for a
+sustained sound, by giving it a frame of shaped noise and letting it run
+on until a silent frame stops it. The high
 scores are kept in battery-backed memory, which laser-vault doesn't save
 yet (the `ram` folder is ignored).
 

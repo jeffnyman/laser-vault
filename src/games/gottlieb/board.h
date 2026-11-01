@@ -41,7 +41,7 @@
 // board's commands with an interrupt. The first drives an 8-bit DAC, whose
 // volume a second DAC sets. The second drives two AY-3-8913s and an SP0250
 // speech chip, and has a timer for its NMI; it can raise an NMI on the
-// first. The speech chip isn't emulated yet.
+// first.
 //
 //     first 6502                           second 6502
 //     0000-03FF  RAM (repeats to 3FFF)     0000-03FF  RAM (repeats to 1FFF)
@@ -61,6 +61,7 @@
 #define LV_GOTTLIEB_BOARD_H
 
 #include "audio/ay8910.h"
+#include "audio/sp0250.h"
 #include "cpu/i8088.h"
 #include "cpu/m6502.h"
 #include "ldp/pr8210.h"
@@ -143,6 +144,8 @@ typedef struct {
     uint8_t nmi_rate;
     uint64_t next_nmi;          // in sound CPU cycles
     Ay8910 ay[2];
+    Sp0250 speech;
+    uint8_t speech_latch;       // the byte waiting for the speech chip
     uint8_t dac, dac_volume;
     float dac_in, dac_out;      // the output's DC-blocking filter: its last input and output
     uint64_t d_cycles, y_cycles;  // each sound CPU's clock cycles since power-on

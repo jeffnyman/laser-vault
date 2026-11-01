@@ -147,6 +147,7 @@ target_link_libraries(lv_roms PUBLIC ZLIB::ZLIB)
 # The sound chips (AY-3-8910, SN76496, SSI-263), and recorded sound effects.
 add_library(lv_sound STATIC
     src/audio/ay8910.c
+    src/audio/sp0250.c
     src/audio/sn76496.c
     src/audio/samples.c
     src/audio/ssi263.c

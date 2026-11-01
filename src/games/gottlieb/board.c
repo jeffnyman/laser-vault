@@ -156,6 +156,7 @@ bool gottlieb_load_roms(GottliebBoard *b, const char *path)
 void gottlieb_free(GottliebBoard *b)
 {
     for (int i = 0; i < 2; i++) ay8910_free(&b->ay[i]);
+    sp0250_free(&b->speech);
     free(b->dac_samples);
     free(b->samples);
     free(b->targets);
@@ -393,6 +394,7 @@ static void sound_command(GottliebBoard *b, uint8_t v)
 }
 
 #define AY_HZ 2000000
+#define SPEECH_HZ 3120000
 
 // The NMI timer: 256 x (256 - rate) ticks of 250 kHz.
 static uint64_t nmi_period(const GottliebBoard *b)
@@ -427,7 +429,8 @@ static uint8_t y_read(void *ctx, uint16_t addr)
     GottliebBoard *b = ctx;
     if (addr < 0x2000) return b->y_ram[addr & 0x3FF];
     if (addr >= 0xC000) return b->y_rom[addr - 0xC000];
-    if (addr >= 0x6000 && addr < 0x8000) return 0xFF;  // switches off, the speech chip ready for data
+    // Switches (off), and bit 7: the speech chip wants data.
+    if (addr >= 0x6000 && addr < 0x8000) return sp0250_wants_data(&b->speech, b->y_cycles) ? 0xFF : 0x7F;
     if (addr >= 0xA800 && addr < 0xB000) {
         b->y_irq = false;
         return b->y_latch;
@@ -439,7 +442,8 @@ static uint8_t y_read(void *ctx, uint16_t addr)
 // The control register: bit 0 lets the NMI timer through; bits 2-4 drive the
 // AY-3-8913s (on bit 2 going low, bit 3 picks the first chip, and bit 4 says
 // whether the PSG latch holds a register number or data for it); bits 5-7
-// the speech chip.
+// the speech chip: bit 6 going high hands it the byte latched at 2000, and
+// bit 7 changing resets it. (Bit 5 drives a test pin; bit 1 a lamp.)
 static void speech_control(GottliebBoard *b, uint8_t v)
 {
     uint8_t before = b->speech_control;
@@ -449,13 +453,15 @@ static void speech_control(GottliebBoard *b, uint8_t v)
         if (v & 0x10) b->ay_reg[chip] = b->psg_latch & 0x0F;
         else ay8910_write(&b->ay[chip], b->y_cycles, b->ay_reg[chip], b->psg_latch);
     }
+    if (!(before & 0x40) && (v & 0x40)) sp0250_write(&b->speech, b->y_cycles, b->speech_latch);
+    if ((before ^ v) & 0x80) sp0250_reset(&b->speech, b->y_cycles);
 }
 
 static void y_write(void *ctx, uint16_t addr, uint8_t v)
 {
     GottliebBoard *b = ctx;
     if (addr < 0x2000) b->y_ram[addr & 0x3FF] = v;
-    else if (addr < 0x4000) {}  // speech data
+    else if (addr < 0x4000) b->speech_latch = v;
     else if (addr < 0x6000) speech_control(b, v);
     else if (addr >= 0x8000 && addr < 0xA000) b->psg_latch = v;
     else if (addr >= 0xA000 && addr < 0xA800) b->nmi_rate = v;
@@ -563,6 +569,9 @@ void gottlieb_reset(GottliebBoard *b, Pr8210 *player)
         ay8910_free(&b->ay[i]);
         ay8910_init(&b->ay[i], GOTTLIEB_SOUND_HZ, AY_HZ, GOTTLIEB_SAMPLE_RATE);
     }
+    sp0250_free(&b->speech);
+    sp0250_init(&b->speech, GOTTLIEB_SOUND_HZ, SPEECH_HZ, GOTTLIEB_SAMPLE_RATE);
+    b->speech_latch = 0;
     i8088_init(&b->cpu, (I8088Bus){b, mem_read, mem_write, port_in, port_out, no_inta});
     m6502_init(&b->dcpu, (M6502Bus){.ctx = b, .read = d_read, .write = d_write});
     m6502_init(&b->ycpu, (M6502Bus){.ctx = b, .read = y_read, .write = y_write});
@@ -594,6 +603,7 @@ void gottlieb_run(GottliebBoard *b, uint64_t cycles)
 void gottlieb_start_sound(GottliebBoard *b)
 {
     for (int i = 0; i < 2; i++) ay8910_set_rendering(&b->ay[i], true, b->y_cycles);
+    sp0250_set_rendering(&b->speech, true, b->y_cycles);
     b->sound_on = true;
     b->next_sample = (double)b->d_cycles;
     b->dac_count = 0;
@@ -607,16 +617,24 @@ int gottlieb_take_samples(GottliebBoard *b, const float **samples)
         ay8910_run(&b->ay[i], b->y_cycles);
         n[i] = ay8910_take_samples(&b->ay[i], &s[i]);
     }
+    sp0250_run(&b->speech, b->y_cycles);
+    const float *speech;
+    int speech_count = sp0250_samples(&b->speech, &speech);
     int count = n[0] < n[1] ? n[0] : n[1];
     if (count > b->dac_count) count = b->dac_count;
+    if (count > speech_count) count = speech_count;
     if (count > b->sample_capacity) {
         b->sample_capacity = count * 2;
         b->samples = realloc(b->samples, (size_t)b->sample_capacity * sizeof *b->samples);
     }
-    for (int i = 0; i < count; i++) b->samples[i] = (s[0][i] + s[1][i]) * 0.4f + b->dac_samples[i] * 0.3f;
-    // Keep any DAC samples the chips haven't caught up with.
+    // The speech louder than either AY chip, as on the board (MAME has it
+    // at twice their level; its output is -0.5..0.5 there, -1..1 here).
+    for (int i = 0; i < count; i++)
+        b->samples[i] = (s[0][i] + s[1][i]) * 0.4f + b->dac_samples[i] * 0.3f + speech[i] * 0.4f;
+    // Keep any DAC and speech samples the AY chips haven't caught up with.
     memmove(b->dac_samples, b->dac_samples + count, (size_t)(b->dac_count - count) * sizeof *b->dac_samples);
     b->dac_count -= count;
+    sp0250_used_samples(&b->speech, count);
     *samples = b->samples;
     return count;
 }
