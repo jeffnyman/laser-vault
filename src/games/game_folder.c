@@ -89,7 +89,8 @@ static void join(char *out, size_t size, const char *dir, const char *name)
 {
     size_t n = strlen(dir);
     bool slash = n > 0 && (dir[n - 1] == '/' || dir[n - 1] == '\\');
-    snprintf(out, size, "%s%s%s", dir, slash ? "" : SEPARATOR, name);
+    // (A path too long for out is cut short, and then simply isn't found.)
+    if (snprintf(out, size, "%s%s%s", dir, slash ? "" : SEPARATOR, name) >= (int)size) out[size - 1] = '\0';
 }
 
 static bool find_framefile(const char *dir, const char *stem, char *out, size_t size)

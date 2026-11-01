@@ -1,0 +1,154 @@
+# Builds laser-vault's packages for Windows, Linux and macOS.
+#
+# Push a version tag to build all three and attach them to a draft release,
+# which you then check and publish on GitHub:
+#
+#     git tag v0.1.0
+#     git push origin v0.1.0
+#
+# The tag must match the version in CMakeLists.txt. Or run the workflow by
+# hand from the Actions tab ("Run workflow") to build the packages without
+# releasing anything: they're kept with the run, under Artifacts. Ordinary
+# pushes build nothing. See DEVELOPING.md, "Making a release".
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # For a tag, check it matches the version before spending time building.
+  version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the tag against CMakeLists.txt
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(sed -n 's/^project(laser-vault VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME, but CMakeLists.txt says version $version"
+            exit 1
+          fi
+
+  # Windows: vcpkg builds SDL3 and FFmpeg from source (the first time takes a
+  # while; the results are cached for later runs), and the package carries
+  # every DLL the program needs.
+  windows:
+    needs: version
+    runs-on: windows-2022
+    env:
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the build records the commit it came from
+      - name: Restore the libraries vcpkg built last time
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}-${{ github.run_id }}
+          restore-keys: vcpkg-windows-${{ hashFiles('vcpkg.json') }}-
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build and package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force vcpkg-cache | Out-Null
+          $env:VCPKG_ROOT = $env:VCPKG_INSTALLATION_ROOT
+          cmake --preset windows-release
+          cmake --build --preset windows-release --target package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: build/windows-release/package/*.zip
+          if-no-files-found: error
+
+  # Linux: FFmpeg from Ubuntu's packages, so the package runs on Ubuntu 24.04
+  # (or another distribution with FFmpeg 6.1's libraries). Ubuntu 24.04 has
+  # no SDL3, so it's built here, as a static library that goes into the
+  # program rather than beside it.
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install the tools and libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config \
+            libavcodec-dev libavformat-dev libavutil-dev zlib1g-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxss-dev libxfixes-dev libxtst-dev libxkbcommon-dev \
+            libwayland-dev wayland-protocols libegl-dev libgl-dev libdrm-dev \
+            libgbm-dev libpulse-dev libasound2-dev libpipewire-0.3-dev \
+            libdecor-0-dev libudev-dev libdbus-1-dev
+      - name: Restore SDL3 built last time
+        id: sdl3
+        uses: actions/cache@v4
+        with:
+          path: ~/sdl3
+          key: sdl3-3.4.18-static-ubuntu-24.04
+      - name: Build SDL3
+        if: steps.sdl3.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch release-3.4.18 https://github.com/libsdl-org/SDL.git "$RUNNER_TEMP/SDL"
+          cmake -S "$RUNNER_TEMP/SDL" -B "$RUNNER_TEMP/SDL/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$HOME/sdl3" -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF
+          cmake --build "$RUNNER_TEMP/SDL/build"
+          cmake --install "$RUNNER_TEMP/SDL/build"
+      - name: Build and package
+        run: |
+          cmake --preset linux-release -DCMAKE_PREFIX_PATH="$HOME/sdl3"
+          cmake --build --preset linux-release --target package -j 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: build/linux-release/package/*.tar.gz
+          if-no-files-found: error
+
+  # macOS (Apple silicon): SDL3 and FFmpeg from Homebrew, which the package
+  # needs installed too (brew install sdl3 ffmpeg).
+  macos:
+    needs: version
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install the libraries
+        run: brew install pkg-config ffmpeg sdl3
+      - name: Build and package
+        run: |
+          cmake --preset macos-release -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+          cmake --build --preset macos-release --target package -j 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: build/macos-release/package/*.tar.gz
+          if-no-files-found: error
+
+  # For a tag: a draft release with the three packages, to check and publish.
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+      - name: Make the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" packages/* --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Laser Vault ${GITHUB_REF_NAME#v}" --generate-notes

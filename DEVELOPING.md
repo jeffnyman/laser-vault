@@ -147,6 +147,36 @@ and the libraries come from the system's packages, as when building.
 `cmake --install build/linux-release --prefix ~/.local` installs the same
 files without packaging them. The tools and tests aren't included.
 
+### On GitHub
+
+`.github/workflows/release.yml` builds all three packages on GitHub's
+machines. It doesn't run on ordinary pushes, only:
+
+- **For a release:** push a tag for the version (it must match the version in
+  `CMakeLists.txt`):
+  ```
+  git tag v0.1.0
+  git push origin v0.1.0
+  ```
+  The workflow builds the Windows, Linux and macOS packages and attaches them
+  to a **draft** release with notes listing the changes since the last one.
+  Check it on the repository's Releases page, edit the notes if you like,
+  and press Publish.
+- **For a test build:** on the repository's Actions tab, choose Release, then
+  Run workflow. The packages are kept with the run, under Artifacts, and
+  nothing is released.
+
+What the packages need on the computer that runs them:
+
+- **Windows:** nothing; everything is in the zip. The first run on GitHub
+  takes a while (vcpkg builds FFmpeg); later runs reuse what it built.
+- **Linux:** Ubuntu 24.04, or another distribution with FFmpeg 6.1's
+  libraries (`libavcodec60`, `libavformat60`, `libavutil58`). SDL3 is built
+  into the program.
+- **macOS:** an Apple silicon Mac with Homebrew's `sdl3` and `ffmpeg`
+  installed. The program isn't signed, so macOS asks before the first run
+  (right-click it and choose Open).
+
 The version number is in `CMakeLists.txt`'s `project()` line (keep
 `vcpkg.json`'s the same). Every build also records the git commit it came
 from (`cmake/version.cmake` writes it into the program), with `-dirty` when
