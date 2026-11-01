@@ -43,7 +43,9 @@
 // colours) above them. Colours are 4 bits each of red, green and blue.
 // Colour 0 is see-through (and sprite pen 15 too).
 //
-// The sound was analogue circuits (engine, tyres, crash), not emulated.
+// The sound was analogue circuits (engine, tyres, crash). Nothing is known
+// of them but what the game tells them, so laser-vault makes up its own
+// sounds from that (see gpworld_sound.h).
 //
 // Details from MAME's gpworld.cpp (marked not working) and the Daphne
 // emulator's gpworld.cpp, checked against the game's code.
@@ -52,6 +54,7 @@
 #define LV_SEGA_GPWORLD_H
 
 #include "cpu/z80.h"
+#include "games/sega/gpworld_sound.h"
 #include "ldp/ldv1000.h"
 
 #include <stdbool.h>
@@ -102,6 +105,7 @@ typedef struct {
     uint64_t fields;
     uint64_t next_field, next_strobe, irq_end;
     unsigned overlay_serial;
+    GpwSound sound;
 } GpwBoard;
 
 bool gpw_recognizes(const char *path);
@@ -114,6 +118,12 @@ bool gpw_quiet_attract(const GpwBoard *board);
 
 void gpw_reset(GpwBoard *board, Ldv1000 *player);
 void gpw_run(GpwBoard *board, uint64_t cycles);
+void gpw_free(GpwBoard *board);
+
+// The engine, tyres and crash (see gpworld_sound.h): start making samples,
+// and take what's been made.
+void gpw_start_sound(GpwBoard *board);
+int gpw_take_samples(GpwBoard *board, const float **samples);
 
 // Draw the characters and sprites: GPW_OVERLAY_W x GPW_OVERLAY_H pixels,
 // as 0xAARRGGBB, alpha 0 where the picture shows through.

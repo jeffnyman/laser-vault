@@ -103,6 +103,7 @@ void machine_free(Machine *m)
     }
     if (m->leland) leland_free(m->leland);
     if (m->gottlieb) gottlieb_free(m->gottlieb);
+    if (m->gpw) gpw_free(m->gpw);
     free(m->cine);
     free(m->uni);
     free(m->funai);
@@ -475,7 +476,7 @@ void machine_start_sound(Machine *m)
     else if (m->kind == MACHINE_DATAEAST) deco_start_sound(m->deco);
     else if (m->kind == MACHINE_LELAND) leland_start_sound(m->leland);
     else if (m->kind == MACHINE_GOTTLIEB) gottlieb_start_sound(m->gottlieb);
-    else if (m->kind == MACHINE_GPWORLD) {}  // no sound (see games/sega/gpworld.h)
+    else if (m->kind == MACHINE_GPWORLD) gpw_start_sound(m->gpw);
     else ay8910_set_rendering(&m->cine->ay, true, m->cine->cycles);
 }
 
@@ -490,7 +491,7 @@ int machine_take_samples(Machine *m, const float **samples)
     if (m->kind == MACHINE_DATAEAST) return deco_take_samples(m->deco, samples);
     if (m->kind == MACHINE_LELAND) return leland_take_samples(m->leland, samples);
     if (m->kind == MACHINE_GOTTLIEB) return gottlieb_take_samples(m->gottlieb, samples);
-    if (m->kind == MACHINE_GPWORLD) return 0;
+    if (m->kind == MACHINE_GPWORLD) return gpw_take_samples(m->gpw, samples);
     if (m->kind == MACHINE_RDI) {
         ssi263_run(&m->rdi->speech, m->rdi->cycles);
         return ssi263_take_samples(&m->rdi->speech, samples);

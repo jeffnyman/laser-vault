@@ -300,8 +300,6 @@ Ideas rather than promises:
   (Leland's 1991 conversion).
 - **Keeping high scores and settings** between runs, for the boards that
   kept them in battery-backed memory or an EEPROM.
-- **The missing sounds:** GP World's engine, tyre and crash sounds, perhaps
-  from recordings, as for Astron Belt.
 - **A list of the ROM sets' checksums**, to check your copies against.
 
 Not planned: Singe games, such as the fan-made versions of Time Gal. They

@@ -1385,13 +1385,23 @@ Leave the road and the car spins off in a cloud of smoke, losing all its
 speed. The disc plays at the car's speed: the game tells the player to run
 at a quarter, half, normal, or two to five times normal speed, and
 switches between two of those for the speeds in between. As on a real
-LD-V1000, the disc's sound plays only at normal speed.
+LD-V1000, the disc's sound plays only at normal speed, and in a race the
+game switches it off anyway: the music, the crowd and the announcer
+("start your engines") are heard before the race, not during it.
 
 The cabinet had two monitors side by side, with the picture stretched
 across both; laser-vault shows it on one 4:3 screen, with the part of the
-board's display the game draws on (as the Daphne emulator does). The
-cabinet's engine, tyre and crash sounds came from analogue circuits, which
-aren't emulated, so the game is silent but for the disc's own soundtrack.
+board's display the game draws on (as the Daphne emulator does).
+
+The cabinet's own sounds came from analogue circuits on a sound board,
+which nobody has documented or recorded. What the game tells them is
+known, from its code: switches for the engine, the coin chime, the
+starting countdown, the start signal (also the warning that time is
+running out) and the tyres, the engine's revs, and the moments of a gear
+change and a crash. laser-vault makes up sounds of its own from that: an
+engine whose pitch follows the revs, beeps, a squeal, a thump and a crash.
+They're a stand-in for the real thing, not a copy of it
+(`src/games/sega/gpworld_sound.h` describes them).
 
 Its DIP switches (from MAME; a switch on reads as a clear bit):
 

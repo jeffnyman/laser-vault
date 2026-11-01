@@ -195,6 +195,7 @@ target_link_libraries(lv_konami PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 add_library(lv_sega STATIC
     src/games/sega/board.c
     src/games/sega/gpworld.c
+    src/games/sega/gpworld_sound.c
 )
 target_link_libraries(lv_sega PUBLIC lv_cpu lv_ldp lv_roms lv_sound)
 

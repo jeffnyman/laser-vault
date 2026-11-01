@@ -185,7 +185,10 @@ static void mem_write(void *ctx, uint16_t addr, uint8_t v)
     switch (addr) {
     case 0xD800: b->ld_out = v; break;
     case 0xDA02: b->pedal_select = v; break;
-    default: break;  // DA01 and DAxx: the sound circuits
+    case 0xDA20: break;  // start the pedals' converter (done at once)
+    default:
+        if (addr >= 0xDA00 && addr < 0xDB00) gpw_sound_write(&b->sound, b->cycles, addr, v);
+        break;
     }
 }
 
@@ -243,7 +246,25 @@ void gpw_reset(GpwBoard *b, Ldv1000 *player)
     b->next_strobe = STROBE_CYCLES;
     b->irq_end = 0;
     b->overlay_serial++;
+    gpw_sound_free(&b->sound);
+    gpw_sound_init(&b->sound, GPW_CPU_HZ, GPW_SAMPLE_RATE);
     z80_init(&b->cpu, (Z80Bus){.ctx = b, .read = mem_read, .write = mem_write, .in = io_in, .out = io_out});
+}
+
+void gpw_free(GpwBoard *b)
+{
+    gpw_sound_free(&b->sound);
+}
+
+void gpw_start_sound(GpwBoard *b)
+{
+    gpw_sound_set_rendering(&b->sound, true, b->cycles);
+}
+
+int gpw_take_samples(GpwBoard *b, const float **samples)
+{
+    gpw_sound_run(&b->sound, b->cycles);
+    return gpw_sound_take(&b->sound, samples);
 }
 
 void gpw_run(GpwBoard *b, uint64_t cycles)
