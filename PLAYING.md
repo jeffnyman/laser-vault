@@ -1243,10 +1243,11 @@ time).
 
 The game counts the disc's frames itself, by the board's interrupts, and
 checks them against the frame numbers in the target data; if they drift
-apart it stops with "DISC ERROR .... STAY PUT!". The sound board's SP0250
-speech chip plays as in Us vs. Them; M.A.C.H. 3 also uses it for a
-sustained sound, by giving it a frame of shaped noise and letting it run
-on until a silent frame stops it. The high
+apart it stops with "DISC ERROR .... STAY PUT!". The sound board has the same
+SP0250 speech chip as Us vs. Them's, but M.A.C.H. 3 doesn't talk: its
+sound ROM holds no speech. It uses the chip only as a noise maker, giving
+it a frame of filtered noise and letting it run for as long as the sound
+lasts, until a silent frame stops it. The high
 scores are kept in battery-backed memory, which laser-vault doesn't save
 yet (the `ram` folder is ignored).
 
