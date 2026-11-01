@@ -1,4 +1,10 @@
-# LaserVault
+<h1 align="center">
+  <img src="assets/laser-vault-title.png" width="600" height="400" alt="Laser Vault">
+</h1>
+
+<p align="center">
+  ✨ Long live the classics.
+</p>
 
 A small, readable laserdisc arcade game emulator, written from scratch in C11
 with SDL3 and FFmpeg.
@@ -305,6 +311,40 @@ Ideas rather than promises:
 Not planned: Singe games, such as the fan-made versions of Time Gal. They
 aren't original arcade programs but scripts written for the Singe engine,
 with no board to emulate; Hypseus, Singe's home, plays them.
+
+## Author
+
+<p align="center">
+  Made with 🤍 by <a href="https://github.com/jeffnyman">Jeff Nyman</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/C%23-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt="C#">
+</p>
+
+<p align="center">
+  <a href="https://testerstories.com" target="_blank" >
+    <img src="https://img.shields.io/badge/Website-Jeff%20Nyman-000000?style=social&logo=wordpress" alt="Website - Jeff Nyman">
+  </a>
+</p>
+<p align="center">
+  <a href="https://www.linkedin.com/in/jeffnyman/" target="_blank" >
+    <img src="https://img.shields.io/badge/LinkedIn-Jeff%20Nyman-0A66C2?style=social&logo=linkedin" alt="LinkedIn - Jeff Nyman">
+  </a>
+</p>
+
+## Doxazein (δοξάζειν)
+
+<p align="center">
+  חֶסֶד וֶאֱמֶת אַל־יַעַזְבֻךָ קָשְׁרֵם עַל־גַּרְגְּרֹתֶיךָ כָּתְבֵם עַל־לוּחַ לִבֶּךָ
+</p>
+
+<p align="center">
+"Let not mercy and truth forsake thee:<br>
+bind them about thy neck;<br>
+write them upon the table of thine heart."<br>
+<em>Proverbs 3:3</em>
+</p>
 
 ## License
 
