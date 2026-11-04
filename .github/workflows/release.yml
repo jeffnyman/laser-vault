@@ -114,10 +114,11 @@ jobs:
           if-no-files-found: error
 
   # macOS (Apple silicon): SDL3 and FFmpeg from Homebrew, which the package
-  # needs installed too (brew install sdl3 ffmpeg).
+  # needs installed too (brew install sdl3 ffmpeg). The current image, not a
+  # numbered one, which GitHub retires in its turn.
   macos:
     needs: version
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
         with:
